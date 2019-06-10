@@ -1,0 +1,56 @@
+.extIcon {
+    font-size: 18px;
+}
+.extRole{
+    color: #31a324;
+}
+
+.extExits {
+    color: #d81e06;
+}
+
+.extResetPassword {
+    color: #d81e06;
+}
+
+.extDelete {
+    color: #d81e06;
+}
+
+.extAdd {
+    color: #31a324;
+}
+
+.extSave {
+    color: #2ab99c;
+}
+
+.extExcel {
+    color: #2197d8;
+}
+.extClear{
+    color: #d81e06;
+}
+.extCopy2{
+    color: #1aa1c5;
+}
+
+.editColor {
+    color: #31a324;
+}
+.searchColor {
+    color: #6a9afc;
+}
+.whiteColor {
+    color: #ffffff;
+}
+.blackColor {
+    color: #000000;
+}
+
+.fontSize16{
+    font-size: 16px;
+}
+.fontSize14 {
+    font-size: 14px;
+}

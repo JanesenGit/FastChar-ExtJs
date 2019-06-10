@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>接口文档</title>
+    <style>
+        .head {
+            -moz-box-shadow: 0 0 5px #cccccc;
+            -webkit-box-shadow: 0 0 5px #cccccc;
+            box-shadow: 0 0 5px #cccccc;
+            display: flex;
+            position: fixed;
+            z-index: 999;
+            background: white;
+            top: 0;
+            left: 0;
+            width: 100%;
+        }
+
+        .content {
+            border: none;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        #contentFrame {
+            flex: 1;
+            width: 100%;
+            border: none;
+        }
+
+        .tab {
+            flex: 1;
+            text-align: center;
+            cursor: pointer;
+            padding: 10px;
+        }
+
+        .tab:hover {
+            background: #3DB6A4;
+            color: white;
+        }
+
+        .checked {
+            background: #3DB6A4;
+            color: white;
+        }
+    </style>
+    <script>
+        var selectedId = null;
+
+        function selectTab(id, select) {
+            var tab = document.getElementById(id + "Tab");
+            if (select) {
+                if (id == selectedId) {
+                    return;
+                }
+                if (selectedId != null) {
+                    selectTab(selectedId, false);
+                }
+                tab.classList.add("checked");
+                document.getElementById("contentFrame").src = tab.getAttribute("data-url");
+                selectedId = id;
+            } else {
+                tab.classList.remove("checked");
+            }
+        }
+
+    </script>
+</head>
+<body onload="selectTab($first, true)">
+
+<div class="head">
+    #foreach ($d in $docs)
+    <div id="${d.id}Tab" onclick="selectTab($d.id,true);" data-url="$d.url" class="tab">$d.name</div>
+    #end
+</div>
+
+<div class="content">
+    <div style="height: 42px;"></div>
+    <iframe id="contentFrame"></iframe>
+</div>
+</body>
+</html>

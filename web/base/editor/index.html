@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>编辑器</title>
+    <link href="css/bootstrap.css" rel="stylesheet">
+    <script src="../../js/jquery.js"></script>
+    <script src="js/bootstrap.js"></script>
+    <link href="css/summernote.css" rel="stylesheet">
+    <script src="js/summernote.js"></script>
+    <script src="js/summernote-zh-CN.js"></script>
+    <style>
+        .panel {
+            border: 0 !important;
+            border-radius: 0 !important;
+        }
+        .note-editor.note-frame {
+            border: 0 !important;
+        }
+    </style>
+</head>
+<body>
+<div id="summernote"></div>
+<script>
+    var postImageUrl = null;
+    $(function () {
+        $('#summernote').summernote({
+            lang: 'zh-CN',
+            placeholder: '请输入……',
+            dialogsInBody: true,
+            blockquoteBreakingLevel: 1,
+            toolbar: [
+                ['style', ['style']],
+                ['font', ['bold', 'italic', 'strikethrough', 'underline', 'superscript', 'subscript', 'clear']],
+                ['fontsize', ['fontsize', 'fontname', 'height']],
+                ['color', ['forecolor', 'color', 'backcolor']],
+                ['para', ['ul', 'ol', 'hr', 'paragraph']],
+                ['table', ['table']],
+                ['insert', ['link', 'picture', 'video']],
+                ['view', ['undo', 'redo','codeview']]
+            ],
+            onCreateLink: function (link) {
+                return link;
+            },
+            callbacks: {
+                onImageUpload: function(files) {
+                    // upload image to server and create imgNode...
+
+                    var data = new FormData();
+                    for (var i = 0; i < files.length; i++) {
+                        data.append('file_' + i, files[0]);
+                    }
+                    $.ajax(postImageUrl, {
+                        method: 'POST',
+                        data: data,
+                        processData: false,
+                        contentType: false
+                    }).done(function (result) {
+                        var imageElement = document.createElement("img");
+                        imageElement.src = result.data.http + result.data.url;
+                        $('#summernote').summernote('insertNode', imageElement);
+                    });
+                }
+            }
+        });
+        $("#summernote").summernote("fullscreen.toggle");
+
+        if (window.parent.editorLoadDone) {
+            window.parent.editorLoadDone();
+        }
+    });
+
+    function setHtmlValue(val) {
+        $('#summernote').summernote('code', val);
+    }
+    function getHtmlValue() {
+        var value = $('#summernote').summernote('code');
+        return value;
+    }
+
+    //设置上传图片的路径
+    function setPostImageUrl(val) {
+        postImageUrl = val;
+    }
+</script>
+</body>
+</html>

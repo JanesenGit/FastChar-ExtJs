@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport"
+	content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<link rel="stylesheet" media="screen" href="css/style.css">
+<script src="js/particles.min.js"></script>
+<script type="text/javascript">
+	function getUrlParams(name) {
+		var re = new RegExp(name + '=([^&]*)(?:&)?');
+		return window.location.href.match(re) && window.location.href.match(re)[1];
+	}
+
+	function includeCssContent(cssContent) {
+		var oHead = document.getElementsByTagName('HEAD').item(0);
+		var oStyle = document.createElement("style");
+		oStyle.type = "text/css";
+		if (oStyle.styleSheet) {
+			oStyle.styleSheet.cssText = cssContent;
+		} else {
+			oStyle.innerHTML = cssContent;
+		}
+		oHead.appendChild(oStyle);
+	}
+
+	function hexToRgba(hex, opacity) {
+		return "rgba(" + parseInt("0x" + hex.slice(1, 3)) + "," + parseInt("0x" + hex.slice(3, 5)) + "," + parseInt("0x" + hex.slice(5, 7)) + "," + opacity + ")";
+	}
+
+	function onPageLoad() {
+		var bgColor = getUrlParams("bg");
+		bgColor = hexToRgba(bgColor, 0.2);
+		includeCssContent("#particles-js{ width: 100%; height: 100%; background-color: " + bgColor + "; background-image: url(''); background-size: cover; background-position: 50% 50%; background-repeat: no-repeat; }");
+	}
+</script>
+
+</head>
+<body onload="onPageLoad()" style="background-color: #111;width: 100%;height: 100%;overflow: hidden;">
+	<!-- particles.js container -->
+	<div id="particles-js"></div>
+
+	<!-- scripts -->
+</body>
+<script type="text/javascript">
+	particlesJS('particles-js',
+		{
+			"particles" : {
+				"number" : {
+					"value" : 158,
+					"density" : {
+						"enable" : true,
+						"value_area" : 700
+					}
+				},
+				"color" : {
+					"value" : getUrlParams("bg")
+				},
+				"shape" : {
+					"type" : "circle",
+					"polygon" : {
+						"nb_sides" : 5
+					}
+				},
+				"opacity" : {
+					"value" : 1,
+					"random" : true,
+					"anim" : {
+						"enable" : false,
+						"speed" : 1,
+						"opacity_min" : 0.4,
+						"sync" : false
+					}
+				},
+				"size" : {
+					"value" : 8,
+					"random" : true,
+					"anim" : {
+						"enable" : false,
+						"speed" : 10,
+						"size_min" : 1,
+						"sync" : false
+					}
+				},
+				"line_linked" : {
+					"enable" : true,
+					"distance" : 120,
+					"color" : getUrlParams("bg"),
+					"opacity" : 1,
+					"width" : 1
+				},
+				"move" : {
+					"enable" : true,
+					"speed" : 2,
+					"direction" : "none",
+					"random" : true,
+					"straight" : false,
+					"out_mode" : "bounce",
+					"bounce" : false,
+					"attract" : {
+						"enable" : false,
+						"rotateX" : 3000,
+						"rotateY" : 1500
+					}
+				}
+			},
+			"interactivity" : {
+				"detect_on" : "canvas",
+				"events" : {
+					"onhover" : {
+						"enable" : true,
+						"mode" : "grab"
+					},
+					"onclick" : {
+						"enable" : true,
+						"mode" : "push"
+					},
+					"resize" : true
+				},
+				"modes" : {
+					"grab" : {
+						"distance" : 180,
+						"line_linked" : {
+							"opacity" : 1
+						}
+					},
+					"bubble" : {
+						"distance" : 600,
+						"size" : 60,
+						"duration" : 2,
+						"opacity" : 8,
+						"speed" : 3
+					},
+					"repulse" : {
+						"distance" : 100,
+						"duration" : 0.4
+					},
+					"push" : {
+						"particles_nb" : 4
+					},
+					"remove" : {
+						"particles_nb" : 2
+					}
+				}
+			},
+			"retina_detect" : true
+		});
+</script>
+</html>
