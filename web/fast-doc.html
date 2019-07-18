@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<!--suppress ALL -->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>API接口文档-${projectName}</title>
+    <link rel="icon" href="${logo}" type="image/png"/>
+    <style>
+        blockquote {
+            background: #f9f9f9 !important;
+            border-left: 5px solid #ea800f !important;
+            margin-top: 10px;
+            padding: 10px;
+            color: #797979 !important;
+        }
+
+        ::-webkit-input-placeholder { /* WebKit browsers */
+            color: #bababa;
+            font-size: 16px;
+        }
+
+        ::-moz-placeholder { /* Mozilla Firefox 19+ */
+            color: #bababa;
+            font-size: 16px;
+        }
+
+        :-ms-input-placeholder { /* Internet Explorer 10+ */
+            color: #bababa;
+            font-size: 16px;
+        }
+
+        .head {
+            -moz-box-shadow: 0 0 5px #cccccc;
+            -webkit-box-shadow: 0 0 5px #cccccc;
+            box-shadow: 0 0 5px #cccccc;
+            display: flex;
+            position: fixed;
+            z-index: 999;
+            background: white;
+            top: 0;
+            left: 0;
+            width: 100%;
+        }
+
+        .content {
+            border: none;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        #contentFrame {
+            flex: 1;
+            width: 100%;
+            border: none;
+        }
+
+        .tab {
+            flex: 1;
+            text-align: center;
+            cursor: pointer;
+            padding: 10px;
+        }
+
+        .tab:hover {
+            background: ${themeColor};
+            color: white;
+        }
+
+        .checked {
+            background: ${themeColor};
+            color: white;
+        }
+    </style>
+    <script>
+        var selectedId = null;
+
+        function selectTab(id, select) {
+            var tab = document.getElementById(id + "Tab");
+            if (select) {
+                if (id == selectedId) {
+                    return;
+                }
+                if (selectedId != null) {
+                    selectTab(selectedId, false);
+                }
+                tab.classList.add("checked");
+                document.getElementById("contentFrame").src = tab.getAttribute("data-url");
+                document.getElementById("contentFrame").onload = function () {
+                    setFrameStyle();
+                };
+                selectedId = id;
+            } else {
+                tab.classList.remove("checked");
+            }
+        }
+
+        function setFrameStyle() {
+            var childDocument = document.getElementById("contentFrame").contentWindow.document;
+            var oHead = childDocument.getElementsByTagName('head').item(0);
+            var oStyle = childDocument.createElement("style");
+            oStyle.type = "text/css";
+            var styleText = "blockquote {\n" +
+                " background: #f9f9f9 !important;\n" +
+                " border-left: 5px solid #ea800f !important;\n" +
+                " color: #797979 !important;\n" +
+                " }.checked {\n" +
+                "  border-top: 5px solid ${themeColor} !important;" +
+                " }.selected {\n" +
+                "  border-left: 5px solid ${themeColor} !important;" +
+                " background: #eeeeee !important;" +
+                "}li:hover {\n" +
+                "  border-left: 5px solid ${themeColor} !important;" +
+                "  background: #eeeeee !important;" +
+                " } .menu::-webkit-scrollbar-thumb {\n" +
+                " background: ${themeColor} !important;\n" +
+                "}";
+            if (oStyle.styleSheet) {
+                oStyle.styleSheet.cssText = styleText;
+            } else {
+                oStyle.innerHTML = styleText;
+            }
+            oHead.appendChild(oStyle);
+        }
+
+    </script>
+</head>
+<body onload="selectTab($first, true)">
+
+<div class="head">
+    #foreach ($d in $docs)
+    <div id="${d.id}Tab" onclick="selectTab($d.id,true);" data-url="$d.url" class="tab">$d.name</div>
+    #end
+</div>
+
+<div class="content">
+    <div style="height: 42px;"></div>
+    <iframe id="contentFrame"></iframe>
+</div>
+</body>
+</html>

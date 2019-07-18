@@ -5,7 +5,9 @@ import com.fastchar.core.FastChar;
 import com.fastchar.core.FastEntity;
 import com.fastchar.core.FastFile;
 import com.fastchar.database.FastPage;
+import com.fastchar.database.info.FastColumnInfo;
 import com.fastchar.database.info.FastSqlInfo;
+import com.fastchar.database.sql.FastSql;
 import com.fastchar.extjs.FastExtConfig;
 import com.fastchar.extjs.annotation.AFastLog;
 import com.fastchar.extjs.annotation.AFastSession;
@@ -38,7 +40,6 @@ public class ExtEntityAction extends FastAction {
 
     /**
      * 获取数据
-     *
      * @return
      */
     public FastPage list() {
@@ -83,7 +84,7 @@ public class ExtEntityAction extends FastAction {
     /**
      * 保存数据
      */
-    @AFastLog(value = "页面【${menu}】进行添加数据！", type = "添加数据")
+    @AFastLog(value = "页面【${menu}】添加了一条数据！", type = "添加数据")
     public void save() {
         String entityCode = getParam("entityCode", true);
         setRequestAttr("menu", getParam("menu"));
@@ -122,12 +123,28 @@ public class ExtEntityAction extends FastAction {
             responseJson(-1, "EntityCode不存在！" + entityCode);
             return;
         }
-        List<? extends FastExtEntity> entity = getParamToEntityList("data", extEntityClass);
-        for (FastEntity fastEntity : entity) {
-            fastEntity.put("fromWeb", true);
-            fastEntity.delete();
+        boolean all = getParamToBoolean("all", false);
+        if (all) {
+            FastExtEntity extEntity = FastClassUtils.newInstance(extEntityClass);
+            if (extEntity != null) {
+                Map<String, Object> where = getParamToMap("where");
+                extEntity.putAll(where);
+                String sqlStr = "delete from " + extEntity.getTableName();
+                FastSqlInfo sqlInfo = extEntity.getSql().appendWhere(sqlStr, extEntity);
+                if (FastChar.getDb().update(sqlInfo.getSql(), sqlInfo.toParams()) > 0) {
+                    responseJson(0, "删除成功！");
+                }
+            }
+
+        }else{
+            List<? extends FastExtEntity> entity = getParamToEntityList("data", extEntityClass);
+            for (FastEntity fastEntity : entity) {
+                fastEntity.put("fromWeb", true);
+                fastEntity.delete();
+            }
+            responseJson(0, "删除成功！", entity);
         }
-        responseJson(0, "删除成功！", entity);
+        responseJson(-1, "删除失败！");
     }
 
 
@@ -150,6 +167,29 @@ public class ExtEntityAction extends FastAction {
         }
         responseJson(0, "修改成功！", entity);
     }
+
+
+    /**
+     * 复制数据
+     */
+    @AFastLog(value = "页面【${menu}】进行复制数据！", type = "复制数据")
+    public void copy() {
+        String entityCode = getParam("entityCode", true);
+        setRequestAttr("menu", getParam("menu"));
+        Class<? extends FastExtEntity> extEntityClass = FastExtConfig.getInstance().getExtEntities().getExtEntity(entityCode);
+        if (extEntityClass == null) {
+            responseJson(-1, "EntityCode不存在！" + entityCode);
+            return;
+        }
+        List<? extends FastExtEntity> entity = getParamToEntityList("data", extEntityClass);
+        for (FastEntity fastEntity : entity) {
+            fastEntity.put("fromWeb", true);
+            fastEntity.copySave();
+        }
+        responseJson(0, "数据复制成功！");
+    }
+
+
 
 
     /**
@@ -510,21 +550,29 @@ public class ExtEntityAction extends FastAction {
     }
 
     private Object getCellValue(Workbook workbook, Cell cell) {
-        CellType cellType = cell.getCellType();
-        if (cellType == CellType.BLANK || cellType == CellType.STRING) {
-            return cell.getStringCellValue();
-        } else if (cellType == CellType.NUMERIC) {
-            if (DateUtil.isCellDateFormatted(cell)) {
-                return FastDateUtils.format(cell.getDateCellValue(), FastChar.getConstant().getDateFormat());
-            } else {
-                return cell.getNumericCellValue();
+        try {
+            if (workbook == null) {
+                return null;
             }
-        } else if (cellType == CellType.BOOLEAN) {
-            return cell.getBooleanCellValue();
-        } else if (cellType == CellType.FORMULA) {
-            FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
-            return evaluator.evaluate(cell).getStringValue();
-        }
+            if (cell == null) {
+                return null;
+            }
+            CellType cellType = cell.getCellType();
+            if (cellType == CellType.BLANK || cellType == CellType.STRING) {
+                return cell.getStringCellValue();
+            } else if (cellType == CellType.NUMERIC) {
+                if (DateUtil.isCellDateFormatted(cell)) {
+                    return FastDateUtils.format(cell.getDateCellValue(), FastChar.getConstant().getDateFormat());
+                } else {
+                    return cell.getNumericCellValue();
+                }
+            } else if (cellType == CellType.BOOLEAN) {
+                return cell.getBooleanCellValue();
+            } else if (cellType == CellType.FORMULA) {
+                FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
+                return evaluator.evaluate(cell).getStringValue();
+            }
+        } catch (Exception ignored) {}
         return null;
     }
 }

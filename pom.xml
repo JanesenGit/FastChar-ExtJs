@@ -6,7 +6,7 @@
 
     <groupId>com.fastchar</groupId>
     <artifactId>fastchar-extjs</artifactId>
-    <version>1.0</version>
+    <version>1.0.2</version>
     <build>
         <plugins>
             <plugin>
@@ -96,8 +96,8 @@
     </developers>
 
     <scm>
-        <url>https://github.com/JanesenGit/FastChar.git</url>
-        <connection>https://github.com/JanesenGit/FastChar.git</connection>
+        <url>https://github.com/JanesenGit/FastChar-ExtJs.git</url>
+        <connection>https://github.com/JanesenGit/FastChar-ExtJs.git</connection>
         <developerConnection>http://www.fastchar.com</developerConnection>
     </scm>
 
@@ -250,7 +250,7 @@
         <dependency>
             <groupId>com.yahoo.platform.yui</groupId>
             <artifactId>yuicompressor</artifactId>
-            <version>2.4.7</version>
+            <version>2.4.8</version>
             <scope>compile</scope>
         </dependency>
 

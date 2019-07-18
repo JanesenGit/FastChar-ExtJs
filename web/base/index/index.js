@@ -1,4 +1,4 @@
-var system = {
+let system = {
     currTabId: -1,
     currTab: null,
     dateFormat: 'Y-m-d H:i:s',
@@ -15,13 +15,14 @@ var system = {
         return this.formatUrlVersion(this.http + url, params);
     },
     formatUrlVersion: function (url, params) {
-        var newUrl = url;
+        let newUrl = url;
         if (url.indexOf("?") > 0) {
             newUrl = url + "&v=" + this.version.value;
+        }else{
+            newUrl = url + "?v=" + this.version.value;
         }
-        newUrl = url + "?v=" + this.version.value;
         if (params) {
-            for (var key in params) {
+            for (let key in params) {
                 if (params.hasOwnProperty(key)) {
                     newUrl = newUrl + "&" + key + "=" + params[key];
                 }
@@ -29,9 +30,18 @@ var system = {
         }
         return newUrl;
     },
+    isSuperRole: function () {
+        let me = this;
+        if (me.manager&&me.manager.role) {
+            if (me.manager.role.roleType == 0) {//拥有最大权限
+                return true;
+            }
+        }
+        return false;
+    },
     initConfig: function () {
-        var me = this;
-        var params = {};
+        let me = this;
+        let params = {};
         if (isPower()) {
             if (window.parent && Ext.isFunction(window.parent.getMenuPower)) {
                 params = {menuPower: window.parent.getMenuPower()};
@@ -41,15 +51,15 @@ var system = {
             url: 'showConfig',
             params: params,
             success: function (response, opts) {
-                var data = jsonToObject(response.responseText).data;
-                for (var key in data) {
+                let data = jsonToObject(response.responseText).data;
+                for (let key in data) {
                     if (data.hasOwnProperty(key)) {
                         me[key] = data[key];
                     }
                 }
-                var allExt = getAllExt();
-                for (var i = 0; i < allExt.length; i++) {
-                    var head = allExt[i];
+                let allExt = getAllExt();
+                for (let i = 0; i < allExt.length; i++) {
+                    let head = allExt[i];
                     me[head.name] = head;
                 }
                 me.loadAppJs();
@@ -60,13 +70,13 @@ var system = {
         });
     },
     loadAppJs: function (index) {
-        var me = this;
+        let me = this;
         if (index == null) {
             index = 0;
         }
         if (index >= me.app.length) {
             Ext.MessageBox.updateProgress(1, '已加载成功，正在显示中');
-            addScript({src: me.formatUrlVersion('base/welcome/welcome.js')}, function () {
+            addScript({src: me.formatUrlVersion(getExt("welcomeUrl").value)}, function () {
                 addStyle({text: me.menusCss}, function () {
                     me.globalConfig();
                 });
@@ -79,16 +89,16 @@ var system = {
         });
     },
     globalConfig: function () {
-        var me = this;
+        let me = this;
 
         //配置entity实体类基本属性
-        var entities = me.entities;
-        for (var i = 0; i < entities.length; i++) {
-            var entity = entities[i];
-            for (var key in entity) {
+        let entities = me.entities;
+        for (let i = 0; i < entities.length; i++) {
+            let entity = entities[i];
+            for (let key in entity) {
                 if (entity.hasOwnProperty(key)) {
                     try {
-                        var pro = eval(entity.entityCode + ".prototype");
+                        let pro = eval(entity.entityCode + ".prototype");
                         pro[key] = entity[key];
                         entity.js = true;
                     } catch (e) {
@@ -131,7 +141,7 @@ var system = {
                         me.success = null;
                     } else {
                         try {
-                            var jsonData = eval("(" + response.responseText + ")");
+                            let jsonData = eval("(" + response.responseText + ")");
                             if (jsonData.code == 203) {
                                 me.sessionOut();
                             }
@@ -166,7 +176,7 @@ var system = {
                     me.sessionOut();
                 } else {
                     try {
-                        var jsonData = eval("(" + xhr.responseText + ")");
+                        let jsonData = eval("(" + xhr.responseText + ")");
                         if (jsonData.code == 203) {
                             me.sessionOut();
                         }
@@ -189,19 +199,19 @@ var system = {
     },
     initSystem: function () {
         removeLoading();
-        var me = this;
-        var container = getBodyContainer();
+        let me = this;
+        let container = getBodyContainer();
         container.removeAll();
 
-        var systemBgColor = toColor(me["theme-color"].value);
-        var systemTlColor = toColor(me["front-color"].value);
-        var systemLogo = me["system-logo"].value;
-        var versionName = me["version"].desc;
-        var systemTitle = $("title").text() + versionName;
+        let systemBgColor = toColor(me["theme-color"].value);
+        let systemTlColor = toColor(me["front-color"].value);
+        let systemLogo = me["system-logo"].value;
+        let versionName = me["version"].desc;
+        let systemTitle = $("title").text() + versionName;
         if (Ext.isEmpty(systemLogo)) {
             systemLogo = "icons/icon_head_system.svg";
         }
-        var headerInfo = Ext.create('Ext.toolbar.Toolbar', {
+        let headerInfo = Ext.create('Ext.toolbar.Toolbar', {
             height: 60,
             padding: '0 0 0 0',
             border: 0,
@@ -258,7 +268,7 @@ var system = {
                 }]
         });
 
-        var headerTip = Ext.create('Ext.toolbar.Toolbar', {
+        let headerTip = Ext.create('Ext.toolbar.Toolbar', {
             border: 0,
             padding: '0 0 0 0',
             style: {
@@ -267,7 +277,7 @@ var system = {
             html: "<div class=\"progress\" id=\"progress\"></div>"
         });
 
-        var headerPanel = Ext.create('Ext.panel.Panel', {
+        let headerPanel = Ext.create('Ext.panel.Panel', {
             layout: 'absolute',
             region: 'north',
             height: 60,
@@ -275,8 +285,8 @@ var system = {
             hidden: power.config,
             items: [headerInfo, headerTip]
         });
-        var leftTreeWidth = 200;
-        var leftTreePanel = Ext.create('Ext.panel.Panel', {
+        let leftTreeWidth = 200;
+        let leftTreePanel = Ext.create('Ext.panel.Panel', {
             border: 0,
             region: 'center',
             cls: 'treelist-with-nav',
@@ -304,7 +314,7 @@ var system = {
                         formulas: {
                             selectionItem: function (get) {
                                 try {
-                                    var selection = get('treelist.selection');
+                                    let selection = get('treelist.selection');
                                     if (selection) {
                                         if (selection.data.leaf) {
                                             me.showTab(selection.data.method,
@@ -323,9 +333,9 @@ var system = {
                 }],
             listeners: {
                 resize: function (obj, width, height, oldWidth, oldHeight, eOpts) {
-                    var pressed = width <= 128;
-                    var treelist = Ext.getCmp("leftTreeList");
-                    var ct = treelist.ownerCt.ownerCt;
+                    let pressed = width <= 128;
+                    let treelist = Ext.getCmp("leftTreeList");
+                    let ct = treelist.ownerCt.ownerCt;
                     treelist.setMicro(pressed);
                     if (pressed) {
                         ct.setWidth(44);
@@ -336,7 +346,7 @@ var system = {
             }
         });
 
-        var rightPanel = Ext.create('Ext.tab.Panel', {
+        let rightPanel = Ext.create('Ext.tab.Panel', {
             region: 'center',
             id: 'tabs',
             plain: true,
@@ -344,12 +354,15 @@ var system = {
                 marginTop: '-8px'
             },
             items: [],
+            recordTab: function () {
+                system.recordTab();
+            },
             plugins: ['tabreorderer', {
                 ptype: 'tabclosemenu'
             }]
         });
 
-        var rightContainer = Ext.create('Ext.panel.Panel', {
+        let rightContainer = Ext.create('Ext.panel.Panel', {
             layout: 'border',
             region: 'center',
             border: 0,
@@ -360,7 +373,7 @@ var system = {
         });
 
 
-        var leftContainer = Ext.create('Ext.panel.Panel', {
+        let leftContainer = Ext.create('Ext.panel.Panel', {
             layout: 'border',
             region: 'west',
             border: 0,
@@ -408,8 +421,10 @@ var system = {
             xtype: 'panel',
             id: 'tabWelcome',
             reorderable: false,
+            closable: false,
             layout: 'fit',
             iconCls: 'extIcon extIndex',
+            justFixed: true,
             items: [getWelcomePanel()],
             listeners: {
                 activate: function (tab) {
@@ -425,7 +440,7 @@ var system = {
             }
         });
 
-        var containerPanel = Ext.create('Ext.panel.Panel', {
+        let containerPanel = Ext.create('Ext.panel.Panel', {
             layout: 'border',
             border: 0,
             bodyStyle: {
@@ -436,9 +451,9 @@ var system = {
         container.add(containerPanel);
         Ext.MessageBox.updateProgress(1, '即将完成操作，请耐心等待', '系统初始化成功！获取菜单中…');
         me.restoreTab().then(function (value) {
-            var tabs = jsonToObject(value);
+            let tabs = jsonToObject(value);
             Ext.each(tabs, function (tab) {
-                me.showTab(tab.method, tab.id, tab.title, tab.icon, tab.active, true, tab.where);
+                me.showTab(tab.method, tab.id, tab.title, tab.icon, tab.active, true, tab.where, tab.closable, tab.reorderable);
             });
             if (Ext.MessageBox.isVisible()) {
                 Ext.MessageBox.hide();
@@ -448,7 +463,7 @@ var system = {
     asyncMethod: function (method) {
         return new Ext.Promise(function (resolve, reject) {
             try {
-                var itemValue = eval(method);
+                let itemValue = eval(method);
                 resolve(itemValue);
             } catch (e) {
                 resolve(null);
@@ -456,8 +471,8 @@ var system = {
             }
         });
     },
-    showTab: function (method, tabId, title, icon, activate, moveFirst, where) {
-        var me = this;
+    showTab: function (method, tabId, title, icon, activate, moveFirst, where, closable, reorderable) {
+        let me = this;
         if (me.currTab && tabId == me.currTab.getId()) return;
         if (icon == null || icon.length == 0) icon = server.getIcon("icon_function.svg");
         if (Ext.isEmpty(moveFirst)) {
@@ -466,7 +481,7 @@ var system = {
         if (Ext.isEmpty(activate)) {
             activate = true;
         }
-        var tabs = Ext.getCmp("tabs");
+        let tabs = Ext.getCmp("tabs");
         me.currTab = Ext.getCmp(tabId);
         if (me.currTab == null) {
             me.currTab = tabs.add({
@@ -477,12 +492,34 @@ var system = {
                 layout: 'fit',
                 title: title,
                 border: 0,
-                closable: close,
+                closable: toBool(closable, true),
+                reorderable:toBool(reorderable, true),
                 methodInvoked: false,
                 method: method,
                 where: where,
                 items: [],
                 tabBtnId: null,
+                doFixed: function () {
+                    let me = this;
+
+                    me.tab.setClosable(!me.tab.closable);
+                    if (!me.tab.closable) {
+                        let cmp = system.findLastTag();
+                        if (cmp) {
+                            tabs.moveAfter(me, cmp);
+                        }
+                        me.tab.reorderable = !me.tab.reorderable;
+                    }else{
+                        me.tab.reorderable = !me.tab.reorderable;
+                        let cmp = system.findLastTag();
+                        if (cmp) {
+                            tabs.moveAfter(me, cmp);
+                        }
+                    }
+                    if (Ext.isFunction(tabs.recordTab)) {
+                        tabs.recordTab();
+                    }
+                },
                 listeners: {
                     activate: function (tab) {
                         if (me.existMenu(tab.id)) {
@@ -494,7 +531,7 @@ var system = {
                                     return;
                                 }
                                 tab.methodInvoked = true;
-                                var entityOwner = obj.down("[entityList=true]");
+                                let entityOwner = obj.down("[entityList=true]");
                                 if (entityOwner) {
                                     entityOwner.where = mergeJson(tab.where, entityOwner.where);
                                     entityOwner.code = $.md5(tabId);
@@ -507,10 +544,12 @@ var system = {
                     afterlayout: function (obj, container, pos) {
                         try {
                             Ext.get(this.tabBtnId).dom.ondblclick = function () {
-                                var currShowTabId = me.currTab.getId();
+                                let currShowTabId = me.currTab.getId();
                                 tabs.items.each(function (obj, index) {
                                     if (index != 0 && obj.id == currShowTabId) {
-                                        obj.close();
+                                        if (obj.closable) {
+                                            obj.close();
+                                        }
                                     }
                                 });
                             }
@@ -529,19 +568,34 @@ var system = {
         if (activate) {
             if (!tabs.getActiveTab() || tabs.getActiveTab() != me.currTab) {
                 if (moveFirst) {
-                    Ext.getCmp("tabs").moveAfter(me.currTab, Ext.getCmp("tabWelcome"));
+                    let cmp = me.findLastTag();
+                    if (cmp) {
+                        Ext.getCmp("tabs").moveAfter(me.currTab, cmp);
+                    }
                 }
                 tabs.setActiveTab(me.currTab);
             }
         }
     },
+    findLastTag: function () {
+        let tabs = Ext.getCmp("tabs");
+        for (let i = tabs.items.items.length - 1; i >= 0; i--) {
+            let item = tabs.items.items[i];
+            if (item) {
+                if (!toBool(item.tab.closable, true) && !toBool(item.tab.reorderable, true)) {
+                    return item;
+                }
+            }
+        }
+        return null;
+    },
     recordTab: function () {
         return new Ext.Promise(function (resolve, reject) {
             try {
-                var tabArray = [];
-                var tabs = Ext.getCmp("tabs");
+                let tabArray = [];
+                let tabs = Ext.getCmp("tabs");
                 tabs.items.each(function (item, index) {
-                    var tab = {};
+                    let tab = {};
                     if (Ext.isEmpty(item.method)) {
                         return;
                     }
@@ -550,6 +604,8 @@ var system = {
                     tab.title = item.title;
                     tab.icon = item.icon;
                     tab.id = item.id;
+                    tab.closable = item.closable;
+                    tab.reorderable = item.reorderable;
                     tab.active = item == tabs.getActiveTab();
                     tabArray.push(tab);
                 });
@@ -575,17 +631,17 @@ var system = {
     },
     selectMenu: function (menuId, justParent) {
         try {
-            var me = this;
+            let me = this;
             if (Ext.isEmpty(justParent)) {
                 justParent = false;
             }
-            var treelist = Ext.getCmp("leftTreeList");
-            var record = treelist.getStore().getNodeById(menuId);
+            let treelist = Ext.getCmp("leftTreeList");
+            let record = treelist.getStore().getNodeById(menuId);
             if (record == null) return;
-            var parentId = record.get("parentId");
+            let parentId = record.get("parentId");
 
             if (!Ext.isEmpty(parentId)) {
-                var parent = treelist.getStore().getNodeById(parentId);
+                let parent = treelist.getStore().getNodeById(parentId);
                 if (justParent) {
                     treelist.setSelection(parent);
                     parent.collapse();
@@ -605,14 +661,14 @@ var system = {
 
     },
     existMenu: function (menuId) {
-        var treelist = Ext.getCmp("leftTreeList");
-        var record = treelist.getStore().getNodeById(menuId);
+        let treelist = Ext.getCmp("leftTreeList");
+        let record = treelist.getStore().getNodeById(menuId);
         return record != null;
 
     },
     getMenu: function (menuId) {
-        var treelist = Ext.getCmp("leftTreeList");
-        var record = treelist.getStore().getNodeById(menuId);
+        let treelist = Ext.getCmp("leftTreeList");
+        let record = treelist.getStore().getNodeById(menuId);
         if (record) {
             return record.data;
         }
@@ -626,12 +682,12 @@ var system = {
         });
     },
     sessionOut: function () {
-        var me = this;
+        let me = this;
         if (me.sessionOutAlert) {
             return;
         }
         me.sessionOutAlert = true;
-        var win = Ext.create('Ext.window.Window', {
+        let win = Ext.create('Ext.window.Window', {
             title: '系统提醒',
             height: 150,
             width: 250,
@@ -667,8 +723,8 @@ var system = {
         win.show();
     },
     modifyPassword: function (obj) {
-        var me = this;
-        var loginPanel = Ext.create('Ext.form.FormPanel', {
+        let me = this;
+        let loginPanel = Ext.create('Ext.form.FormPanel', {
             url: 'manager/modifyPassword',
             method: 'POST',
             fileUpload: true,
@@ -745,8 +801,8 @@ var system = {
             }
         });
 
-        var doSubmit = function () {
-            var form = loginPanel.form;
+        let doSubmit = function () {
+            let form = loginPanel.form;
             if (form.isValid()) {
                 form.submit({
                     waitMsg: '正在修改中……',
@@ -767,7 +823,7 @@ var system = {
         };
 
 
-        var win = Ext.create('Ext.window.Window', {
+        let win = Ext.create('Ext.window.Window', {
             title: '修改登录密码',
             height: 250,
             icon:obj.icon,
@@ -784,10 +840,10 @@ var system = {
         win.show();
     },
     getEntity: function (entityCode) {
-        var me = this;
-        var entities = me.entities;
-        for (var i = 0; i < entities.length; i++) {
-            var entity = entities[i];
+        let me = this;
+        let entities = me.entities;
+        for (let i = 0; i < entities.length; i++) {
+            let entity = entities[i];
             if (entity.entityCode == entityCode) {
                 return entity;
             }
@@ -796,7 +852,7 @@ var system = {
     },
     showPowerMenus: function (obj, checked) {
         return new Ext.Promise(function (resolve, reject) {
-            var dataStore = Ext.create('Ext.data.TreeStore', {
+            let dataStore = Ext.create('Ext.data.TreeStore', {
                 proxy: {
                     type: 'ajax',
                     url: 'showPowerMenus',
@@ -808,7 +864,7 @@ var system = {
                     },
                     listeners: {
                         exception: function (obj, request, operation, eOpts) {
-                            var data = eval("(" + request.responseText + ")");
+                            let data = eval("(" + request.responseText + ")");
                             if (!data.success) {
                                 Ext.Msg.alert('数据获取失败', data.message);
                             }
@@ -833,7 +889,7 @@ var system = {
                 }
             });
 
-            var treePanel = Ext.create('Ext.tree.Panel', {
+            let treePanel = Ext.create('Ext.tree.Panel', {
                 store: dataStore,
                 rootVisible: false,
                 bufferedRenderer: false,
@@ -865,7 +921,7 @@ var system = {
                 }
             });
 
-            var win = Ext.create('Ext.window.Window', {
+            let win = Ext.create('Ext.window.Window', {
                 title: '权限配置（选择功能菜单）',
                 width: 400,
                 height: 470,
@@ -888,8 +944,8 @@ var system = {
                         text: '确定',
                         iconCls: 'extIcon extOk',
                         handler: function () {
-                            var checkedArray = treePanel.getChecked();
-                            var menuIds = "";
+                            let checkedArray = treePanel.getChecked();
+                            let menuIds = "";
                             for (i = 0; i < checkedArray.length; i++) {
                                 menuIds += "," + checkedArray[i].data.id;
                             }
@@ -912,7 +968,7 @@ var system = {
             window["close"] = function () {
                 Ext.getCmp("ExtPowerWindow").close();
             };
-            var win = Ext.create('Ext.window.Window', {
+            let win = Ext.create('Ext.window.Window', {
                 title: '配置界面权限（在组件上右击鼠标进行编辑权限）',
                 id: "ExtPowerWindow",
                 iconCls: 'extIcon extPower',
@@ -941,7 +997,7 @@ var system = {
     },
     showMenuColumns: function (obj, checked) {
         return new Ext.Promise(function (resolve, reject) {
-            var dataStore = Ext.create('Ext.data.TreeStore', {
+            let dataStore = Ext.create('Ext.data.TreeStore', {
                 proxy: {
                     type: 'ajax',
                     url: 'showMenuColumn',
@@ -953,7 +1009,7 @@ var system = {
                     },
                     listeners: {
                         exception: function (obj, request, operation, eOpts) {
-                            var data = eval("(" + request.responseText + ")");
+                            let data = eval("(" + request.responseText + ")");
                             if (!data.success) {
                                 Ext.Msg.alert('数据获取失败', data.message);
                             }
@@ -978,7 +1034,7 @@ var system = {
                 }
             });
 
-            var treePanel = Ext.create('Ext.tree.Panel', {
+            let treePanel = Ext.create('Ext.tree.Panel', {
                 store: dataStore,
                 rootVisible: false,
                 bufferedRenderer: false,
@@ -1011,7 +1067,7 @@ var system = {
                 }
             });
 
-            var win = Ext.create('Ext.window.Window', {
+            let win = Ext.create('Ext.window.Window', {
                 title: '搜索链配置',
                 width: 400,
                 height: 470,
@@ -1034,20 +1090,20 @@ var system = {
                         text: '确定',
                         iconCls:'extIcon extOk',
                         handler: function () {
-                            var checkeds = treePanel.getChecked();
-                            var treeData = [];
-                            var menuIds = "";
+                            let checkeds = treePanel.getChecked();
+                            let treeData = [];
+                            let menuIds = "";
                             for (i = 0; i < checkeds.length; i++) {
                                 if (checkeds[i].isLeaf()) {
-                                    var data = {};
-                                    var parent = {};
+                                    let data = {};
+                                    let parent = {};
 
                                     data.text = checkeds[i].data.text;
                                     data.id = checkeds[i].data.id;
                                     data.dataIndex = checkeds[i].data.dataIndex;
                                     data.parentId = checkeds[i].data.parentId;
 
-                                    var parentData = treePanel.getStore().findRecord("id", data.parentId).data;
+                                    let parentData = treePanel.getStore().findRecord("id", data.parentId).data;
                                     parent.text = parentData.text;
                                     parent.id = parentData.id;
                                     parent.method = parentData.method;
@@ -1070,7 +1126,7 @@ var system = {
 
 
 function showList(menuId, entityCode, where) {
-    var entity = system.getEntity(entityCode);
+    let entity = system.getEntity(entityCode);
     if (entity == null) {
         throw "操作失败！未获取到 '" + entityCode + "' 实体类！";
     }
@@ -1080,7 +1136,7 @@ function showList(menuId, entityCode, where) {
     if (!where) {
         where = {};
     }
-    var entityJsObj = eval("new " + entityCode + "()");
+    let entityJsObj = eval("new " + entityCode + "()");
     entityJsObj.menu = system.getMenu(menuId);
     return entityJsObj.getList(where);
 }

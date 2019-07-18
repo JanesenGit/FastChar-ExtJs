@@ -42,6 +42,9 @@
 	line-height: 50px !important;
 }
 
+.x-tab-default .x-tab-close-btn{
+    height:15px !important;
+}
 
 .x-btn-icon-el-default-toolbar-small, .x-btn-icon-el-default-small {
 	width: 20px !important;

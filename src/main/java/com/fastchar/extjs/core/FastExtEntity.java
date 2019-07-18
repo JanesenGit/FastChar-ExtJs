@@ -12,6 +12,8 @@ import com.fastchar.extjs.entity.ExtManagerRoleEntity;
 
 public abstract class FastExtEntity<E extends FastEntity> extends FastEntity<E> {
 
+    private static final long serialVersionUID = 3922925004072340430L;
+
     /**
      * 获得关联的表格名称
      */

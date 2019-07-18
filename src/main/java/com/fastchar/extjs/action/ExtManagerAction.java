@@ -48,12 +48,11 @@ public class ExtManagerAction extends FastAction {
         if (managerEntity != null) {
             setRequestAttr("managerName", managerEntity.getString("managerName"));
             setSession("manager", managerEntity);
-
             payErrorEntity.delete("managerLoginName");
+
             responseJson(0, "登录成功！");
         } else {
             payErrorEntity.save();
-
             responseJson(-2, "登录失败，用户名或密码错误！" + errorInfo);
         }
     }

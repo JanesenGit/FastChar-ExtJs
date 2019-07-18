@@ -1,3 +1,4 @@
+
 /**
  * 提交entity store 修改的数据
  */
@@ -66,7 +67,11 @@ function commitStoreDelete(store, data) {
             resolve(success);
             if (success) {
                 toast('删除成功!');
-                store.loadPage(1);
+                var reloadPage = store.currentPage;
+                if (store.count() - data.length <= 0) {
+                    reloadPage = reloadPage - 1;
+                }
+                store.loadPage(Math.max(reloadPage, 1));
             } else {
                 Ext.Msg.alert('系统提醒', message);
             }
@@ -74,6 +79,41 @@ function commitStoreDelete(store, data) {
     });
 }
 
+
+/**
+ * 提交复制entity store选择的数据
+ */
+function commitStoreCopy(store, data) {
+    return new Ext.Promise(function (resolve, reject) {
+        if (!store.entity) {
+            return;
+        }
+        var params = {"entityCode": store.entity.entityCode};
+        if (store.entity.menu) {
+            params["menu"] = store.entity.menu.text;
+        }
+        for (var i = 0; i < data.length; i++) {
+            var record = data[i];
+            for (var j = 0; j < store.entity.idProperty.length; j++) {
+                var idName = store.entity.idProperty[j];
+                params['data[' + i + '].' + idName] = record.get(idName);
+            }
+        }
+        server.copyEntity(params, function (success, message) {
+            resolve(success);
+            if (success) {
+                toast('复制成功!');
+                var reloadPage = store.currentPage;
+                if (store.count() - data.length <= 0) {
+                    reloadPage = reloadPage - 1;
+                }
+                store.loadPage(Math.max(reloadPage, 1));
+            } else {
+                Ext.Msg.alert('系统提醒', message);
+            }
+        });
+    });
+}
 
 
 

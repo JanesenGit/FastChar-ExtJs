@@ -112,7 +112,7 @@ function refreshColumnStyle(column) {
         if (Ext.isEmpty(column.sumText)) {
             column.sumText = "<font size='1'></font>";
         }
-        column.setText(column.configText + column.sumText + sortDirection);
+        column.setText("&nbsp;" + column.configText + column.sumText + sortDirection + "&nbsp;");
     }
 }
 
@@ -399,7 +399,8 @@ function getColumnSimpleEditor(column, search) {
     }
     if (search) {
         if (isContentField(column.field)
-            || isHtmlContentField(column.field)) {
+            || isHtmlContentField(column.field)
+            || isTargetField(column.field)) {
             editor.xtype = "textfield";
         }
     }
@@ -562,7 +563,6 @@ function scrollToColumn(grid, dataIndex) {
  * 批量编辑列数据
  */
 function batchEditColumn(column) {
-    console.log(column);
     var editorField = column.batchField;
     if (!editorField) {
         editorField = getColumnSimpleEditor(column);
@@ -593,10 +593,19 @@ function batchEditColumn(column) {
             }
         }
     };
+    var placeholder = "批量修改当前页的【" + column.text + "】数据";
+    if (getColumnGrid(column).getSelection().length > 0) {
+        placeholder = "批量修改选择的" + getColumnGrid(column).getSelection().length + "条【" + column.text + "】数据";
+    }
+
+    if (Ext.isFunction(editorField.setEmptyText)) {
+        editorField.setEmptyText(placeholder);
+    }
+
     if (Ext.isFunction(editorField.showWindow)) {
         editorField.showWindow(column, function (result) {
             putRecord(result);
-        }, "批量编辑内容");
+        }, placeholder);
         return;
     }
     if (!column.batchEditMenu) {

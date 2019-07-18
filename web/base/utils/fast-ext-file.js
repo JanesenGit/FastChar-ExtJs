@@ -23,8 +23,16 @@ var files = {
             renderer: renders.file()
         };
     },
-    image: function () {
+    image: function (width, height) {
+        if (Ext.isEmpty(width)) {
+            width = -1;
+        }
+        if (Ext.isEmpty(height)) {
+            height = -1;
+        }
         return {
+            width: width,
+            height: height,
             reg: /\.(jpg|png|gif|jpeg)$/i,
             tipMsg: '图片',
             type: 'images',
@@ -238,12 +246,14 @@ function showFiles(obj, callBack, fileModules, defaultFiles) {
     }
     var datas = [], renderer = renders.file(), title = "文件管理";
     if (!Ext.isEmpty(defaultFiles)) {
-        var fileArray = Ext.JSON.decode(defaultFiles);
+        var fileArray = defaultFiles;
+        if (Ext.isString(defaultFiles)) {
+            fileArray = Ext.JSON.decode(defaultFiles);
+        }
         for (var i = 0; i < fileArray.length; i++) {
             datas.push({url: fileArray[i]});
         }
     }
-
     if (fileModules.length == 1) {
         renderer = fileModules[0].renderer;
         title = fileModules[0].tipMsg + "管理";

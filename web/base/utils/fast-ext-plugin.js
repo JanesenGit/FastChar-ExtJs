@@ -176,72 +176,74 @@ Ext.define("Fast.ext.Content", {
             title = "编辑内容";
         }
         var me = this;
-        var oldValue = me.getValue();
-        var win = Ext.create('Ext.window.Window', {
-            title: title,
-            iconCls: 'extIcon extEdit',
-            resizable: true,
-            maximizable: true,
-            height: 400,
-            width: 600,
-            layout: 'fit',
-            animateTarget: obj,
-            items: [me],
-            modal: true,
-            constrain: true,
-            listeners: {
-                show: function (obj) {
-                    server.showExtConfig(me.getCode(), "TextEditorCache", function (success, value) {
-                        if (success) {
-                            me.setValue(value);
-                        }
-                    });
-                },
-                close: function (obj) {
-                    obj.removeAll(false);
-                    obj.destroy();
-                }
-            },
-            buttons: [
-                {
-                    text: '暂存',
-                    iconCls: 'extIcon extSave whiteColor',
-                    handler: function () {
-                        showWait("暂存中，请稍后……");
-                        server.saveExtConfig(me.getCode(), "TextEditorCache", me.getValue(), function (success, message) {
-                            hideWait();
+        me.oldValue = me.getValue();
+        if (!me.editorWin) {
+            me.editorWin = Ext.create('Ext.window.Window', {
+                title: title,
+                iconCls: 'extIcon extEdit',
+                resizable: true,
+                maximizable: true,
+                height: 400,
+                width: 600,
+                layout: 'fit',
+                animateTarget: obj,
+                items: [me],
+                modal: true,
+                constrain: true,
+                closeAction: 'hide',
+                listeners: {
+                    show: function (obj) {
+                        server.showExtConfig(me.getCode(), "TextEditorCache", function (success, value) {
                             if (success) {
-                                toast("暂存成功！");
-                            } else {
-                                showAlert("系统提醒", message);
+                                me.setValue(value);
                             }
                         });
                     }
                 },
-                {
-                    text: '重置',
-                    iconCls: 'extIcon extReset',
-                    handler: function () {
-                        me.setValue(oldValue);
-                        server.deleteExtConfig(me.getCode(), "TextEditorCache");
-                    }
-                },
-                {
-                    text: '确定',
-                    iconCls: 'extIcon extOk',
-                    handler: function () {
-                        showWait("请稍后……");
-                        server.deleteExtConfig(me.getCode(), "TextEditorCache", function (success) {
-                            hideWait();
-                            if (Ext.isFunction(callBack)) {
-                                callBack(me);
-                            }
-                            win.close();
-                        });
-                    }
-                }]
-        });
-        win.show();
+                buttons: [
+                    {
+                        text: '暂存',
+                        iconCls: 'extIcon extSave whiteColor',
+                        handler: function () {
+                            showWait("暂存中，请稍后……");
+                            server.saveExtConfig(me.getCode(), "TextEditorCache", me.getValue(), function (success, message) {
+                                hideWait();
+                                if (success) {
+                                    toast("暂存成功！");
+                                } else {
+                                    showAlert("系统提醒", message);
+                                }
+                            });
+                        }
+                    },
+                    {
+                        text: '重置',
+                        iconCls: 'extIcon extReset',
+                        handler: function () {
+                            me.setValue(me.oldValue);
+                            server.deleteExtConfig(me.getCode(), "TextEditorCache");
+                        }
+                    },
+                    {
+                        text: '确定',
+                        iconCls: 'extIcon extOk',
+                        handler: function () {
+                            showWait("请稍后……");
+                            server.deleteExtConfig(me.getCode(), "TextEditorCache", function (success) {
+                                hideWait();
+                                if (Ext.isFunction(me.editorWin.callBack)) {
+                                    me.editorWin.callBack(me);
+                                }
+                                me.editorWin.close();
+                            });
+                        }
+                    }]
+            });
+        }
+        me.editorWin.setTitle(title);
+        me.editorWin.callBack = callBack;
+        me.editorWin.animateTarget = obj;
+        me.editorWin.show();
     }
 });
 
@@ -317,7 +319,7 @@ Ext.define("Fast.ext.HtmlContent", {
                 xtype: 'textfield',
                 name: me.name,
                 hidden: true,
-                realValue:true,
+                realValue: true,
                 fieldLabel: me.fieldLabel,
                 allowBlank: me.allowBlank,
                 validation: '请输入' + me.fieldLabel,
@@ -356,77 +358,79 @@ Ext.define("Fast.ext.HtmlContent", {
         }
         var me = this;
         me.autoShowEditor = false;
-        var oldValue = me.value;
-        var win = Ext.create('Ext.window.Window', {
-            title: title,
-            iconCls: 'extIcon extEdit',
-            resizable: true,
-            maximizable: true,
-            height: 400,
-            width: 600,
-            layout: 'fit',
-            animateTarget: obj,
-            items: [me],
-            modal: true,
-            constrain: true,
-            listeners: {
-                show: function (val) {
-                    me.showEditor();
-                    server.showExtConfig(me.getCode(), "HtmlEditorCache", function (success, value) {
-                        if (success) {
-                            me.setValue(value);
+        me.oldValue = me.value;
+        if (!me.editorWin) {
+            me.editorWin = Ext.create('Ext.window.Window', {
+                title: title,
+                iconCls: 'extIcon extEdit',
+                resizable: true,
+                maximizable: true,
+                height: 400,
+                width: 600,
+                layout: 'fit',
+                animateTarget: obj,
+                items: [me],
+                modal: true,
+                constrain: true,
+                closeAction: 'hide',
+                listeners: {
+                    show: function (val) {
+                        me.showEditor();
+                        server.showExtConfig(me.getCode(), "HtmlEditorCache", function (success, value) {
+                            if (success) {
+                                me.setValue(value);
+                            }
+                        });
+                    }
+                },
+                buttons: [
+                    {
+                        text: '暂存',
+                        iconCls: 'extIcon extSave whiteColor',
+                        handler: function () {
+                            showWait("暂存中，请稍后……");
+                            server.saveExtConfig(me.getCode(), "HtmlEditorCache", me.getValue(), function (succes, message) {
+                                hideWait();
+                                if (succes) {
+                                    toast("暂存成功！");
+                                } else {
+                                    showAlert("系统提醒", message);
+                                }
+                            });
                         }
-                    });
-                },
-                close: function (obj) {
-                    obj.removeAll(false);
-                    obj.destroy();
-                }
-            },
-            buttons: [
-                {
-                    text: '暂存',
-                    iconCls: 'extIcon extSave whiteColor',
-                    handler: function () {
-                        showWait("暂存中，请稍后……");
-                        server.saveExtConfig(me.getCode(), "HtmlEditorCache", me.getValue(), function (succes, message) {
-                            hideWait();
-                            if (succes) {
-                                toast("暂存成功！");
-                            } else {
-                                showAlert("系统提醒", message);
-                            }
-                        });
-                    }
-                },
-                {
-                    text: '重置',
-                    iconCls: 'extIcon extReset',
-                    handler: function () {
-                        me.setValue(oldValue);
-                        server.deleteExtConfig(me.getCode(), "HtmlEditorCache");
-                    }
-                },
-                {
-                    text: '确定',
-                    iconCls: 'extIcon extOk',
-                    handler: function () {
-                        var params = {
-                            "configKey": me.getCode(),
-                            "configType": "HtmlEditorCache"
-                        };
-                        showWait("请稍后……");
-                        server.deleteExtConfig(me.getCode(), "HtmlEditorCache", function (success) {
-                            hideWait();
-                            if (Ext.isFunction(callBack)) {
-                                callBack(me);
-                            }
-                            win.close();
-                        });
-                    }
-                }]
-        });
-        win.show();
+                    },
+                    {
+                        text: '重置',
+                        iconCls: 'extIcon extReset',
+                        handler: function () {
+                            me.setValue(me.oldValue);
+                            server.deleteExtConfig(me.getCode(), "HtmlEditorCache");
+                        }
+                    },
+                    {
+                        text: '确定',
+                        iconCls: 'extIcon extOk',
+                        handler: function () {
+                            var params = {
+                                "configKey": me.getCode(),
+                                "configType": "HtmlEditorCache"
+                            };
+                            showWait("请稍后……");
+                            server.deleteExtConfig(me.getCode(), "HtmlEditorCache", function (success) {
+                                hideWait();
+                                if (Ext.isFunction(me.editorWin.callBack)) {
+                                    me.editorWin.callBack(me);
+                                }
+                                me.editorWin.close();
+                            });
+                        }
+                    }]
+            });
+        }
+        me.editorWin.setTitle(title);
+        me.editorWin.callBack = callBack;
+        me.editorWin.animateTarget = obj;
+        me.editorWin.show();
     }
 });
 
@@ -445,6 +449,7 @@ Ext.define("Fast.ext.Link", {
     allowBlank: true,
     layout: 'fit',
     submitValue: true,
+    onBeforeSelect: null,
     isValid: function () {
         var me = this;
         var display = me.down("[name=" + me.name + "Display]");
@@ -469,9 +474,15 @@ Ext.define("Fast.ext.Link", {
     setRecordValue: function (record) {
         var me = this;
         if (record) {
-            record.set(me.name, me.getValue(), {silent: true});
             if (Ext.isEmpty(me.getText()) && Ext.isEmpty(record.get(me.dataIndex))) {
                 return;
+            }
+            if (record.store) {
+                record.store.holdUpdate = true;
+            }
+            record.set(me.name, me.getValue());
+            if (record.store) {
+                record.store.holdUpdate = false;
             }
             record.set(me.dataIndex, me.getText());
         }
@@ -483,17 +494,35 @@ Ext.define("Fast.ext.Link", {
         if (record) {
             me.setRawValue(record.get(me.name));
         }
+        if (!val) {//清空数据
+            me.setRawValue(-1);
+        }
     },
     setRawValue: function (val) {
         var me = this;
         var value = me.down("[name=" + me.name + "]");
-        value.setValue(val);
+        if (value) {
+            value.setValue(val);
+        }
+    },
+    getRawValue: function () {
+        var me = this;
+        var value = me.down("[name=" + me.name + "]");
+        if (value) {
+            return value.getValue();
+        }
+        return null;
     },
     getMenu: function () {
         return this.up("menu");
     },
     selectData: function () {
         var me = this;
+        if (Ext.isFunction(me.onBeforeSelect)) {
+            if (!me.onBeforeSelect(me)) {
+                return;
+            }
+        }
         if (me.getMenu()) {
             me.getMenu().holdShow = true;
         }
@@ -631,6 +660,231 @@ Ext.define("Fast.ext.Link", {
     }
 });
 
+/**
+ * Target组件，适用于一个表格关联多个表格
+ */
+Ext.define("Fast.ext.Target", {
+    alias: ['widget.target', 'widget.targetfield'],
+    extend: 'Ext.form.FieldContainer',
+    layout: "column",
+    labelWidth: null,
+    targetType: null,
+    targetTypeReadOnly:false,
+    targetTypeEnum: null,
+    targetId: null,
+    targetValue: null,
+    targetFunction: 'getTargetEntity',
+    getValue: function () {
+        var me = this;
+        var targetIdCmp = me.down("[name=" + me.targetId + "]");
+        return targetIdCmp.getText();
+    },
+    setValue: function (val, record) {
+        var me = this;
+        var targetIdCmp = me.down("[name=" + me.targetId + "]");
+        targetIdCmp.setValue(val);
+        if (record) {
+            me.targetValue = {};
+            me.targetValue[me.targetType] = record.get(me.targetType);
+            me.targetValue[me.targetId] = record.get(me.targetId);
+            me.holdIdValue = me.getTargetTypeValue() != record.get(me.targetType);
+            me.setTargetIdValue(record.get(me.targetId));
+            me.setTargetTypeValue(record.get(me.targetType));
+        }
+    },
+    getSearchField: function () {
+
+    },
+    setRecordValue: function (record) {
+        var me = this;
+        if (record) {
+            if (record.store) {
+                record.store.holdUpdate = true;
+            }
+            if (me.targetId) {
+                record.set(me.targetId, me.getTargetIdValue());
+            }
+            if (me.targetType) {
+                record.set(me.targetType, me.getTargetTypeValue());
+            }
+            if (me.targetText && me.targetText != me.dataIndex) {
+                record.set(me.targetText, me.getValue());
+            }
+            if (record.store) {
+                record.store.holdUpdate = false;
+            }
+            record.set(me.dataIndex, me.getValue());
+        }
+    },
+    setTargetTypeValue: function (value) {
+        var me = this;
+        var targetTypeCmp = me.down("[name=" + me.targetType + "]");
+        if (targetTypeCmp) {
+            targetTypeCmp.setValue(value);
+        }
+    },
+    getTargetTypeValue: function () {
+        var me = this;
+        var targetTypeCmp = me.down("[name=" + me.targetType + "]");
+        if (targetTypeCmp) {
+            return targetTypeCmp.getValue();
+        }
+        return 0;
+    },
+    setTargetIdValue: function (value) {
+        var me = this;
+        var targetIdCmp = me.down("[name=" + me.targetId + "]");
+        if (targetIdCmp) {
+            targetIdCmp.setRawValue(value);
+        }
+    },
+    getTargetIdValue: function () {
+        var me = this;
+        var targetIdCmp = me.down("[name=" + me.targetId + "]");
+        if (targetIdCmp) {
+            return targetIdCmp.getRawValue();
+        }
+        return -1;
+    },
+    getTargetEntity: function (targetType) {
+        var me = this;
+        var targetEntity = window[me.targetFunction](targetType, me.targetType);
+        if (!targetEntity) {
+            showAlert("目标组件错误", "未获取到TargetType为：" + targetType + "的实体配置！");
+            return null;
+        }
+        return targetEntity;
+    },
+    showWindow: function (obj, callBack, title) {
+        if (Ext.isEmpty(title)) {
+            title = "编辑目标数据";
+        }
+        var me = this;
+        if (!me.editorWin) {
+            me.editorWin = Ext.create('Ext.window.Window', {
+                title: title,
+                height: 220,
+                width: 400,
+                minWidth: 400,
+                minHeight: 220,
+                layout: 'fit',
+                resizable: true,
+                modal: true,
+                constrain: true,
+                closeAction: 'hide',
+                iconCls: 'extIcon extLink',
+                items: [me],
+                buttons: [
+                    {
+                        text: '取消',
+                        iconCls: 'extIcon extClose',
+                        handler: function () {
+                            me.editorWin.close();
+                        }
+                    },
+                    {
+                        text: '确定',
+                        iconCls: 'extIcon extOk',
+                        handler: function () {
+                            me.editorWin.close();
+                            if (Ext.isFunction( me.editorWin.callBack)) {
+                                me.editorWin.callBack(me);
+                            }
+                        }
+                    }]
+            });
+        }
+        me.editorWin.setTitle(title);
+        me.editorWin.callBack = callBack;
+        me.editorWin.animateTarget = obj;
+        me.editorWin.show();
+    },
+    initComponent: function () {
+        var me = this;
+        me.fieldLabel = "";
+        if (!me.labelWidth) {
+            me.labelWidth = 60;
+        }
+        me.labelAlign = 'right';
+        if (!me.emptyText) {
+            me.emptyText = "请填写";
+        }
+        if (!me.margin) {
+            me.margin = '5 5 5 5';
+        }
+        var linkValue = {};
+        if (!Ext.isFunction(window[me.targetFunction])) {
+            showAlert("目标组件错误", "未检测到方法" + me.targetFunction + "!");
+            me.callParent(arguments);
+            return;
+        }
+        if (!me.targetValue) {
+            me.targetValue = {};
+            me.targetValue[me.targetType] = 0;
+            me.targetValue[me.targetId] = -1;
+        }
+        if (me.targetEnum) {
+            me.targetTypeEnum = me.targetEnum;
+        }
+        if (!me.targetTypeEnum) {
+            me.targetTypeEnum = me.targetType.replace(me.targetType[0], me.targetType[0].toUpperCase()) + "Enum";
+        }
+
+        var targetTypeValue = me.targetValue[me.targetType];
+        var targetEntity = me.getTargetEntity(targetTypeValue);
+        if (!targetEntity) {
+            return;
+        }
+
+        linkValue[targetEntity.entityId] = me.targetValue[me.targetId];
+        var targetTypeCmp = {
+            name: me.targetType,
+            xtype: "enumcombo",
+            fieldLabel: "目标类型",
+            columnWidth: 1,
+            value: targetTypeValue,
+            labelWidth: me.labelWidth,
+            labelAlign: me.labelAlign,
+            emptyText: '请选择目标类型',
+            margin: me.margin,
+            allowBlank: false,
+            readOnly: me.targetTypeReadOnly,
+            enumName: me.targetTypeEnum,
+            listeners: {
+                change: function (obj, newValue, oldValue) {
+                    var newEntity = me.getTargetEntity(newValue);
+                    if (newEntity) {
+                        var targetIdCmp = me.down("[name=" + me.targetId + "]");
+                        targetIdCmp.entityCode = newEntity.entityCode;
+                        targetIdCmp.entityId = newEntity.entityId;
+                        targetIdCmp.entityText = newEntity.entityText;
+                        if (me.holdIdValue) {
+                            me.holdIdValue = false;
+                            return;
+                        }
+                        targetIdCmp.setValue(null);
+                    }
+                }
+            }
+        };
+        var targetIdCmp = {
+            name: me.targetId,
+            xtype: "linkfield",
+            fieldLabel: "目标数据",
+            columnWidth: 1,
+            margin: me.margin,
+            labelWidth: me.labelWidth,
+            labelAlign: me.labelAlign,
+            entityCode: targetEntity.entityCode,
+            entityId: targetEntity.entityId,
+            entityText: targetEntity.entityText,
+            linkValue: linkValue
+        };
+        me.items = [targetTypeCmp, targetIdCmp];
+        me.callParent(arguments);
+    }
+});
+
 
 /**
  * 地图组件
@@ -640,6 +894,9 @@ Ext.define("Fast.ext.Map", {
     extend: 'Ext.form.FieldContainer',
     lngName: 'lnt',
     latName: 'lat',
+    proName: null,
+    cityName: null,
+    areaName: null,
     editable: true,
     allowBlank: true,
     layout: 'fit',
@@ -668,35 +925,118 @@ Ext.define("Fast.ext.Map", {
             if (me.lngName) {
                 me.setLngValue(record.get(me.lngName));
             }
+            if (me.proName) {
+                me.setProValue(record.get(me.proName));
+            }
+            if (me.cityName) {
+                me.setCityValue(record.get(me.cityName));
+            }
+            if (me.areaName) {
+                me.setAreaValue(record.get(me.areaName));
+            }
         }
     },
     setRecordValue: function (record) {
         var me = this;
         if (record) {
-            record.set(me.latName, me.getLatValue(), {silent: true});
-            record.set(me.lngName, me.getLngValue(), {silent: true});
+            if (record.store) {
+                record.store.holdUpdate = true;
+            }
+            if (me.latName) {
+                record.set(me.latName, me.getLatValue());
+            }
+            if (me.lngName) {
+                record.set(me.lngName, me.getLngValue());
+            }
+            if (me.proName) {
+                record.set(me.proName, me.getProValue());
+            }
+            if (me.cityName) {
+                record.set(me.cityName, me.getCityValue());
+            }
+            if (me.areaName) {
+                record.set(me.areaName, me.getAreaValue());
+            }
+            if (record.store) {
+                record.store.holdUpdate = false;
+            }
             record.set(me.name, me.getValue());
         }
     },
     setLatValue: function (val) {
         var me = this;
         var lat = me.down("[name=" + me.latName + "]");
-        lat.setValue(val);
+        if (lat) {
+            lat.setValue(val);
+        }
     },
     setLngValue: function (val) {
         var me = this;
         var lng = me.down("[name=" + me.lngName + "]");
-        lng.setValue(val);
+        if (lng) {
+            lng.setValue(val);
+        }
+    },
+    setProValue: function (val) {
+        var me = this;
+        var pro = me.down("[name=" + me.proName + "]");
+        if (pro) {
+            pro.setValue(val);
+        }
+    },
+    setCityValue: function (val) {
+        var me = this;
+        var city = me.down("[name=" + me.cityName + "]");
+        if (city) {
+            city.setValue(val);
+        }
+    },
+    setAreaValue: function (val) {
+        var me = this;
+        var area = me.down("[name=" + me.areaName + "]");
+        if (area) {
+            area.setValue(val);
+        }
     },
     getLatValue: function () {
         var me = this;
         var lat = me.down("[name=" + me.latName + "]");
-        return lat.getValue();
+        if (lat) {
+            return lat.getValue();
+        }
+        return 0;
     },
     getLngValue: function () {
         var me = this;
         var lng = me.down("[name=" + me.lngName + "]");
-        return lng.getValue();
+        if (lng) {
+            return lng.getValue();
+        }
+        return 0;
+    },
+    getProValue: function () {
+        var me = this;
+        var pro = me.down("[name=" + me.proName + "]");
+        if (pro) {
+            return pro.getValue();
+        }
+        return null;
+    },
+    getCityValue: function () {
+        var me = this;
+        var city = me.down("[name=" + me.cityName + "]");
+        if (city) {
+            return city.getValue();
+        }
+        return null;
+    },
+    getAreaValue: function () {
+        var me = this;
+        var area = me.down("[name=" + me.areaName + "]");
+        if (area) {
+            return area.getValue();
+        }
+        return null;
     },
     getMenu: function () {
         return this.up("menu");
@@ -712,6 +1052,9 @@ Ext.define("Fast.ext.Map", {
             if (result) {
                 me.setLatValue(result.lat);
                 me.setLngValue(result.lng);
+                me.setProValue(result.pro);
+                me.setAreaValue(result.area);
+                me.setCityValue(result.city);
                 me.setValue(result.addr);
             }
             if (me.getMenu()) {
@@ -743,6 +1086,18 @@ Ext.define("Fast.ext.Map", {
                 xtype: 'hiddenfield',
                 name: me.latName,
                 value: 0
+            },
+            {
+                xtype: 'hiddenfield',
+                name: me.proName
+            },
+            {
+                xtype: 'hiddenfield',
+                name: me.cityName
+            },
+            {
+                xtype: 'hiddenfield',
+                name: me.areaName
             },
             {
                 xtype: 'textfield',

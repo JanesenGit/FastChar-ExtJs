@@ -26,6 +26,18 @@ server = {
         }
         $.post("entity/delete", params, function (result) {
             if (Ext.isFunction(callBack)) {
+                callBack(result.success, result.message);
+            }
+        });
+
+    },
+   copyEntity: function (params, callBack) {
+        if (isPower()) {
+            callBack(false, "当前正在进行界面权限配置，不可复制数据！");
+            return;
+        }
+        $.post("entity/copy", params, function (result) {
+            if (Ext.isFunction(callBack)) {
                 if (result.success) {
                     callBack(true);
                 } else {

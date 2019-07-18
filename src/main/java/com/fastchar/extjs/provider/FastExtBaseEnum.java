@@ -3,6 +3,7 @@ package com.fastchar.extjs.provider;
 import com.fastchar.extjs.core.enums.FastEnumInfo;
 import com.fastchar.extjs.interfaces.IFastExtEnum;
 import com.fastchar.utils.FastEnumUtils;
+import com.fastchar.utils.FastStringUtils;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -45,9 +46,16 @@ public abstract class FastExtBaseEnum implements IFastExtEnum {
 
     @Override
     public final FastEnumInfo getEnum(int id) throws Exception {
+        if (getEnumClass() == null) {
+            return null;
+        }
         FastEnumInfo enumInfo = new FastEnumInfo();
         enumInfo.setId(id);
-        enumInfo.setText(FastEnumUtils.formatToEnum(getEnumClass(), id).name());
+        Enum anEnum = FastEnumUtils.formatToEnum(getEnumClass(), id);
+        if (anEnum == null) {
+            return null;
+        }
+        enumInfo.setText(anEnum.name());
         return enumInfo;
     }
 }

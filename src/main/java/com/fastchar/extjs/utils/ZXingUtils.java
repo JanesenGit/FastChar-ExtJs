@@ -17,10 +17,14 @@ import java.util.Hashtable;
 public class ZXingUtils {
 
     public static BufferedImage makeQRCode(String content, int width, int height) {
+        return makeQRCode(content, 2, width, height);
+    }
+
+    public static BufferedImage makeQRCode(String content,int margin, int width, int height) {
         try {
             Hashtable<EncodeHintType, Object> hints = new Hashtable<EncodeHintType, Object>();
             hints.put(EncodeHintType.CHARACTER_SET, "utf-8");
-            hints.put(EncodeHintType.MARGIN, 0);
+            hints.put(EncodeHintType.MARGIN, margin);
             BitMatrix bitMatrix = new MultiFormatWriter().encode(content,
                     BarcodeFormat.QR_CODE, width, height, hints);
             return MatrixToImageWriter.toBufferedImage(bitMatrix);
@@ -29,6 +33,21 @@ public class ZXingUtils {
             e.printStackTrace();
         }
         return null;
+    }
+
+    public static BufferedImage makeQRCode(File logoPath, String content, int width, int height) {
+        BufferedImage bufferedImage = makeQRCode(content, width, height);
+        try {
+            BufferedImage read = ImageIO.read(logoPath);
+            insertImage(bufferedImage, read, true);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return bufferedImage;
+    }
+
+    public static BufferedImage makeQRCode(String logoPath, String content, int width, int height) {
+        return makeQRCode(new File(logoPath), content, width, height);
     }
 
 

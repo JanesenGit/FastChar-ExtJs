@@ -7,6 +7,7 @@ import com.fastchar.extjs.core.heads.FastHeadInfo;
 import com.fastchar.extjs.core.heads.FastHeadStyleInfo;
 import com.fastchar.interfaces.IFastConfig;
 import com.fastchar.utils.FastFileUtils;
+import com.fastchar.utils.FastStringUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -21,9 +22,10 @@ public final class FastExtConfig implements IFastConfig {
 
     private String defaultThemeColor = "#62a3db";
     private String signKey;
-    private boolean compress;
+    private boolean compressAppJs;
     private boolean attachLog;
-    private boolean merge;
+    private boolean mergeAppJs;
+    private boolean attachFilter;
     private FastExtEntities extEntities = new FastExtEntities();
 
     public String getDefaultThemeColor() {
@@ -49,12 +51,12 @@ public final class FastExtConfig implements IFastConfig {
         return this;
     }
 
-    public boolean isCompress() {
-        return compress;
+    public boolean isCompressAppJs() {
+        return compressAppJs;
     }
 
-    public FastExtConfig setCompress(boolean compress) {
-        this.compress = compress;
+    public FastExtConfig setCompressAppJs(boolean compressAppJs) {
+        this.compressAppJs = compressAppJs;
         return this;
     }
 
@@ -67,13 +69,37 @@ public final class FastExtConfig implements IFastConfig {
         return this;
     }
 
+    public boolean isMergeAppJs() {
+        return mergeAppJs;
+    }
+
+    public FastExtConfig setMergeAppJs(boolean mergeAppJs) {
+        this.mergeAppJs = mergeAppJs;
+        return this;
+    }
+
+    public File getMergeJs() {
+        return new File(FastChar.getPath().getWebRootPath(), "app.js");
+    }
+
+    public boolean isAttachFilter() {
+        return attachFilter;
+    }
+
+    public FastExtConfig setAttachFilter(boolean attachFilter) {
+        this.attachFilter = attachFilter;
+        return this;
+    }
+
     public FastHeadExtInfo getExtInfo(String name) {
         List<FastHeadInfo> heads = FastChar.getValues().get("heads");
-        for (FastHeadInfo head : heads) {
-            if (head instanceof FastHeadExtInfo) {
-                FastHeadExtInfo headExtInfo = (FastHeadExtInfo) head;
-                if (headExtInfo.getName().equalsIgnoreCase(name)) {
-                    return headExtInfo;
+        if (heads != null) {
+            for (FastHeadInfo head : heads) {
+                if (head instanceof FastHeadExtInfo) {
+                    FastHeadExtInfo headExtInfo = (FastHeadExtInfo) head;
+                    if (headExtInfo.getName().equalsIgnoreCase(name)) {
+                        return headExtInfo;
+                    }
                 }
             }
         }
@@ -83,27 +109,58 @@ public final class FastExtConfig implements IFastConfig {
     public List<FastHeadExtInfo> getExtInfo() {
         List<FastHeadExtInfo> extInfos = new ArrayList<>();
         List<FastHeadInfo> heads = FastChar.getValues().get("heads");
-        for (FastHeadInfo head : heads) {
-            if (head instanceof FastHeadExtInfo) {
-                FastHeadExtInfo headExtInfo = (FastHeadExtInfo) head;
-                extInfos.add(headExtInfo);
+        if (heads != null) {
+            for (FastHeadInfo head : heads) {
+                if (head instanceof FastHeadExtInfo) {
+                    FastHeadExtInfo headExtInfo = (FastHeadExtInfo) head;
+                    extInfos.add(headExtInfo);
+                }
             }
         }
         return extInfos;
     }
 
-
-    public List<File> getAppJs() {
-        return getJsFiles(new File(FastChar.getPath().getWebRootPath(), "app"));
+    public String getProjectTitle() {
+        List<FastHeadInfo> heads = FastChar.getValues().get("heads");
+        for (FastHeadInfo head : heads) {
+            if (head.getTagName().equalsIgnoreCase("title")) {
+                return FastStringUtils.defaultValue(head.get("value"), "后台管理");
+            }
+        }
+        return "后台管理";
     }
 
 
-    private List<File> getJsFiles(File file){
-        List<File> filesList=new ArrayList<File>();
-        if(file.isDirectory()){
-            File[] files=file.listFiles();
+    public List<File> getAppJs() {
+        File mergeFile = new File(FastChar.getPath().getWebRootPath(), "app.js");
+        if (mergeFile.exists()) {
+            return Collections.singletonList(mergeFile);
+        }
+        List<File> jsFiles = new ArrayList<>();
+        Map<String, List<File>> app = getJsFiles(new File(FastChar.getPath().getWebRootPath(), "app"));
+
+        for (List<File> value : app.values()) {
+            if (value.size() > 1) {
+                Collections.sort(value, new Comparator<File>() {
+                    @Override
+                    public int compare(File o1, File o2) {
+                        return o2.compareTo(o1);
+                    }
+                });
+            }
+            jsFiles.add(value.get(0));
+        }
+
+        return jsFiles;
+    }
+
+
+    private Map<String, List<File>> getJsFiles(File file) {
+        Map<String, List<File>> mapFiles = new LinkedHashMap<>();
+        if (file.isDirectory()) {
+            File[] files = file.listFiles();
             if (files == null) {
-                return filesList;
+                return mapFiles;
             }
             Arrays.sort(files, new Comparator<File>() {
                 @Override
@@ -112,16 +169,20 @@ public final class FastExtConfig implements IFastConfig {
                 }
             });
             for (File f : files) {
-                if(!f.isDirectory()){
-                    if(f.getName().endsWith(".js")){
-                        filesList.add(f);
+                if (!f.isDirectory()) {
+                    if (f.getName().endsWith(".js")) {
+                        String fileCode = FastChar.getSecurity().MD5_Encrypt(f.getName().replaceFirst("@[0-9]+", ""));
+                        if (!mapFiles.containsKey(fileCode)) {
+                            mapFiles.put(fileCode, new ArrayList<File>());
+                        }
+                        mapFiles.get(fileCode).add(f);
                     }
-                }else{
-                    filesList.addAll(getJsFiles(f));
+                } else {
+                    mapFiles.putAll(getJsFiles(f));
                 }
             }
         }
-        return filesList;
+        return mapFiles;
     }
 
     public FastExtEntities getExtEntities() {
@@ -166,5 +227,4 @@ public final class FastExtConfig implements IFastConfig {
         }
         return content;
     }
-
 }

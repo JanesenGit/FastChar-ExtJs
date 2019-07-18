@@ -25,7 +25,21 @@
     <orderEntry type="jdk" jdkName="1.7" jdkType="JavaSDK" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" scope="PROVIDED" name="Tomcat (8085)" level="application_server_libraries" />
+    <orderEntry type="module-library">
+      <library name="closure-compiler-v20190528">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/web/closure-compiler-v20190528.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="jar://$MODULE_DIR$/web/closure-compiler-v20190528.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
     <orderEntry type="module" module-name="FastChar" />
+    <orderEntry type="library" name="Maven: cglib:cglib-nodep:3.2.12" level="project" />
+    <orderEntry type="library" name="Maven: junit:junit:4.12" level="project" />
+    <orderEntry type="library" name="Maven: org.hamcrest:hamcrest-core:1.3" level="project" />
     <orderEntry type="library" name="Maven: javax.servlet:javax.servlet-api:3.0.1" level="project" />
     <orderEntry type="library" name="Maven: com.google.code.gson:gson:2.8.5" level="project" />
     <orderEntry type="library" name="Maven: org.jsoup:jsoup:1.11.3" level="project" />
@@ -39,8 +53,8 @@
     <orderEntry type="library" name="Maven: org.apache.commons:commons-compress:1.18" level="project" />
     <orderEntry type="library" name="Maven: com.github.virtuald:curvesapi:1.06" level="project" />
     <orderEntry type="library" name="Maven: net.coobird:thumbnailator:0.4.8" level="project" />
-    <orderEntry type="library" name="Maven: com.yahoo.platform.yui:yuicompressor:2.4.7" level="project" />
-    <orderEntry type="library" name="Maven: rhino:js:1.6R7" level="project" />
+    <orderEntry type="library" name="Maven: com.yahoo.platform.yui:yuicompressor:2.4.8" level="project" />
+    <orderEntry type="library" name="Maven: rhino:js:1.7R2" level="project" />
     <orderEntry type="library" name="Maven: org.apache.velocity:velocity-engine-core:2.1" level="project" />
     <orderEntry type="library" name="Maven: org.apache.commons:commons-lang3:3.8.1" level="project" />
     <orderEntry type="library" name="Maven: org.slf4j:slf4j-api:1.7.26" level="project" />

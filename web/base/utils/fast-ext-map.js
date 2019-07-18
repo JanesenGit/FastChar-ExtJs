@@ -86,12 +86,20 @@ function showMap(obj, lng, lat, address) {
                     columnWidth: 0.2,
                     text: '确定',
                     handler: function () {
-                        var lnglat = Ext.getCmp("lblLngLat").getValue();
+                        var lblLngLat = Ext.getCmp("lblLngLat");
+                        var lnglat = lblLngLat.getValue();
                         var lng = lnglat.split(",")[0];
                         var lat = lnglat.split(",")[1];
                         if (!resolve.called) {
                             resolve.called = true;
-                            resolve({lng: lng, lat: lat, addr: Ext.getCmp("lblAddress").getValue()})
+                            resolve({
+                                lng: lng,
+                                lat: lat,
+                                addr: Ext.getCmp("lblAddress").getValue(),
+                                pro: lblLngLat.province,
+                                city: lblLngLat.city,
+                                area: lblLngLat.area
+                            })
                         }
                         win.close();
                     }
@@ -149,9 +157,25 @@ function showMap(obj, lng, lat, address) {
             containerPanel.setLoading(false);
         };
 
-        window["setMarkCurrPos"] = function (lnglat, address) {
+        window["showMapMask"] = function (msg) {
+            if (msg) {
+                containerPanel.setLoading(msg);
+            } else {
+                containerPanel.setLoading(true);
+            }
+        };
+
+        window["alert"] = function (msg) {
+            showAlert("系统提醒", msg);
+        };
+
+        window["setMarkCurrPos"] = function (lnglat, address, province, city, area) {
             Ext.getCmp("lblAddress").setValue(address);
-            Ext.getCmp("lblLngLat").setValue(lnglat);
+            var lblLngLat = Ext.getCmp("lblLngLat");
+            lblLngLat.setValue(lnglat);
+            lblLngLat.province = province;
+            lblLngLat.city = city;
+            lblLngLat.area = area;
         };
     });
 }

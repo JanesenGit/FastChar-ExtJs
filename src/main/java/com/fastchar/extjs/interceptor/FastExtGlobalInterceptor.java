@@ -11,8 +11,6 @@ public class FastExtGlobalInterceptor implements IFastInterceptor {
 
         boolean checkSession = false;
 
-        boolean checkSign = false;
-
         if (fastAction.getFastRoute().getActionClass().isAnnotationPresent(AFastSession.class)) {
             AFastSession annotation = fastAction.getFastRoute().getActionClass().getAnnotation(AFastSession.class);
             checkSession = annotation.value();

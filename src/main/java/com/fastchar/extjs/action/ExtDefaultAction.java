@@ -30,7 +30,6 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.*;
 
@@ -42,7 +41,7 @@ public class ExtDefaultAction extends FastAction {
 
 
     @AFastRoute({"/fast_index.html", "/index.html", "/index.jsp", "/index.vm"})
-    @AFastCache(checkOverride = true, timeout = 30)
+    @AFastCache(checkClass = true, timeout = 30)
     public void index() throws Exception {
 
         if (FastHeadXmlObserver.isModified()) {
@@ -97,11 +96,17 @@ public class ExtDefaultAction extends FastAction {
         List<FastHeadInfo> heads = FastChar.getValues().get("heads");
 
         List<FastHeadInfo> newHeads = new ArrayList<>(heads);
-        String baseJsUrl;
+        String baseJsUrl = null;
         if (getSession("manager") == null) {
-            baseJsUrl = "base/login/login.js";
+            FastHeadExtInfo loginUrl = FastChar.getConfig(FastExtConfig.class).getExtInfo("loginUrl");
+            if (loginUrl != null) {
+                baseJsUrl = loginUrl.getValue();
+            }
         } else {
-            baseJsUrl = "base/index/index.js";
+            FastHeadExtInfo indexUrl = FastChar.getConfig(FastExtConfig.class).getExtInfo("indexUrl");
+            if (indexUrl != null) {
+                baseJsUrl = indexUrl.getValue();
+            }
         }
 
         FastHeadScriptInfo headScriptInfo = new FastHeadScriptInfo();
@@ -119,7 +124,6 @@ public class ExtDefaultAction extends FastAction {
         addParam("power", "true");
         index();
     }
-
 
 
     @AFastSession
@@ -228,7 +232,6 @@ public class ExtDefaultAction extends FastAction {
                         String replaceAll = svgContent.replaceAll(reg, "fill=\"#" + color + "\"");
                         FastFileUtils.writeStringToFile(colorFile, replaceAll);
                         responseFile(colorFile);
-                        return;
                     }
                 }
                 responseFile(file);
@@ -254,8 +257,7 @@ public class ExtDefaultAction extends FastAction {
     /**
      * 获得枚举列表
      */
-    @AFastSession
-    @AFastCache(checkOverride = true)
+    @AFastCache(checkClass = true)
     public void showEnums() throws Exception {
         String enumName = getParam("enumName", true);
         IFastExtEnum enumClass = FastChar.getOverrides().singleInstance(IFastExtEnum.class, enumName);
@@ -366,9 +368,9 @@ public class ExtDefaultAction extends FastAction {
         if (paramFile != null) {
             if (FastStringUtils.isNotEmpty(type)) {
                 paramFile = paramFile.renameTo(new File(paramFile.getAttachDirectory() + File.separator + type,
-                        FastChar.getSecurity().MD5_Encrypt(paramFile.getFileName() + System.currentTimeMillis())));
+                        FastMD5Utils.MD5(System.currentTimeMillis() + paramFile.getFileName()) + paramFile.getExtensionName()), true);
             }
-            String fileUrl =paramFile.getUrl();
+            String fileUrl = paramFile.getUrl();
             Map<String, Object> result = new HashMap<>();
             result.put("url", fileUrl);
             result.put("http", getProjectHost());
@@ -394,7 +396,7 @@ public class ExtDefaultAction extends FastAction {
             file = new File(FastChar.getConstant().getAttachDirectory(), path);
         }
         if (!file.exists()) {
-            responseJson(-1, "文件不存在！");
+            responseJson(-1, "文件不存在！" + file.getAbsolutePath());
         }
         responseFile(file, disposition);
     }
@@ -449,7 +451,8 @@ public class ExtDefaultAction extends FastAction {
             Map<String, String> doc = new HashMap<>();
             doc.put("id", String.valueOf(i + 1));
             doc.put("name", parse.title());
-            doc.put("url", "documents/" + html.getName() + "?t=" + System.currentTimeMillis());
+            String docUrl = "documents/" + html.getName() + "?t=" + System.currentTimeMillis();
+            doc.put("url", docUrl);
             docs.add(doc);
         }
         Collections.sort(docs, new Comparator<Map<String, String>>() {
@@ -459,8 +462,20 @@ public class ExtDefaultAction extends FastAction {
             }
         });
         setRequestAttr("docs", docs);
+
+        setRequestAttr("projectName", FastExtConfig.getInstance().getProjectTitle());
+        FastHeadExtInfo themeExt = FastExtConfig.getInstance().getExtInfo("theme-color");
+        if (themeExt != null) {
+            setRequestAttr("themeColor", themeExt.getColorValue());
+        }else{
+            setRequestAttr("themeColor", "#3DB6A4");
+        }
+        FastHeadExtInfo logoExt = FastExtConfig.getInstance().getExtInfo("system-logo");
+        if (logoExt != null) {
+            setRequestAttr("logo", logoExt.getValue());
+        }
         setRequestAttr("first", docs.get(0).get("id"));
-        responseVelocity("fast_doc.html");
+        responseVelocity("fast-doc.html");
     }
 
 
@@ -474,21 +489,25 @@ public class ExtDefaultAction extends FastAction {
         String content = getParam("content", true);
         String logo = getParam("logo");
         FastFile fastFile = FastFile.newInstance(new File(FastChar.getConstant().getAttachDirectory(), "/qrcode").getAbsolutePath(),
-                FastChar.getSecurity().MD5_Encrypt(content) + ".jpg");
+                FastChar.getSecurity().MD5_Encrypt(content + logo) + ".png");
         if (fastFile.getFile().exists()) {
             responseJson(0, "生成成功！", fastFile.getUrl());
         }
 
-        BufferedImage qrImage = ZXingUtils.makeQRCode(content, 500, 500);
+        BufferedImage qrImage = ZXingUtils.makeQRCode(content, getParamToInt("margin", 2), 500, 500);
         if (qrImage == null) {
             responseJson(-1, "生成失败！");
             return;
         }
-        if (StringUtils.isNotEmpty(logo)) {
-            BufferedImage bufferedImage = Thumbnails.of(new URL(logo)).size(58, 58).asBufferedImage();
-            ZXingUtils.insertImage(qrImage, bufferedImage, true);
+        try {
+            if (StringUtils.isNotEmpty(logo)) {
+                BufferedImage bufferedImage = Thumbnails.of(new URL(logo)).size(58, 58).asBufferedImage();
+                ZXingUtils.insertImage(qrImage, bufferedImage, true);
+            }
+        } catch (Exception ignored) {
         }
-         if (!fastFile.getFile().getParentFile().exists()) {
+
+        if (!fastFile.getFile().getParentFile().exists()) {
             if (!fastFile.getFile().getParentFile().mkdirs()) {
                 responseJson(-1, "生成失败！" + fastFile.getFile().getParentFile().getAbsolutePath() + "创建失败！");
             }

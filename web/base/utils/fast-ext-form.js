@@ -257,3 +257,12 @@ function isLinkField(field) {
     if (!field) return false;
     return field == "linkfield" || field == "link" || field.xtype == "linkfield" || field.xtype == "link";
 }
+
+
+/**
+ * 是否是目标编辑器
+ */
+function isTargetField(field) {
+    if (!field) return false;
+    return field == "targetfield" || field == "target" || field.xtype == "targetfield" || field.xtype == "target";
+}

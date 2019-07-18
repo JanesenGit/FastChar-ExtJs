@@ -18,6 +18,9 @@ final class JsBuilder {
                 return name.startsWith("build") && name.endsWith(".txt");
             }
         });
+        if (files == null) {
+            return;
+        }
         for (File file : files) {
             List<String> lines = FastFileUtils.readLines(file);
             String buildFileName = lines.get(0);
@@ -39,9 +42,26 @@ final class JsBuilder {
     }
 
     public static void main(String[] args) throws Exception {
-        build("/Volumes/JanesenDisk_Work/WorkSpace/space_ij/CrosheWork/FastChar-ExtJs/web/ext/ux",
-                "/Volumes/JanesenDisk_Work/WorkSpace/space_ij/CrosheWork/FastChar-ExtJs/web/ext");
-//        YuiCompress.compress("/Volumes/JanesenDisk_Work/WorkSpace/space_ij/CrosheWork/FastChar-ExtJs/web/ext/ext-ux-all.js");
+//        build("/Volumes/JanesenDisk_Work/WorkSpace/space_ij/CrosheWork/FastChar-ExtJs/web/extjs/ux",
+//                "/Volumes/JanesenDisk_Work/WorkSpace/space_ij/CrosheWork/FastChar-ExtJs/web/extjs");
+//
+//
+        build("/Volumes/JanesenDisk_Work/WorkSpace/space_ij/CrosheWork/FastChar-ExtJs/web/base/utils",
+                "/Volumes/JanesenDisk_Work/WorkSpace/space_ij/CrosheWork/FastChar-ExtJs/web/base/utils");
+
+
+//        YuiCompress.compress("/Volumes/JanesenDisk_Work/WorkSpace/space_ij/CrosheWork/FastChar-ExtJs/web/base/login/login.js",
+//                "/Volumes/JanesenDisk_Work/WorkSpace/space_ij/CrosheWork/FastChar-ExtJs/web/base/login/login.min.js");
+////
+//
+//        YuiCompress.compress("/Volumes/JanesenDisk_Work/WorkSpace/space_ij/CrosheWork/FastChar-ExtJs/web/base/index/index.js",
+//                "/Volumes/JanesenDisk_Work/WorkSpace/space_ij/CrosheWork/FastChar-ExtJs/web/base/index/index.min.js");
+//
+//
+//        YuiCompress.compress("/Volumes/JanesenDisk_Work/WorkSpace/space_ij/CrosheWork/FastChar-ExtJs/web/base/welcome/welcome.js",
+//                "/Volumes/JanesenDisk_Work/WorkSpace/space_ij/CrosheWork/FastChar-ExtJs/web/base/welcome/welcome.min.js");
+
+
     }
 
 }

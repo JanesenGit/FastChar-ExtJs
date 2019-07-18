@@ -1,5 +1,6 @@
 package com.fastchar.extjs.accepter;
 
+import com.fastchar.core.FastChar;
 import com.fastchar.core.FastEngine;
 import com.fastchar.extjs.FastExtConfig;
 import com.fastchar.extjs.compress.YuiCompress;
@@ -16,12 +17,17 @@ public class FastExtAppJsAccepter implements IFastScannerAccepter {
 
     @Override
     public boolean onScannerFile(FastEngine engine, File file) throws Exception {
-        if (engine.getConfig(FastExtConfig.class).isCompress()) {
+        FastExtConfig extConfig = engine.getConfig(FastExtConfig.class);
+        if (extConfig.isCompressAppJs()) {
             if (file.getName().endsWith(".js")) {
                 String filePath = file.getPath();
                 filePath = FastStringUtils.strip(filePath.replace(engine.getPath().getWebRootPath(), ""), "/");
                 if (filePath.startsWith("app/")) {
                     YuiCompress.compress(file.getPath());
+                    if (extConfig.isMergeAppJs()) {
+                        File mergeFile = new File(FastChar.getPath().getWebRootPath(), "app.js");
+                        YuiCompress.merge(mergeFile, file, mergeFile);
+                    }
                 }
             }
         }

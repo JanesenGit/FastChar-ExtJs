@@ -48,6 +48,14 @@
     color: #000000;
 }
 
+.grayColor {
+    color: gray;
+}
+
+.redColor{
+    color: #d81e06;
+}
+
 .fontSize16{
     font-size: 16px;
 }

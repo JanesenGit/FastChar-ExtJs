@@ -20,7 +20,7 @@
 </body>
 
 <script type="text/javascript">
-    var map = null, geolocation = null, marker = null, geocoder, currPosition;
+    var map = null, geolocation = null, marker = null, geocoder;
 
     function getQueryString(name) {
         var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)");
@@ -66,7 +66,7 @@
         if (getQueryString("mapKey")) {
             mapKey = getQueryString("mapKey");
         }
-        var srcUrl = "https://webapi.amap.com/maps?v=" + mapVersion + "&key=" + mapKey + "&plugin=AMap.Autocomplete,AMap.Geocoder,AMap.PlaceSearch";
+        var srcUrl = "https://webapi.amap.com/maps?v=" + mapVersion + "&key=" + mapKey + "&plugin=AMap.Autocomplete";
         addScript({src: srcUrl}, function () {
             initMap();
         });
@@ -78,7 +78,7 @@
                 resizeEnable: true
             });
 
-            map.plugin(["AMap.ToolBar", "AMap.OverView", "AMap.Scale"], function () {
+            map.plugin(["AMap.ToolBar", "AMap.OverView", "AMap.Scale","AMap.Geolocation","AMap.Geocoder"], function () {
                 //加载工具条
                 tool = new AMap.ToolBar({
                     autoPosition: false
@@ -90,7 +90,25 @@
                 //加载比例尺
                 scale = new AMap.Scale();
                 map.addControl(scale);
+
+                geocoder = new AMap.Geocoder({
+                    radius: 1000,
+                    extensions: "all"
+                });
+
+                geolocation = new AMap.Geolocation({
+                    enableHighAccuracy: true,//是否使用高精度定位，默认:true
+                    timeout: 10000,          //超过10秒后停止定位，默认：无穷大
+                    buttonOffset: new AMap.Pixel(10, 20),//定位按钮与设置的停靠位置的偏移量，默认：Pixel(10, 20)
+                    zoomToAccuracy: true,      //定位成功后调整地图视野范围使定位位置及精度范围视野内可见，默认：false
+                    buttonPosition: 'RB'
+                });
+
                 window.parent.onMapLoadDone();
+            });
+
+            map.on('click', function(ev) {
+                searchPosition(ev.lnglat);
             });
         } catch (e) {
             console.error(e);
@@ -99,36 +117,31 @@
     }
 
 
+    function initMarker(position) {
+        marker = new AMap.Marker({
+            position: position,
+            draggable: true,
+            cursor: 'move',
+            raiseOnDrag: true
+        });
+        window.parent.closeMapMask();
+        AMap.event.addListener(marker, 'dragend', onMarkDragEnd);
+        marker.setMap(map);
+    }
+
     //开始定位
     function startLocation() {
-        AMap.plugin('AMap.Geolocation', function () {//异步加载插件
-            geolocation = new AMap.Geolocation({
-                enableHighAccuracy: true,//是否使用高精度定位，默认:true
-                timeout: 10000,          //超过10秒后停止定位，默认：无穷大
-                buttonOffset: new AMap.Pixel(10, 20),//定位按钮与设置的停靠位置的偏移量，默认：Pixel(10, 20)
-                zoomToAccuracy: true,      //定位成功后调整地图视野范围使定位位置及精度范围视野内可见，默认：false
-                buttonPosition: 'RB'
-            });
-            geolocation.getCityInfo(function (status, result) {
-                if (status == "complete") {
-                    var position = new AMap.LngLat(result.center[0], result.center[1], true);
-                    marker = new AMap.Marker({
-                        position: position,
-                        draggable: true,
-                        cursor: 'move',
-                        raiseOnDrag: true
-                    });
-                    window.parent.closeMapMask();
-                    AMap.event.addListener(marker, 'dragend', onMarkDragEnd);
-                    marker.setMap(map);
-
-                    searchPosition(position);
-                    map.setZoomAndCenter(14, position);
-                } else {
-                    console.log(result);
-                    alert("定位失败！" + result.message);
-                }
-            });
+        geolocation.getCityInfo(function (status, result) {
+            if (status == "complete") {
+                window.parent.closeMapMask();
+                var position = new AMap.LngLat(result.center[0], result.center[1], true);
+                initMarker(position);
+                searchPosition(position);
+                map.setZoomAndCenter(14, position);
+            } else {
+                console.log(result);
+                alert("定位失败！" + result.message);
+            }
         });
     }
 
@@ -140,28 +153,41 @@
     function searchPosition(position) {
         window.parent.closeMapMask();
         window.parent.setMarkCurrPos("", "检索位置中…");
-        if (!geocoder) {
-            geocoder = new AMap.Geocoder({
-                radius: 1000,
-                extensions: "all"
-            });
-        }
         geocoder.getAddress(position, function (status, result) {
             if (status === 'complete' && result.info === 'OK') {
-                window.parent.setMarkCurrPos(position, result.regeocode.formattedAddress);
+                var province = result.regeocode.addressComponent.province;
+                var city = result.regeocode.addressComponent.city;
+                var district = result.regeocode.addressComponent.district;
+
+                window.parent.setMarkCurrPos(position,
+                    result.regeocode.formattedAddress, province, city, district);
+                if (marker) {
+                    marker.setPosition(position);
+                    map.setZoomAndCenter(14, position);
+                }
+            }else if (status == 'no_data') {
+                window.parent.alert("未检索到位置信息！");
             }
         });
     }
 
     //搜索地址
     function searchAddress(address) {
+        window.parent.showMapMask("正在搜索位置：" + address);
         geocoder.getLocation(address, function (status, result) {
+            window.parent.closeMapMask();
             if (status === 'complete' && result.info === 'OK') {
+                var province = result.geocodes[0].addressComponent.province;
+                var city = result.geocodes[0].addressComponent.city;
+                var district = result.geocodes[0].addressComponent.district;
+
                 var position = result.geocodes[0].location;
                 var fAddress = result.geocodes[0].formattedAddress;
                 marker.setPosition(position);
                 map.setZoomAndCenter(14, position);
-                window.parent.setMarkCurrPos(position, fAddress);
+                window.parent.setMarkCurrPos(position, fAddress,province,city,district);
+            }else if (status == 'no_data') {
+                window.parent.alert("未检索到位置信息！");
             }
         });
     }
@@ -169,11 +195,10 @@
 
     //设置默认的位置
     function setLngLatAddress(lnglat) {
-        currPosition = new AMap.LngLat(lnglat.split(",")[0], lnglat.split(",")[1]);
-        onError(null);
-        marker.setPosition(currPosition);
-        map.setZoomAndCenter(14, currPosition);
-        searchPosition(currPosition);
+        var position = new AMap.LngLat(lnglat.split(",")[0], lnglat.split(",")[1]);
+        initMarker(position);
+        map.setZoomAndCenter(14, position);
+        searchPosition(position);
     }
 </script>
 </html>

@@ -14,6 +14,7 @@
             border: 0 !important;
             border-radius: 0 !important;
         }
+
         .note-editor.note-frame {
             border: 0 !important;
         }
@@ -37,13 +38,13 @@
                 ['para', ['ul', 'ol', 'hr', 'paragraph']],
                 ['table', ['table']],
                 ['insert', ['link', 'picture', 'video']],
-                ['view', ['undo', 'redo','codeview']]
+                ['view', ['undo', 'redo', 'codeview']]
             ],
             onCreateLink: function (link) {
                 return link;
             },
             callbacks: {
-                onImageUpload: function(files) {
+                onImageUpload: function (files) {
                     // upload image to server and create imgNode...
 
                     var data = new FormData();
@@ -54,11 +55,19 @@
                         method: 'POST',
                         data: data,
                         processData: false,
-                        contentType: false
-                    }).done(function (result) {
-                        var imageElement = document.createElement("img");
-                        imageElement.src = result.data.http + result.data.url;
-                        $('#summernote').summernote('insertNode', imageElement);
+                        contentType: false,
+                        success: function (result) {
+                            if (result.success) {
+                                var imageElement = document.createElement("img");
+                                imageElement.src = result.data.http + result.data.url;
+                                $('#summernote').summernote('insertNode', imageElement);
+                            }else{
+                                alert(result.message);
+                            }
+                        },
+                        error: function (event, xhr) {
+                            alert(xhr.responseText);
+                        }
                     });
                 }
             }
@@ -73,6 +82,7 @@
     function setHtmlValue(val) {
         $('#summernote').summernote('code', val);
     }
+
     function getHtmlValue() {
         var value = $('#summernote').summernote('code');
         return value;

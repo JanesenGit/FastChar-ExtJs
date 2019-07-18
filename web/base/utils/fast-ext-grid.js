@@ -171,48 +171,6 @@ function configGridContextMenu(grid) {
         }, index++);
 
         addGridContextMenu(grid, {
-            iconCls: 'extIcon extClear',
-            text: "清空此数据",
-            onBeforeShow: function () {
-                var menu = this.ownerCt;
-                if (Ext.isEmpty(menu.cellContext.column.dataIndex)) {
-                    this.hide();
-                } else {
-                    this.show();
-                }
-            },
-            handler: function () {
-                var menu = this.ownerCt;
-
-                var record = menu.record;
-                var fieldName = menu.cellContext.column.dataIndex;
-
-                if (Ext.isObject(menu.cellContext.column.field)) {
-                    if (!Ext.isEmpty(menu.cellContext.column.field.name)) {
-                        fieldName = menu.cellContext.column.field.name;
-                    }
-                }
-
-                var params = {"entityCode": grid.getStore().entity.entityCode};
-                for (var j = 0; j < grid.getStore().entity.idProperty.length; j++) {
-                    var idName = grid.getStore().entity.idProperty[j];
-                    params['data.' + idName] = record.get(idName);
-                }
-                params['data.' + fieldName] = "<null>";
-                showWait("正在清空中……");
-                server.updateEntity(params, function (success, message) {
-                    hideWait();
-                    if (success) {
-                        toast("清除成功！");
-                        grid.getStore().reload();
-                    } else {
-                        Ext.Msg.alert('系统提醒', message);
-                    }
-                });
-            }
-        }, index++);
-
-        addGridContextMenu(grid, {
             iconCls: 'extIcon extSearch searchColor',
             text: "查找此数据",
             onBeforeShow: function () {
@@ -228,6 +186,52 @@ function configGridContextMenu(grid) {
                 var record = menu.record;
                 var fieldName = menu.cellContext.column.dataIndex;
                 menu.cellContext.column.searchValue(record.get(fieldName));
+            }
+        }, index++);
+
+        addGridContextMenu(grid, {
+            iconCls: 'extIcon extClear',
+            text: "清空此数据",
+            onBeforeShow: function () {
+                var menu = this.ownerCt;
+                if (Ext.isEmpty(menu.cellContext.column.dataIndex)) {
+                    this.hide();
+                } else {
+                    this.show();
+                }
+            },
+            handler: function () {
+                var me = this;
+                Ext.Msg.confirm("系统提醒", "您确定清空选中的单元格数据吗？", function (button, text) {
+                    if (button == "yes") {
+                        var menu = me.ownerCt;
+                        var record = menu.record;
+                        var fieldName = menu.cellContext.column.dataIndex;
+
+                        if (Ext.isObject(menu.cellContext.column.field)) {
+                            if (!Ext.isEmpty(menu.cellContext.column.field.name)) {
+                                fieldName = menu.cellContext.column.field.name;
+                            }
+                        }
+
+                        var params = {"entityCode": grid.getStore().entity.entityCode};
+                        for (var j = 0; j < grid.getStore().entity.idProperty.length; j++) {
+                            var idName = grid.getStore().entity.idProperty[j];
+                            params['data.' + idName] = record.get(idName);
+                        }
+                        params['data.' + fieldName] = "<null>";
+                        showWait("正在清空中……");
+                        server.updateEntity(params, function (success, message) {
+                            hideWait();
+                            if (success) {
+                                toast("清除成功！");
+                                grid.getStore().reload();
+                            } else {
+                                Ext.Msg.alert('系统提醒', message);
+                            }
+                        });
+                    }
+                });
             }
         }, index++);
     }
@@ -458,7 +462,11 @@ function configGridListeners(grid) {
         var editorField = context.column.field;
         var cell = Ext.get(context.cell);
         if (Ext.isFunction(editorField.setValue) && !toBool(context.column.password, false)) {
-            editorField.setValue(context.value, context.record);
+            if (Ext.isObject(context.value) || Ext.isArray(context.value)) {
+                editorField.setValue(JSON.stringify(context.value), context.record);
+            } else {
+                editorField.setValue(context.value, context.record);
+            }
         }
         if (Ext.isFunction(editorField.showWindow)) {
             editorField.showWindow(cell, function (result) {
@@ -785,7 +793,61 @@ function getPageToolBar(dataStore) {
             }
         }
     };
+
+    var copyBtn = {
+        xtype: 'button',
+        iconCls: 'extIcon extCopy2 grayColor',
+        handler: function () {
+            var selection = dataStore.grid.getSelection();
+            if (selection.length == 0) {
+                showAlert("系统提醒", "请选择需要复制的数据！");
+                return;
+            }
+            Ext.Msg.confirm("系统提醒", "您确定复制选中的" + selection.length + "条数据吗？", function (button, text) {
+                if (button == "yes") {
+                    showWait("正在复制数据中……");
+                    commitStoreCopy(dataStore.grid.getStore(), dataStore.grid.getSelection()).then(function (success) {
+                        if (success) {
+                            dataStore.grid.getSelectionModel().deselectAll();
+                            var grouped = dataStore.grid.getStore().isGrouped();
+                            if (grouped) {
+                                dataStore.grid.getView().getFeature('group').collapseAll();
+                            }
+                            hideWait();
+                        }
+                    });
+                }
+            });
+        }
+    };
+
+    var deleteAllBtn={
+        xtype: 'button',
+        iconCls: 'extIcon extDelete grayColor',
+        handler: function () {
+            Ext.Msg.confirm("系统提醒", "您确定删除当前条件下的所有数据吗？请您谨慎操作！", function (button, text) {
+                if (button == "yes") {
+                    showWait("正在删除数据中……");
+                    var storeParams = dataStore.grid.getStore().proxy.extraParams;
+                    var params = {"entityCode": dataStore.entity.entityCode, "all": true};
+                    server.deleteEntity(mergeJson(params, storeParams), function (success, message) {
+                        hideWait();
+                        if (success) {
+                            dataStore.loadPage(1);
+                        }
+                        showAlert("系统提醒", message);
+                    });
+                }
+            });
+        }
+    };
+
+
     pagingtoolbar.insert(0, control);
+    pagingtoolbar.insert(pagingtoolbar.items.getCount() - 2, "-");
+    pagingtoolbar.insert(pagingtoolbar.items.getCount() - 2, deleteAllBtn);
+    pagingtoolbar.insert(pagingtoolbar.items.getCount() - 4, "-");
+    pagingtoolbar.insert(pagingtoolbar.items.getCount() - 4, copyBtn);
     return pagingtoolbar;
 }
 
@@ -809,12 +871,6 @@ function deleteGridData(grid) {
             commitStoreDelete(grid.getStore(), grid.getSelection()).then(function (success) {
                 if (success) {
                     grid.getSelectionModel().deselectAll();
-                    var reloadPage = grid.getStore().currentPage;
-                    if (grid.getStore().count() - selectLength <= 0) {
-                        reloadPage = reloadPage - 1;
-                    }
-                    grid.getStore().loadPage(Math.max(reloadPage, 1));
-
                     var grouped = grid.getStore().isGrouped();
                     if (grouped) {
                         grid.getView().getFeature('group').collapseAll();
@@ -919,7 +975,7 @@ function saveGridColumn(grid) {
             var params = {};
             if (grid.getStore().entity && grid.getStore().entity.menu) {
                 params["menuId"] = grid.getStore().entity.menu.id;
-                if (grid.getStore().entity.menu.webMenu) {//左侧主菜单
+                if (system.isSuperRole()) {//左侧主菜单
                     params["entityCode"] = grid.getStore().entity.entityCode;
                 }
             }
@@ -1520,7 +1576,6 @@ function hasSearchColumn(grid) {
     Ext.each(grid.getColumns(), function (item, index) {
         if (!Ext.isEmpty(item.dataIndex)) {
             if (item.where && item.where.length > 0) {
-                console.log(item.where);
                 search = true;
                 return false;
             }

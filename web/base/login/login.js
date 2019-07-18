@@ -1,35 +1,37 @@
 Ext.onReady(function () {
     removeLoading();
     if (checkBrowserVersion()) {
-        var container = getBodyContainer();
+        let container = getBodyContainer();
         container.removeAll();
         showLogin(container);
     }
 });
 
 function showLogin(container) {
-    var loginTitle = $("title").text();
-    var loginBgUrl = getExt("login-background").href;
-    var systemBgColor = toColor(getExt("theme-color").value);
-    var loginLogo =getExt("login-logo").value;
-    var loginNormal = getExt("login-type").value == "normal";
-    var copyright = getExt("copyright").value;
-    var copyrightUrl = getExt("copyright").href;
+    let loginTitle = $("title").text();
+    let loginBgUrl = getExt("login-background").href;
+    let systemBgColor = toColor(getExt("theme-color").value);
+    let loginLogo =getExt("login-logo").value;
+    let loginNormal = getExt("login-type").value == "normal";
+    let copyright = getExt("copyright").value;
+    let copyrightUrl = getExt("copyright").href;
+    let indexUrl = getExt("indexUrl").value;
+    
 
-    var panel = Ext.create('Ext.panel.Panel', {
+    let panel = Ext.create('Ext.panel.Panel', {
         layout: 'fit',
         border: 0,
         html: "<iframe name='loginFrame'  src='" + loginBgUrl + "?bg=" + systemBgColor + "' width='100%' height='100%' style='border: 0px; overflow-x: hidden;background-color: " + systemBgColor + "'/>",
     });
 
 
-    var headHtml = "<div align='center' style='color:" + systemBgColor + ";'><img  width='50px' height='50px;' src='" + loginLogo + "' /><h2>" + loginTitle + "</h2></div>";
+    let headHtml = "<div align='center' style='color:" + systemBgColor + ";'><img  width='50px' height='50px;' src='" + loginLogo + "' /><h2>" + loginTitle + "</h2></div>";
 
     if (loginLogo.length == 0 || loginLogo == null) {
         headHtml = "<div align='center' style='color:" + systemBgColor + ";'><h2>" + loginTitle + "</h2></div>";
     }
 
-    var headPanel = Ext.create('Ext.panel.Panel', {
+    let headPanel = Ext.create('Ext.panel.Panel', {
         region: 'north',
         layout: 'fit',
         width: '100%',
@@ -41,14 +43,14 @@ function showLogin(container) {
     });
 
 
-    var loginName = $.cookie("loginName");
-    var loginPassword = $.cookie("loginPassword");
-    var loginMember = $.cookie("loginMember");
+    let loginName = $.cookie("loginName");
+    let loginPassword = $.cookie("loginPassword");
+    let loginMember = $.cookie("loginMember");
     if (loginMember == null) {
         loginMember = 0;
     }
 
-    var loginPanel = Ext.create('Ext.form.FormPanel', {
+    let loginPanel = Ext.create('Ext.form.FormPanel', {
         url: 'manager/login',
         method: 'POST',
         fileUpload: true,
@@ -184,19 +186,19 @@ function showLogin(container) {
         }
     });
 
-    var refreshCode = function () {
+    let refreshCode = function () {
         try {
             loginPanel.form.findField("validateCode").reset();
             Ext.getCmp("imgCode").setSrc("showCaptcha?t=" + Math.random());
         } catch (e) {
         }
     };
-    var doLogin = function () {
-        var form = loginPanel.form;
+    let doLogin = function () {
+        let form = loginPanel.form;
         if (form.isValid()) {
-            var loginPassword = loginPanel.form.findField("loginPassword").getValue();
-            var loginName = loginPanel.form.findField("loginName").getValue();
-            var loginMember = loginPanel.form.findField("loginMember").getValue();
+            let loginPassword = loginPanel.form.findField("loginPassword").getValue();
+            let loginName = loginPanel.form.findField("loginName").getValue();
+            let loginMember = loginPanel.form.findField("loginMember").getValue();
 
             $.cookie("loginName", loginName);
             $.cookie("loginMember", loginMember);
@@ -211,7 +213,7 @@ function showLogin(container) {
                 },
                 waitMsg: '正在为您登录……',
                 success: function (form, action) {
-                    addScript({src: 'base/index/index.js?v=' + getExt("version").value});
+                    addScript({src: indexUrl + '?v=' + getExt("version").value});
                 },
                 failure: function (form, action) {
                     Ext.Msg.alert('登录失败', action.result.message);
@@ -224,7 +226,7 @@ function showLogin(container) {
         }
     };
 
-    var bottomPanel = Ext.create('Ext.panel.Panel', {
+    let bottomPanel = Ext.create('Ext.panel.Panel', {
         region: 'south',
         layout: 'fit',
         width: '100%',
@@ -234,7 +236,7 @@ function showLogin(container) {
     });
 
 
-    var win = Ext.create('Ext.window.Window', {
+    let win = Ext.create('Ext.window.Window', {
         title: '管理员登录',
         iconCls: 'extIcon extLogin',
         width: 350,

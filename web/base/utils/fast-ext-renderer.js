@@ -1,10 +1,27 @@
 var renders = {
-    normal: function () {
+    normal: function (append, isFirst) {
         return function (val) {
             if (Ext.isEmpty(val)) {
                 return "<span style='color: #ccc;'>无</span>";
             }
-            return val;
+            if (!append) {
+                append = "";
+            }
+            if (!isFirst) {
+                isFirst = false;
+            }
+            if (isFirst) {
+                return append + val;
+            }
+            return val + append;
+        };
+    },
+    money: function () {
+        return function (val) {
+            if (Ext.isEmpty(val)) {
+                return "<span style='color: #ccc;'>无</span>";
+            }
+            return "￥" + val;
         };
     },
     text: function () {
@@ -14,14 +31,6 @@ var renders = {
             }
             return "<span style='white-space: pre;'>" + val + "</span>";
         };
-    },
-    enum: function (enumName) {
-        return function (val) {
-            if (Ext.isEmpty(val)) {
-                return "<span style='color: #ccc;'>无</span>";
-            }
-            return getEnumText(enumName, val);
-        }
     },
     file: function () {
         return function (val, m, record) {
@@ -33,6 +42,9 @@ var renders = {
     },
     files: function () {
         return function (val, m, record, rowIndex, colIndex, store, view, details) {
+            if (Ext.isEmpty(val) || val == "null") {
+                return "<span style='color: #ccc;'>暂无文件</span>";
+            }
             var data = [];
             if (!Ext.isEmpty(val)) {
                 try {
@@ -56,8 +68,8 @@ var renders = {
     image: function (height) {
         return function (val) {
             var imageHeight = "16px";
-            if (Ext.isEmpty(val)) {
-                return "<img style='border:1px solid #cccccc;height:"+imageHeight+";' src='images/default_img.png'   />";
+            if (Ext.isEmpty(val) || val == "null") {
+                return "<img style='border:1px solid #cccccc;height:" + imageHeight + ";' src='images/default_img.png'   />";
             }
             try {
                 if (height) {
@@ -70,11 +82,16 @@ var renders = {
     },
     images: function () {
         return function (val, m, record, rowIndex, colIndex, store, view, details) {
-            var data = [];
-            if (!Ext.isEmpty(val)) {
-                try {
-                    data = Ext.decode(val);
-                } catch (e) {}
+            if (Ext.isEmpty(val) || val == "null") {
+                return "<span style='color: #ccc;'>暂无图片</span>";
+            }
+            var data = val;
+            if(Ext.isString(val)){
+                if (!Ext.isEmpty(val)) {
+                    try {
+                        data = Ext.decode(val);
+                    } catch (e) {}
+                }
             }
             if (data.length == 0) {
                 return "<span style='color: #ccc;'>暂无图片</span>";
@@ -107,6 +124,25 @@ var renders = {
             return "<a href=\"javascript:"+functionStr+"\" target='_blank' >" + val + "</a>";
         };
     },
+    target: function (targetId, targetType, targetFunction) {
+        return function (val, m, record) {
+            if (Ext.isEmpty(val) || val == "null") {
+                return "<span style='color: #ccc;'>无</span>";
+            }
+            if (!targetFunction) {
+                targetFunction = "getTargetEntity";
+            }
+            if (!Ext.isFunction(window[targetFunction])) {
+                return val;
+            }
+            var targetTypeValue = record.get(targetType);
+            var targetIdValue = record.get(targetId);
+            var targetEntity = window[targetFunction](targetTypeValue, targetType);
+
+            var functionStr = "new " + targetEntity.entityCode + "().showDetails(null, {'t." + targetEntity.entityId + "':'" + targetIdValue + "'});";
+            return "<a href=\"javascript:" + functionStr + "\" target='_blank' >" + val + "</a>";
+        };
+    },
     map: function (lngName, latName) {
         return function (val, m, record) {
             if (Ext.isEmpty(val) || val == "null") {
@@ -130,5 +166,13 @@ var renders = {
             return "<span>******</span>";
         };
 
+    }
+};
+renders["enum"] = function (enumName) {
+    return function (val) {
+        if (Ext.isEmpty(val)) {
+            return "<span style='color: #ccc;'>无</span>";
+        }
+        return getEnumText(enumName, val);
     }
 };

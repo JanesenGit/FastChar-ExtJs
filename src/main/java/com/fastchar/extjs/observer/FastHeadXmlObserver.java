@@ -104,6 +104,7 @@ public class FastHeadXmlObserver {
                 }
                 fastHeadInfo.setTagName(titleElement.tagName());
                 fastHeadInfo.setText(titleElement.toString());
+                fastHeadInfo.put("value", titleElement.text());
                 fastHeadInfo.fromProperty();
                 titleElement.remove();
             }
@@ -192,6 +193,34 @@ public class FastHeadXmlObserver {
         dbExtInfo.setValue(FastStringUtils.join(infos, "/"));
         dbExtInfo.fromProperty();
 
+
+        FastHeadExtInfo indexExtInfo = new FastHeadExtInfo();
+        indexExtInfo.setName("indexUrl");
+        indexExtInfo.setValue("base/index/index.js");
+        if (new File(FastChar.getPath().getWebRootPath(), "base/index/index.min.js").exists()) {
+            indexExtInfo.setValue("base/index/index.min.js");
+        }
+        indexExtInfo.fromProperty();
+
+
+        FastHeadExtInfo loginExtInfo = new FastHeadExtInfo();
+        loginExtInfo.setName("loginUrl");
+        loginExtInfo.setValue("base/login/login.js");
+        if (new File(FastChar.getPath().getWebRootPath(), "base/login/login.min.js").exists()) {
+            loginExtInfo.setValue("base/login/login.min.js");
+        }
+        loginExtInfo.fromProperty();
+
+        FastHeadExtInfo welcomeExtInfo = new FastHeadExtInfo();
+        welcomeExtInfo.setName("welcomeUrl");
+        welcomeExtInfo.setValue("base/welcome/welcome.js");
+        if (new File(FastChar.getPath().getWebRootPath(), "base/welcome/welcome.min.js").exists()) {
+            welcomeExtInfo.setValue("base/welcome/welcome.min.js");
+        }
+        welcomeExtInfo.fromProperty();
+
+
+
         if (FastChar.getServletContext() != null) {
             FastHeadExtInfo serverExtInfo = new FastHeadExtInfo();
             serverExtInfo.setName("server");
@@ -199,7 +228,9 @@ public class FastHeadXmlObserver {
             serverExtInfo.fromProperty();
             heads.add(serverExtInfo);
         }
-
+        heads.add(indexExtInfo);
+        heads.add(loginExtInfo);
+        heads.add(welcomeExtInfo);
         heads.add(extInfo);
         heads.add(osExtInfo);
         heads.add(javaExtInfo);
