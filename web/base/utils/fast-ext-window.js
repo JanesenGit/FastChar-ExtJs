@@ -4,6 +4,10 @@ Ext.override(Ext.Window, {
             if (!eval(getExt("window-anim").value)) {
                 this.animateTarget = null;
             }
+            let regStr=/([^/]*.svg)/;
+            if (this.icon && regStr.test(this.icon)) {
+                this.icon = server.getIcon(regStr.exec(this.icon)[1].trim(), "#ffffff");
+            }
         } catch (e) {
             console.error(e);
         }
@@ -13,9 +17,16 @@ Ext.override(Ext.Window, {
 
 Ext.override(Ext.window.Window, {
     show: Ext.Function.createSequence(Ext.window.Window.prototype.show, function () {
-        var me = this;
+        let me = this;
         me.toFront(true);
         me.focus();
+    }),
+    setIcon: Ext.Function.createSequence(Ext.window.Window.prototype.setIcon, function (value) {
+        let me = this;
+        let regStr=/([^/]*.svg)/;
+        if (value && regStr.test(value)) {
+            me.icon = server.getIcon(regStr.exec(value)[1].trim(), "#ffffff");
+        }
     })
 });
 
@@ -33,15 +44,15 @@ function showWait(message) {
         progress: true,
         closable: false
     });
-    var i = 0;
-    var max = 100;
-    var fn = function () {
+    let i = 0;
+    let max = 100;
+    let fn = function () {
         if (Ext.MessageBox.isHidden()) return;
         i = i + 0.5;
         if (i == max + 30) {
             i = 0;
         }
-        var val = i / max;
+        let val = i / max;
         Ext.MessageBox.updateProgress(val, '请耐心等待，即将完成操作');
         setTimeout(fn, 5);
     };
@@ -79,7 +90,7 @@ function toast(message) {
  * 弹窗显示网页内容
  */
 function showHtml(obj, title, content) {
-    var win = Ext.create('Ext.window.Window', {
+    let win = Ext.create('Ext.window.Window', {
         title: title,
         layout: 'fit',
         height: 500,
@@ -98,9 +109,72 @@ function showHtml(obj, title, content) {
     win.show();
 }
 
+/**
+ * 弹窗显示网页内容
+ */
+function showLink(obj, title, url) {
+    let win = Ext.create('Ext.window.Window', {
+        title: title,
+        layout: 'fit',
+        height: 500,
+        width: 600,
+        resizable: false,
+        maximizable: true,
+        modal: true,
+        maximized: false,
+        iconCls: 'extIcon extSee',
+        draggable: true,
+        scrollable: false,
+        alwaysOnTop: true,
+        toFrontOnShow: true,
+        listeners: {
+            show: function () {
+                let html = "<iframe src='" + url + "'  width='100%' height='100%' frameborder='0'>";
+                this.update(html);
+            }
+        }
+    });
+    win.show();
+}
+
+/**
+ * 显示编辑器里的内容
+ * @param obj
+ * @param title
+ * @param content
+ */
+function showEditorHtml(obj, title, content) {
+    let win = Ext.create('Ext.window.Window', {
+        title: title,
+        layout: 'fit',
+        height: 500,
+        width: 600,
+        resizable: false,
+        maximizable: true,
+        modal: true,
+        maximized: false,
+        iconCls: 'extIcon extSee',
+        draggable: true,
+        scrollable: false,
+        alwaysOnTop: true,
+        toFrontOnShow: true,
+        listeners: {
+            show: function () {
+                let url = system.formatUrlVersion("base/editor/show.html");
+                window["showEditorDone"] = function () {
+                    showEditorFrame.window.showContent(content);
+                };
+                let html = "<iframe name='showEditorFrame' src='" + url + "'  width='100%' height='100%' frameborder='0'>";
+                this.update(html);
+            }
+        }
+    });
+    win.show();
+}
+
 
 function showText(obj, icon, title, text) {
-    var win = Ext.create('Ext.window.Window', {
+    let win = Ext.create('Ext.window.Window', {
         title: title,
         icon: icon,
         maximizable: true,
@@ -129,7 +203,7 @@ function showException(e, from) {
     if (e == null) return;
     hideWait();
     console.error(e);
-    var message = e;
+    let message = e;
     if (e instanceof Error) {
         message = e.stack;
         message = message.replace(/\n/g, "<br/>")
@@ -141,9 +215,9 @@ function showException(e, from) {
     } else {
         from = "";
     }
-    var isDebug = getExt("debug").value;
+    let isDebug = getExt("debug").value;
     if (isDebug) {
-        var win = Ext.create('Ext.window.Window', {
+        let win = Ext.create('Ext.window.Window', {
             title: '系统异常' + from,
             height: 180,
             width: 270,
@@ -187,14 +261,14 @@ function showImage(obj, url, callBack, modal) {
     if (Ext.isEmpty(modal)) {
         modal = false;
     }
-    var jsonData = [{
+    let jsonData = [{
         "url": url
     }];
 
-    var selectIndex = -1;
+    let selectIndex = -1;
     if (Ext.getStore("ImageViewStore") != null) {
-        var hasValue = false;
-        var currStore = Ext.getStore("ImageViewStore");
+        let hasValue = false;
+        let currStore = Ext.getStore("ImageViewStore");
 
         currStore.each(function (record, index) {
             if (record.get("url").split("?")[0] == url.split("?")[0]) {
@@ -217,19 +291,19 @@ function showImage(obj, url, callBack, modal) {
         }
     }
 
-    var imageStore = Ext.create('Ext.data.Store', {
+    let imageStore = Ext.create('Ext.data.Store', {
         fields: ['url'],
         autoLoad: false,
         id: "ImageViewStore",
         data: jsonData
     });
 
-    var dataGridImages = Ext.create('Ext.grid.Panel', {
+    let dataGridImages = Ext.create('Ext.grid.Panel', {
         store: imageStore,
         region: 'west',
         hideHeaders: true,
         id: "ImageViewGrid",
-        width: 100,
+        width: 125,
         disabled: true,
         border: 1,
         scrollable: "y",
@@ -248,27 +322,27 @@ function showImage(obj, url, callBack, modal) {
         tbar: [{
             xtype: 'button',
             border: 1,
-            text: '批量下载',
+            text: '打包下载',
+            iconCls: 'extIcon extDownload',
             handler: function (obj) {
-                var params = {};
+                let params = {};
                 imageStore.each(function (record, index) {
                     params["path" + index] = record.get("url");
                 });
-                console.log(params);
                 buildForm("zipFile", params).submit();
             }
         }],
         listeners: {
             selectionchange: function () {
                 try {
-                    var time = 0;
+                    let time = 0;
                     if (this.getStore().getCount() > 1) {
                         this.setHidden(false);
                         time = 120;
                     } else {
                         this.setHidden(true);
                     }
-                    var data = this.getSelectionModel().getSelection();
+                    let data = this.getSelectionModel().getSelection();
                     setTimeout(function () {
                         imgViewFrame.window.showImage(system.formatUrl(data[0].get("url")), system.http);
                     }, time);
@@ -282,7 +356,7 @@ function showImage(obj, url, callBack, modal) {
     window["imageViewerLoadDone"] = function () {
         Ext.getCmp("ImageViewGrid").setDisabled(false);
         try {
-            var index = Ext.getStore("ImageViewStore").count() - 1;
+            let index = Ext.getStore("ImageViewStore").count() - 1;
             Ext.getCmp("ImageViewGrid").getSelectionModel().select(index);
         } catch (e) {
             showException(e, "showImage")
@@ -292,10 +366,10 @@ function showImage(obj, url, callBack, modal) {
         Ext.getCmp("ImageViewWindow").setTitle("查看图片 " + width + "x" + height);
     };
 
-    var imagePanel = Ext.create('Ext.panel.Panel', {
+    let imagePanel = Ext.create('Ext.panel.Panel', {
         layout: 'fit',
         region: 'center',
-        border: 1,
+        border: 0,
         height: 'auto',
         html: '<div style="background: #000000;width: 100%;height: 100%;"></div>',
         listeners: {
@@ -305,7 +379,7 @@ function showImage(obj, url, callBack, modal) {
                 } else {
                     dataGridImages.setHidden(false);
                 }
-                obj.update("<iframe name='imgViewFrame' " +
+                obj.update("<iframe style='background: #000000;width: 100%;height: 100%;' name='imgViewFrame' " +
                     " src='" + system.formatUrlVersion("base/image-view/index.html") + "' width='100%' height='100%' frameborder='0' scrolling='no' />");
             }
         },
@@ -359,11 +433,19 @@ function showImage(obj, url, callBack, modal) {
                     handler: function () {
                         imgViewFrame.window.flipB();
                     }
+                },
+                {
+                    xtype: 'button',
+                    iconCls: 'extIcon extDownload2',
+                    handler: function () {
+                        let data = dataGridImages.getSelectionModel().getSelection();
+                        download(data[0].get("url"));
+                    }
                 }
             ]
         }
     });
-    var newWin = Ext.create('Ext.window.Window', {
+    let newWin = Ext.create('Ext.window.Window', {
         title: "查看图片",
         height: 500,
         width: 600,

@@ -1,6 +1,7 @@
 package com.fastchar.extjs.observer;
 
 import com.fastchar.core.FastChar;
+import com.fastchar.extjs.FastExtConfig;
 import com.fastchar.extjs.core.menus.FastMenuInfo;
 import com.fastchar.utils.FastMD5Utils;
 import com.fastchar.utils.FastStringUtils;
@@ -32,11 +33,13 @@ public class FastMenuXmlObserver {
     }
 
     private static File[] getMenuXmlFiles() {
+        final FastExtConfig config = FastChar.getConfig(FastExtConfig.class);
+
         File src = new File(FastChar.getPath().getClassRootPath());
         File[] files = src.listFiles(new FilenameFilter() {
             @Override
             public boolean accept(File dir, String name) {
-                return name.toLowerCase().startsWith("fast-menus") && name.toLowerCase().endsWith(".xml");
+                return name.toLowerCase().startsWith(config.getMenuPrefix()) && name.toLowerCase().endsWith(".xml");
             }
         });
         if (files == null) {
@@ -59,7 +62,7 @@ public class FastMenuXmlObserver {
 
     private void initMenuXml() throws Exception {
         File[] files = getMenuXmlFiles();
-        if (files == null || files.length == 0) {
+        if (files.length == 0) {
             return;
         }
         FILE_COUNT = files.length;

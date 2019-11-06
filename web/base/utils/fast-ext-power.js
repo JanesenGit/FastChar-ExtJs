@@ -1,10 +1,10 @@
-var power = {
+const power = {
     types: [
         "gridcolumn",
         "button",
         "menuitem"
     ],
-    config: false,
+    config: false,//是否正在配置权限
     menuShowing: false,
     powers: {},
     defaultPower: {
@@ -12,32 +12,37 @@ var power = {
         edit: true
     },
     hasPower: function (target, type) {
+        let me = this;
         if (target.managerPower) {
             if (target.managerPower.hasOwnProperty(type)) {
-                return target.managerPower[type];
+                return  target.managerPower[type];
             }
         }
         return true;
     },
     checkPower: function (code) {
-        var me = this;
-        if (!me.powers.hasOwnProperty(code)) {
+        let me = this;
+        if (!me.powers[code]) {
             me.powers[code] = copy(me.defaultPower);
         }
-        var powerConfig = me.powers[code];
-        for (var defaultPowerKey in me.defaultPower) {
-            if (!powerConfig.hasOwnProperty(defaultPowerKey)) {
-                powerConfig[defaultPowerKey] = me.defaultPower[defaultPowerKey];
+        let powerConfig = me.powers[code];
+        if (!Ext.isEmpty(powerConfig)) {
+            for (let defaultPowerKey in me.defaultPower) {
+                if (!powerConfig.hasOwnProperty(defaultPowerKey)) {
+                    powerConfig[defaultPowerKey] = me.defaultPower[defaultPowerKey];
+                }
             }
         }
         return powerConfig;
     },
     checkManagerPower: function (target) {
-        if (!system.manager || Ext.isEmpty(system.manager.managerExtPower)) {
+        if (!system.manager) {
             return null;
         }
-        if (system.manager.role.roleType == 0) {
-            return null;
+        if (!system.managerPowers) {
+            if (Ext.isEmpty(system.manager.managerExtPower) || system.manager.role.roleType == 0) {
+                return null;
+            }
         }
         if (!system.managerPowers) {
             system.managerPowers = jsonToObject(system.manager.managerExtPower);
@@ -45,23 +50,32 @@ var power = {
         if (!system.managerPowers) {
             system.managerPowers = {};
         }
-        var powerConfig = system.managerPowers[target.code];
-        if (powerConfig) {
-            for (var defaultPowerKey in power.defaultPower) {
-                if (!powerConfig.hasOwnProperty(defaultPowerKey)) {
-                    powerConfig[defaultPowerKey] = power.defaultPower[defaultPowerKey];
-                }
+
+        let powerConfig = system.managerPowers[target.code];
+        if (!powerConfig) {
+            powerConfig = copy(power.defaultPower);
+        }
+        for (let defaultPowerKey in power.defaultPower) {
+            if (!powerConfig.hasOwnProperty(defaultPowerKey)) {
+                powerConfig[defaultPowerKey] = power.defaultPower[defaultPowerKey];
             }
         }
         return powerConfig;
     },
     pushPower: function (code, config) {
-        var me = this;
+        let me = this;
         me.powers[code] = config
     },
+    setPower: function (code, config) {
+        let me = this;
+        if (!me.powers[code]) {
+            me.powers[code] =config;
+        }
+    },
     savePower: function () {
-        var me = this;
-        return Ext.encode(me.powers);
+        let me = this;
+        let data = me.powers;
+        return Ext.encode(data);
     }
 };
 
@@ -71,19 +85,19 @@ Ext.override(Ext.Component, {
         if (!isSystem()) {
             return;
         }
-        var me = this;
-        if (!Ext.isEmpty(me.power) && !me.power) {
+        let me = this;
+        me.power = toBool(me.power, true);
+        if (!me.power) {
             return;
         }
         if (me.up("[power=false]")) {
             return;
         }
-        if (me.getXTypes().indexOf("field/") > 0
-            || Ext.Array.contains(power.types, me.getXType())
-            || me.power) {
+        if (me.power && (me.getXTypes().indexOf("field/") > 0 || Ext.Array.contains(power.types, me.getXType()))) {
             me.code = getPowerCode(me);
             if (me.code) {
                 me.managerPower = power.checkManagerPower(me);
+                power.setPower(me.code, copy(me.managerPower));
                 if (!power.hasPower(me, 'show')) {
                     me.hideable = false;
                     me.setHidden(true);
@@ -94,7 +108,7 @@ Ext.override(Ext.Component, {
                     }
                 } else if (!power.hasPower(me, 'edit')) {
                     me.editable = false;
-                    if ( Ext.isFunction(me.setReadOnly)) {
+                    if (Ext.isFunction(me.setReadOnly)) {
                         me.setReadOnly(true);
                     }
                 }
@@ -126,7 +140,7 @@ Ext.override(Ext.form.field.Base, {
         if (power.config) {
             return;
         }
-        var me = this,
+        let me = this,
             ariaDom = me.ariaEl.dom,
             oldMsg = me.getActiveError(),
             active;
@@ -149,10 +163,10 @@ Ext.override(Ext.form.field.Base, {
  */
 function getPowerCode(obj) {
     if (obj != null) {
-        var buildText = null;
+        let buildText = null;
 
         if (Ext.isFunction(obj.up)) {
-            var window = obj.up("window");
+            let window = obj.up("window");
             if (window) {
                 buildText = window.getTitle();
             }
@@ -187,9 +201,9 @@ function showPowerConfig(target, e) {
     if (!isSystem()) {
         return;
     }
-    var powerConfig = power.checkPower(target.code);
+    let powerConfig = power.checkPower(target.code);
     power.menuShowing = true;
-    var panel = Ext.create('Ext.panel.Panel', {
+    let panel = Ext.create('Ext.panel.Panel', {
         layout: {
             type: 'vbox',
             pack: 'center'
@@ -229,7 +243,7 @@ function showPowerConfig(target, e) {
             }
         ]
     });
-    var contextMenu = new Ext.menu.Menu({
+    let contextMenu = new Ext.menu.Menu({
         padding: '0 0 0 10',
         powerMenu: true,
         style: {
@@ -247,9 +261,9 @@ function showPowerConfig(target, e) {
 }
 
 function setPowerStyle(target) {
-    var query = Ext.all("[code=" + target.code + "]");
+    let query = Ext.all("[code=" + target.code + "]");
     Ext.each(query, function (item, index) {
-        var powerConfig = power.checkPower(target.code);
+        let powerConfig = power.checkPower(target.code);
         if (powerConfig) {
             if (!powerConfig.show) {
                 item.addCls("no-show-power");

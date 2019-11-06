@@ -34,12 +34,13 @@ public class FastExtData extends FastData {
                 if (fastEntity != null) {
                     return fastEntity.getString("layer");
                 }
+                return null;
             }
         } catch (Exception e) {
             setError(e);
             throw new FastSqlException(e);
         }
-        return null;
+        throw new FastSqlException("暂未支持" + getDatabaseType() + "层级权限配置！");
     }
 
 }

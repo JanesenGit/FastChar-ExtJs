@@ -5,7 +5,9 @@
     <meta charset="UTF-8">
     <title>API接口文档-${projectName}</title>
     <link rel="icon" href="${logo}" type="image/png"/>
+    <link rel="stylesheet" href="base/iconfont/iconfont.css"/>
     <style>
+
         blockquote {
             background: #f9f9f9 !important;
             border-left: 5px solid #ea800f !important;
@@ -29,6 +31,16 @@
             font-size: 16px;
         }
 
+        .container {
+            position: fixed;
+            display: flex;
+            top: 0;
+            left: 0;
+
+            flex-direction: column;
+            background: #1aa1c5;
+        }
+
         .head {
             -moz-box-shadow: 0 0 5px #cccccc;
             -webkit-box-shadow: 0 0 5px #cccccc;
@@ -45,6 +57,7 @@
         .content {
             border: none;
             display: flex;
+            flex: 1;
             flex-direction: column;
             position: fixed;
             top: 0;
@@ -57,6 +70,72 @@
             flex: 1;
             width: 100%;
             border: none;
+        }
+
+        .bar {
+            width: 50px;
+            position: fixed;
+            right: 0;
+            bottom: 0;
+            top: 0;
+            margin-top: 45px;
+            margin-right: 20px;
+            margin-bottom: 25px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .searchContainer {
+            position: fixed;
+            right: 0;
+            top: 0;
+            margin-top: 50px;
+            margin-right: 90px;
+            padding: 10px;
+            width: 300px;
+            display: none;
+        }
+
+        .searchContainer > input {
+            border: 1px solid #cccccc;
+            font-size: 14px;
+            padding: 10px;
+            width: 100%;
+            -webkit-box-shadow: inset 0 5px 5px rgba(0, 0, 0, .075), 0 0 18px ${themeColor};
+            box-shadow: inset 0 5px 5px rgba(0, 0, 0, .075), 0 0 18px ${themeColor};
+        }
+
+        .searchContainer > input:focus {
+            border-color: ${themeColor};
+            outline: 0;
+        }
+
+        .searchContent {
+            background: #ffffff;
+            width: 100%;
+            border-color: ${themeColor};
+            padding: 10px;
+            -webkit-box-shadow: inset 0 5px 5px rgba(0, 0, 0, .075), 0 0 18px ${themeColor};
+            box-shadow: inset 0 5px 5px rgba(0, 0, 0, .075), 0 0 18px ${themeColor};
+            visibility: hidden;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .searchContent>li {
+            list-style: none;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+
+        .searchContent>li:hover {
+            color: ${themeColor};
+            font-weight: bold;
+        }
+
+        .searchContent>li:focus {
+            color: ${themeColor};
+            font-weight: bold;
         }
 
         .tab {
@@ -75,13 +154,82 @@
             background: ${themeColor};
             color: white;
         }
+
+        .arrow {
+            background: black;
+            color: #ffffff;
+            display: inline-block;
+            width: 50px;
+            height: 50px;
+            border-radius: 25px;
+            line-height: 50px;
+            text-align: center;
+            cursor: pointer;
+            -moz-box-shadow: 0 0 3px ${themeColor};
+            -webkit-box-shadow: 0 0 3px ${themeColor};
+            box-shadow: 0 0 3px ${themeColor};
+            cursor: pointer;
+            text-decoration: none;
+            transition: background-color 500ms ease, box-shadow 500ms ease, color 500ms ease;;
+            -moz-transition: background-color 500ms, box-shadow 500ms ease, color 500ms ease;; /* Firefox 4 */
+            -webkit-transition: background-color 500ms, box-shadow 500ms ease, color 500ms ease;; /* Safari 和 Chrome */
+            -o-transition: background-color 500ms, box-shadow 500ms ease, color 500ms ease;; /* Opera */
+            margin-top: 10px;
+        }
+        .allowChecked {
+            opacity: 1;
+            background: white;
+            color: black !important;
+            border: 1px solid ${themeColor};
+            text-decoration: none;
+            -moz-box-shadow: 0 0 25px ${themeColor};
+            -webkit-box-shadow: 0 0 25px ${themeColor};
+            box-shadow: 0 0 25px ${themeColor};
+        }
+
+        .arrow:hover {
+            opacity: 1;
+            background: white;
+            color: black !important;
+            text-decoration: none;
+            -moz-box-shadow: 0 0 25px ${themeColor};
+            -webkit-box-shadow: 0 0 25px ${themeColor};
+            box-shadow: 0 0 25px ${themeColor};
+        }
+
     </style>
     <script>
-        var selectedId = null;
+        let selectedId = null;
+
+        function countFrameMenu(tagetWindow) {
+            let liTags = tagetWindow.document.getElementById("menu").getElementsByTagName("li");
+            return liTags.length;
+        }
+
+        function setCookie(key, val, time) {
+            let date = new Date();
+            date.setTime(date.getTime() + time * 24 * 3600 * 1000);
+            document.cookie = key + "=" + val + ";expires=" + date.toGMTString();
+        }
+
+        function getCookie(key) {
+            let getCookie = document.cookie.replace(/[ ]/g, "");
+            let arrCookie = getCookie.split(";");
+            let tips;
+            for (let i = 0; i < arrCookie.length; i++) {
+                let arr = arrCookie[i].split("=");
+                if (key == arr[0]) {
+                    tips = arr[1];
+                    break;
+                }
+            }
+            return tips;
+        }
 
         function selectTab(id, select) {
-            var tab = document.getElementById(id + "Tab");
+            let tab = document.getElementById(id + "Tab");
             if (select) {
+                setCookie("selectedTab" + document.title, id);
                 if (id == selectedId) {
                     return;
                 }
@@ -89,9 +237,17 @@
                     selectTab(selectedId, false);
                 }
                 tab.classList.add("checked");
-                document.getElementById("contentFrame").src = tab.getAttribute("data-url");
+                document.getElementById("contentFrame").src = tab.getAttribute("data-url") + "&t=" + new Date().getTime();
+                document.getElementById("contentFrame").setAttribute("data-url", tab.getAttribute("data-url"));
                 document.getElementById("contentFrame").onload = function () {
+                    let countMenu = countFrameMenu(document.getElementById("contentFrame").contentWindow);
+                    let tabTitle = tab.getAttribute("data-name") + "（" + countMenu + "）";
+                    tab.innerHTML = tabTitle;
                     setFrameStyle();
+                    try {
+                        document.getElementById("contentFrame").contentWindow["onload"]();
+                    } catch (e) {
+                    }
                 };
                 selectedId = id;
             } else {
@@ -99,15 +255,33 @@
             }
         }
 
+
         function setFrameStyle() {
-            var childDocument = document.getElementById("contentFrame").contentWindow.document;
-            var oHead = childDocument.getElementsByTagName('head').item(0);
-            var oStyle = childDocument.createElement("style");
+            let childDocument = document.getElementById("contentFrame").contentWindow.document;
+            let oHead = childDocument.getElementsByTagName('head').item(0);
+            let oStyle = childDocument.createElement("style");
             oStyle.type = "text/css";
-            var styleText = "blockquote {\n" +
-                " background: #f9f9f9 !important;\n" +
+            let selectStyleText = "::selection {\n" +
+                "    background: ${themeColor};\n" +
+                "    color: #ffffff;\n" +
+                "}\n" +
+                "\n" +
+                "::-moz-selection {\n" +
+                "    background: ${themeColor};\n" +
+                "    color: #ffffff;\n" +
+                "}\n" +
+                "\n" +
+                "::-webkit-selection {\n" +
+                "    background: ${themeColor};\n" +
+                "    color: #ffffff;\n" +
+                "}";
+            let styleText = "blockquote {\n" +
+                " background: transparent !important;\n" +
                 " border-left: 5px solid #ea800f !important;\n" +
-                " color: #797979 !important;\n" +
+                " font-size: 14px !important;\n" +
+                " font-style: normal;\n" +
+                " font-weight: bold;\n" +
+                " color: #444444 !important;\n" +
                 " }.checked {\n" +
                 "  border-top: 5px solid ${themeColor} !important;" +
                 " }.selected {\n" +
@@ -118,22 +292,125 @@
                 "  background: #eeeeee !important;" +
                 " } .menu::-webkit-scrollbar-thumb {\n" +
                 " background: ${themeColor} !important;\n" +
+                "}.address {" +
+                " line-height: 30px; " +
+                " background: #fefeff !important;" +
                 "}";
             if (oStyle.styleSheet) {
-                oStyle.styleSheet.cssText = styleText;
+                oStyle.styleSheet.cssText = selectStyleText + styleText;
             } else {
-                oStyle.innerHTML = styleText;
+                oStyle.innerHTML = selectStyleText + styleText;
             }
             oHead.appendChild(oStyle);
         }
 
+        function onload() {
+            let selected = getCookie("selectedTab" + document.title);
+            let menu = document.getElementById(selected + "Tab");
+            if (!menu) {
+                selected = "$first";
+            }
+            selectTab(selected, true)
+
+        }
+
+        function docGoUp() {
+            document.getElementById("contentFrame").contentWindow["goUp"]();
+        }
+
+        function docGoNext() {
+            document.getElementById("contentFrame").contentWindow["goNext"]();
+        }
+
+        function docNow() {
+            document.getElementById("contentFrame").contentWindow["onload"]();
+        }
+
+        function docReload() {
+            document.getElementById("contentFrame").src = document.getElementById("contentFrame").getAttribute("data-url") + "&t=" + new Date().getTime();
+        }
+
+        function showSearch(obj) {
+            if (document.getElementById("searchContainer").style.display == "block") {
+                document.getElementById("searchContainer").style.display = "none";
+                obj.classList.remove("allowChecked");
+            } else {
+                document.getElementById("searchContainer").style.display = "block";
+                document.getElementById("searchInput").focus();
+                obj.classList.add("allowChecked");
+                let searched = getCookie("SearchContent");
+                if (searched) {
+                    document.getElementById("searchInput").value = searched;
+                    docSearch(document.getElementById("searchInput"));
+                }
+            }
+        }
+
+        function docSearch(obj) {
+            let searchContent = obj.value;
+            let searchContentObj = document.getElementById("searchContent");
+            if (searchContent.length == 0) {
+                searchContentObj.style.visibility = "hidden";
+                return;
+            }
+            setCookie("SearchContent", searchContent);
+            let doc = document.getElementById("contentFrame").contentWindow.document;
+            let liTags = doc.getElementsByTagName("li");
+            let keys = searchContent.split("");
+            let searchResult = [];
+            for (let i = 0; i < liTags.length; i++) {
+                let liTag = liTags[i];
+                let liHas = 0;
+                let title = liTag.innerText;
+                for (let j = 0; j < keys.length; j++) {
+                    let key = keys[j];
+                    if(key.length==0) continue;
+                    if (title.indexOf(key) >= 0) {
+                        title= title.replace(key, "#" + key + "@");
+                        liHas++;
+                    }
+                }
+                if (liHas > 0) {
+                    title = title.replace(new RegExp("#",'g'), "<b style=\"color: red;\">")
+                        .replace(new RegExp("@",'g'), "</b>");
+                    let content = "<li onclick=\"docMenuClick(this,'" + liTag.id + "')\">" + title + "</li>";
+                    searchResult.push({count:liHas, content: content});
+                }
+            }
+            searchResult.sort(function (a, b) {
+                return b.count - a.count;
+            });
+            let searchHtml = "";
+            for (let k = 0; k < searchResult.length; k++) {
+                searchHtml += searchResult[k].content;
+            }
+
+
+            if (searchResult.length > 0) {
+                searchContentObj.innerHTML = searchHtml;
+                searchContentObj.style.visibility = "visible";
+                searchContentObj.scrollTop = 0;
+            } else {
+                searchContentObj.innerHTML = "";
+                searchContentObj.style.visibility = "hidden";
+            }
+        }
+
+        function docMenuClick(obj,id) {
+            id = id.replace("Menu", "");
+            document.getElementById("contentFrame").contentWindow["selectMenu"](id, true, false);
+        }
+
+
+
     </script>
 </head>
-<body onload="selectTab($first, true)">
+<body onload="onload()">
 
 <div class="head">
     #foreach ($d in $docs)
-    <div id="${d.id}Tab" onclick="selectTab($d.id,true);" data-url="$d.url" class="tab">$d.name</div>
+    <div id="${d.id}Tab" onclick="selectTab($d.id,true);" data-url="$d.url" data-name="$d.name" class="tab">$d.name
+    </div>
     #end
 </div>
 
@@ -141,5 +418,33 @@
     <div style="height: 42px;"></div>
     <iframe id="contentFrame"></iframe>
 </div>
+
+<div class="bar">
+    <span class="arrow extIcon extSearch" onclick="showSearch(this)">
+    </span>
+
+    <span style="flex: 1"></span>
+
+    <span class="arrow extIcon extRefresh" onclick="docReload()">
+    </span>
+
+    <span class="arrow extIcon extArrowLeft" onclick="docGoUp()">
+    </span>
+
+    <span class="arrow extIcon extArrowRight" onclick="docGoNext()">
+    </span>
+
+    <span class="arrow extIcon extLastPoint" onclick="docNow()">
+    </span>
+
+</div>
+
+<div class="searchContainer" id="searchContainer">
+    <input oninput="docSearch(this);" id="searchInput" placeholder="输入关键字搜索"/>
+    <div class="searchContent" id="searchContent">
+
+    </div>
+</div>
+
 </body>
 </html>

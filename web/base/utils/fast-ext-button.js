@@ -1,6 +1,6 @@
 Ext.override(Ext.button.Button, {
     afterRender: Ext.Function.createSequence(Ext.button.Button.prototype.afterRender, function () {
-        var me = this;
+        let me = this;
         if (me.tipText) {
             me.tip = new Ext.ToolTip({
                 target: me.el,
@@ -10,7 +10,7 @@ Ext.override(Ext.button.Button, {
             });
         }
         if (!Ext.isEmpty(me.text)) {
-            var grid = me.up('grid,treepanel');
+            let grid = me.up('grid,treepanel');
             if (grid) {
                 //需要配置右键菜单
                 addGridContextMenu(grid, buttonToMenuItem(me));
@@ -39,7 +39,7 @@ Ext.override(Ext.button.Button, {
  * @param button
  */
 function buttonToMenuItem(button) {
-    var child = {
+    let child = {
         icon: button.icon,
         iconCls: button.iconCls,
         text: button.text,
@@ -47,7 +47,7 @@ function buttonToMenuItem(button) {
         handler: button.handler
     };
     if (button.getMenu() != null) {
-        var menus = [];
+        let menus = [];
         button.getMenu().items.each(function (item, index) {
             menus.push(buttonToMenuItem(item));
         });

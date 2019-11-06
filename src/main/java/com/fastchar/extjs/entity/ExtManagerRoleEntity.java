@@ -7,9 +7,19 @@ import com.fastchar.extjs.entity.abstracts.AbstractExtManagerRoleEntity;
 import com.fastchar.utils.FastDateUtils;
 
 public class ExtManagerRoleEntity extends AbstractExtManagerRoleEntity {
+    private static final long serialVersionUID = 1L;
+
     public static ExtManagerRoleEntity getInstance() {
         return FastChar.getOverrides().singleInstance(ExtManagerRoleEntity.class);
     }
+
+    public static ExtManagerRoleEntity dao() {
+        return FastChar.getOverrides().singleInstance(ExtManagerRoleEntity.class);
+    }
+    public static ExtManagerRoleEntity newInstance() {
+        return FastChar.getOverrides().newInstance(ExtManagerRoleEntity.class);
+    }
+
 
     @Override
     public String getTableName() {
@@ -28,9 +38,14 @@ public class ExtManagerRoleEntity extends AbstractExtManagerRoleEntity {
 
     @Override
     public FastPage<ExtManagerRoleEntity> showList(int page, int pageSize) {
-        String sqlStr = "select t.*,child.childCount,a.roleName as a__roleName from ext_manager_role as t " +
+        String sqlStr = "select t.*,child.childCount," +
+                " a.roleName as a__roleName," +
+                " a.roleMenuPower as a__roleMenuPower," +
+                " a.roleExtPower as a__roleExtPower " +
+                " from ext_manager_role as t " +
                 " left join ext_manager_role as a on a.roleId=t.parentRoleId " +
                 " left join (select count(1) as childCount,parentRoleId from ext_manager_role group by parentRoleId) as child on child.parentRoleId=t.roleId ";
+
         FastSqlInfo sqlInfo = toSelectSql(sqlStr);
         FastPage<ExtManagerRoleEntity> select = selectBySql(page, pageSize, sqlInfo.getSql(), sqlInfo.toParams());
         for (ExtManagerRoleEntity extManagerRoleEntity : select.getList()) {
@@ -46,6 +61,26 @@ public class ExtManagerRoleEntity extends AbstractExtManagerRoleEntity {
         set("roleMenuPower", "NONE");
         set("roleExtPower", "NONE");
         set("roleDateTime", FastDateUtils.getDateString());
+    }
+
+    @Override
+    public boolean save() {
+        ExtManagerRoleEntity parentRole = selectById(getParentRoleId());
+        if (parentRole != null) {
+            set("roleMenuPower", parentRole.getRoleMenuPower());
+            set("roleExtPower", parentRole.getRoleExtPower());
+        }
+        return super.save();
+    }
+
+    @Override
+    public boolean delete() {
+        if (getRoleId() == 1) {
+            setError("禁止删除系统默认的【超级系统管理员】角色！");
+            return false;
+        }
+
+        return super.delete();
     }
 
     public enum RoleStateEnum {

@@ -1,5 +1,6 @@
 fast-ext-utils.js
 fast-ext.js
+fast-ext-power.js
 fast-ext-button.js
 fast-ext-component.js
 fast-ext-file.js
@@ -9,7 +10,6 @@ fast-ext-grid-column.js
 fast-ext-map.js
 fast-ext-menu.js
 fast-ext-plugin.js
-fast-ext-power.js
 fast-ext-renderer.js
 fast-ext-server.js
 fast-ext-store.js

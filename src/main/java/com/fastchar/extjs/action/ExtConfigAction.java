@@ -104,7 +104,7 @@ public class ExtConfigAction extends FastAction {
         if (extConfig != null) {
             responseJson(0, "获取成功！", extConfig);
         }else{
-            responseJson(-1, "获取列信息失败！");
+            responseJson(-1, "获取列信息失败！您或没有此权限！");
         }
     }
 

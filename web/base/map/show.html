@@ -20,36 +20,26 @@
 </body>
 
 <script type="text/javascript">
-    var lngLat;
-    var marker;
-    var infoWindow;
-    var position;
-    var map;
+    let lngLat;
+    let marker;
+    let infoWindow;
+    let position;
+    let map;
 
 
     function getQueryString(name) {
-        var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)");
-        var r = window.location.search.substr(1).match(reg);
+        let reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)");
+        let r = window.location.search.substr(1).match(reg);
         if (r != null) return unescape(r[2]);
         return null;
     }
 
     function addScript(script, callBack) {
         if (script == null) return;
-        var oHead = document.getElementsByTagName('head').item(0);
-        var oScript = document.createElement("script");
+        let oHead = document.getElementsByTagName('head').item(0);
+        let oScript = document.createElement("script");
         oScript.type = "text/javascript";
-        if (script.src != null && script.src.length > 0) {
-            oScript.src = script.src;
-        } else if (script.href != null && script.href.length > 0) {
-            oScript.src = script.href;
-        } else {
-            try {
-                oScript.appendChild(document.createTextNode(script.text));
-            } catch (ex) {
-                oScript.text = script.text;
-            }
-        }
+        oScript.src = script.src;
         oHead.appendChild(oScript);
         oScript.onload = oScript.readystatechange = function () {
             if (callBack != null) {
@@ -62,8 +52,8 @@
     }
 
     function onPageLoad() {
-        var mapVersion = "1.4.14";
-        var mapKey = "33eafcd2e5c636e3d527f14e0f3b8cb1";
+        let mapVersion = "1.4.14";
+        let mapKey = "33eafcd2e5c636e3d527f14e0f3b8cb1";
 
         if (getQueryString("mapVersion")) {
             mapVersion = getQueryString("mapVersion");
@@ -71,7 +61,7 @@
         if (getQueryString("mapKey")) {
             mapKey = getQueryString("mapKey");
         }
-        var srcUrl = "https://webapi.amap.com/maps?v=" + mapVersion + "&key=" + mapKey + "&plugin=AMap.Autocomplete,AMap.Geocoder,AMap.PlaceSearch";
+        let srcUrl = "https://webapi.amap.com/maps?v=" + mapVersion + "&key=" + mapKey + "&plugin=AMap.Autocomplete,AMap.Geocoder,AMap.PlaceSearch";
         addScript({src: srcUrl}, function () {
             initMap();
         });
@@ -84,7 +74,7 @@
             map = new AMap.Map("container", {
                 resizeEnable: true
             });
-            map.plugin(["AMap.ToolBar", "AMap.OverView", "AMap.Scale"], function () {
+            map.plugin(["AMap.ToolBar", "AMap.OverView", "AMap.Scale", "AMap.Geocoder", "AMap.PlaceSearch"], function () {
                 //加载工具条
                 tool = new AMap.ToolBar({
                     autoPosition: false
@@ -96,8 +86,9 @@
                 //加载比例尺
                 scale = new AMap.Scale();
                 map.addControl(scale);
+
+                regeocoder();
             });
-            regeocoder();
         } catch (e) {
             console.error(e);
             alert("高德地图初始化失败！请检查您配置的key和version是否正确！");
@@ -114,16 +105,16 @@
             infoWindow.open(map, marker.getPosition());
         });
 
-        var geocoder = new AMap.Geocoder({
+        let geocoder = new AMap.Geocoder({
             radius: 1000,
             extensions: "all"
         });
         geocoder.getAddress(position, function (status, result) {
-            console.log(status, result);
+            // console.log(status, result);
             if (status === 'complete' && result.info === 'OK') {
                 geocoder_CallBack(result);
-            }else{
-                alert("高德地图初始化失败！请检查您配置的key和version是否正确！");
+            } else {
+                alert("获取位置失败！请检查您配置的key和version是否正确！");
             }
         });
         map.setFitView();
@@ -131,7 +122,7 @@
 
     function geocoder_CallBack(data) {
         window.parent.closeMapMask();
-        var address = data.regeocode.formattedAddress; //返回地址描述
+        let address = data.regeocode.formattedAddress; //返回地址描述
 
         infoWindow = new AMap.InfoWindow({
             content: address,

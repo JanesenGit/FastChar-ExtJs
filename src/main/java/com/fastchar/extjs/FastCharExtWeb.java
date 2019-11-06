@@ -14,8 +14,8 @@ import com.fastchar.extjs.interceptor.FastExtRootAttachInterceptor;
 import com.fastchar.extjs.local.FastExtLocal_CN;
 import com.fastchar.extjs.observer.FastHeadXmlObserver;
 import com.fastchar.extjs.observer.FastMenuXmlObserver;
+import com.fastchar.extjs.out.FastExtParamError;
 import com.fastchar.extjs.provider.FastExtEnum;
-import com.fastchar.extjs.provider.FastExtFile;
 import com.fastchar.extjs.validators.FastEnumValidator;
 import com.fastchar.interfaces.IFastWeb;
 import com.fastchar.out.FastOutJson;
@@ -26,7 +26,6 @@ import java.io.File;
 @AFastPriority(-1)
 public final class FastCharExtWeb implements IFastWeb {
 
-    @SuppressWarnings("ResultOfMethodCallIgnored")
     @Override
     public void onInit(FastEngine engine) throws Exception {
         engine.getFindClass()
@@ -54,20 +53,14 @@ public final class FastCharExtWeb implements IFastWeb {
                 .addObserver(new FastHeadXmlObserver());
 
         engine.getOverrides()
+                .add(FastExtParamError.class)
                 .add(FastExtLocal_CN.class)
                 .add(FastExtEnum.class);
 
         engine.getConstant()
+                .setSessionMaxInterval(24 * 60 * 60)
                 .setAttachNameMD5(true);
 
-        //是否拦截附件
-        if (engine.getConfig(FastExtConfig.class).isAttachFilter()) {
-            engine.getOverrides()
-                    .add(FastExtFile.class);
-
-            engine.getConstant()
-                    .setAttachNameSuffix(false);
-        }
 
         engine.getValidators()
                 .add(FastEnumValidator.class);

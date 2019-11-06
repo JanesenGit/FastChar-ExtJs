@@ -23,7 +23,12 @@
 <body>
 <div id="summernote"></div>
 <script>
-    var postImageUrl = null;
+    String.prototype.startWith = function (prefix) {
+        if (prefix == null || prefix == "" || this.length == 0 || prefix.length > this.length) return false;
+        return this.substr(0, prefix.length) == prefix;
+    };
+
+    let postImageUrl = "../../upload";
     $(function () {
         $('#summernote').summernote({
             lang: 'zh-CN',
@@ -44,11 +49,16 @@
                 return link;
             },
             callbacks: {
+                onImageLinkInsert: function (url) {
+                    let imageElement = document.createElement("img");
+                    imageElement.src =url;
+                    imageElement.setAttribute("from", "editor");
+                    imageElement.setAttribute("style", "width:100%;");
+                    $('#summernote').summernote('insertNode', imageElement);
+                },
                 onImageUpload: function (files) {
-                    // upload image to server and create imgNode...
-
-                    var data = new FormData();
-                    for (var i = 0; i < files.length; i++) {
+                    let data = new FormData();
+                    for (let i = 0; i < files.length; i++) {
                         data.append('file_' + i, files[0]);
                     }
                     $.ajax(postImageUrl, {
@@ -58,8 +68,14 @@
                         contentType: false,
                         success: function (result) {
                             if (result.success) {
-                                var imageElement = document.createElement("img");
-                                imageElement.src = result.data.http + result.data.url;
+                                let imageElement = document.createElement("img");
+                                if (result.data.url.startWith("http://") || result.data.url.startWith("https://")) {
+                                    imageElement.src = result.data.url;
+                                }else{
+                                    imageElement.src = result.data.http + result.data.url;
+                                }
+                                imageElement.setAttribute("from", "editor");
+                                imageElement.setAttribute("style", "width:100%;");
                                 $('#summernote').summernote('insertNode', imageElement);
                             }else{
                                 alert(result.message);
@@ -84,7 +100,7 @@
     }
 
     function getHtmlValue() {
-        var value = $('#summernote').summernote('code');
+        let value = $('#summernote').summernote('code');
         return value;
     }
 

@@ -1,7 +1,7 @@
 /**
  * 系统内存缓存
  */
-var MemoryCache = {}, progressLine;
+let MemoryCache = {}, progressLine;
 
 /**
  * 判断字符串是否以某个字符结尾
@@ -42,11 +42,11 @@ String.prototype.firstUpperCase = function () {
  * @param val
  * @returns {boolean}
  * @example
- * var userIds=[1,2,3,4];
+ * let userIds=[1,2,3,4];
  * userIds.exists(1);
  */
 Array.prototype.exists = function (val) {
-    for (var i = 0; i < this.length; i++) {
+    for (let i = 0; i < this.length; i++) {
         if (this[i] == val) {
             return true;
         }
@@ -69,6 +69,22 @@ function toBool(obj, defaultValue) {
     }
     if (Ext.isEmpty(obj)) {
         return defaultValue;
+    }
+    if (Ext.isString(obj)) {
+        if (obj == "0") {
+            return false;
+        }
+        if (obj == "1") {
+            return true;
+        }
+    }
+    if (Ext.isNumber(obj)) {
+        if (obj == 0) {
+            return false;
+        }
+        if (obj == 1) {
+            return true;
+        }
     }
     return Boolean(obj);
 }
@@ -128,7 +144,7 @@ function objectToJson(obj) {
  * @param content 内容
  */
 function copyToBoard(content) {
-    var oInput = document.createElement('input');
+    let oInput = document.createElement('input');
     oInput.value = content;
     document.body.appendChild(oInput);
     oInput.select();
@@ -145,13 +161,13 @@ function copyToBoard(content) {
  * copy({'id':1})
  */
 function copy(obj) {
-    var newObj = {};
+    let newObj = {};
     if (obj instanceof Array) {
         newObj = obj.concat();
     } else if (obj instanceof Function) {
         newObj = obj;
     } else {
-        for (var key in obj) {
+        for (let key in obj) {
             newObj[key] = obj[key];
         }
     }
@@ -176,7 +192,7 @@ function isSystem() {
  */
 function checkBrowserVersion() {
     if (Ext.isIE && Ext.ieVersion < 11) {
-        var win = Ext.create('Ext.window.Window', {
+        let win = Ext.create('Ext.window.Window', {
             title: '系统提醒',
             width: 250,
             height: 100,
@@ -199,7 +215,7 @@ function checkBrowserVersion() {
  * @returns {*}
  */
 function getBodyContainer() {
-    var container = Ext.getCmp("bodyContainer");
+    let container = Ext.getCmp("bodyContainer");
     if (container == null) {
         Ext.getDoc().on("contextmenu",
             function (e) {
@@ -222,7 +238,7 @@ function getBodyContainer() {
  * @param key 缓存的key
  * @param data 缓存的数据
  */
-var setCache = function (key, data) {
+let setCache = function (key, data) {
     try {
         localStorage.setItem(key, JSON.stringify(data));
     } catch (e) {
@@ -233,7 +249,7 @@ var setCache = function (key, data) {
  * 获取缓存
  * @param key 缓存的key
  */
-var getCache = function (key) {
+let getCache = function (key) {
     try {
         return JSON.parse(localStorage.getItem(key))
     } catch (e) {
@@ -246,7 +262,7 @@ var getCache = function (key) {
  * 删除缓存
  * @param key 缓存的key
  */
-var removeCache = function (key) {
+let removeCache = function (key) {
     localStorage.removeItem(key);
 };
 
@@ -286,16 +302,16 @@ function getProgressLine(toColor) {
  */
 function shakeComment(obj) {
     try {
-        var interval, t = 0, z = 3, del = function () {
+        let interval, t = 0, z = 3, del = function () {
             clearInterval(interval);
             obj.setX(currX);
             obj.setY(currY);
         };
-        var currX = obj.getX();
-        var currY = obj.getY();
+        let currX = obj.getX();
+        let currY = obj.getY();
         interval = setInterval(function () {
             try {
-                var i = t / 180 * Math.PI, x = Math.sin(i) * z, y = Math.cos(i) * z;
+                let i = t / 180 * Math.PI, x = Math.sin(i) * z, y = Math.cos(i) * z;
 
                 obj.setX(currX + x);
                 obj.setY(currY + y);
@@ -315,14 +331,14 @@ function shakeComment(obj) {
  * @param jsonData2 json对象
  */
 function mergeJson(jsonData1, jsonData2) {
-    var newJsonData = {};
+    let newJsonData = {};
     if (!Ext.isEmpty(jsonData1)) {
-        for (var property in jsonData1) {
+        for (let property in jsonData1) {
             newJsonData[property] = jsonData1[property];
         }
     }
     if (!Ext.isEmpty(jsonData2)) {
-        for (var property in jsonData2) {
+        for (let property in jsonData2) {
             newJsonData[property] = jsonData2[property];
         }
     }
@@ -336,12 +352,12 @@ function mergeJson(jsonData1, jsonData2) {
  * @param paramsJson 提交的参数
  */
 function buildForm(url, paramsJson) {
-    var form = $('<form></form>');
+    let form = $('<form></form>');
     form.attr('action', url);
     form.attr('method', 'post');
 
-    for (var n in paramsJson) {
-        var my_input = $("<input type='text' name='" + n + "' />");
+    for (let n in paramsJson) {
+        let my_input = $("<input type='text' name='" + n + "' />");
         my_input.attr('value', paramsJson[n]);
         form.append(my_input);
     }
@@ -359,11 +375,11 @@ function buildForm(url, paramsJson) {
  */
 function loadFunction(functionStr) {
     if (functionStr.toString().trim().startsWith("function")) {
-        var functionKey = "do" + $.md5(functionStr);
+        let functionKey = "do" + $.md5(functionStr);
         if (Ext.isEmpty(MemoryCache[functionKey])) {
-            var myScript = document.createElement("script");
+            let myScript = document.createElement("script");
             myScript.type = "text/javascript";
-            var code = "var " + functionKey + "=" + functionStr;
+            let code = "let " + functionKey + "=" + functionStr;
             try {
                 myScript.appendChild(document.createTextNode(code));
             } catch (ex) {
@@ -382,10 +398,11 @@ function loadFunction(functionStr) {
  * @param url 下载路径
  */
 function download(url) {
-    var name = url.substring(url.lastIndexOf("/"));
-    var a = document.createElement('a');
-    var event = new MouseEvent('click');
-    a.download = name;
+    url = url.split("?")[0];
+    let name = url.substring(url.lastIndexOf("/"));
+    let a = document.createElement('a');
+    let event = new MouseEvent('click');
+    a.download = "file" + name;
     a.href = url;
     a.dispatchEvent(event)
 }
@@ -402,8 +419,8 @@ function runCallBack(fun, param) {
     if (fun.callBacked) {
         return;
     }
-    var callBackParams = [];
-    for (var i = 1; i < arguments.length; i++) {
+    let callBackParams = [];
+    for (let i = 1; i < arguments.length; i++) {
         callBackParams[i - 1] = arguments[i];
     }
     fun.apply(this, callBackParams);
@@ -421,12 +438,24 @@ function setRecordValue(record, dataIndex, field) {
     if (Ext.isFunction(field.setRecordValue)) {
         field.setRecordValue(record);
     } else {
-        var value = field.getValue();
+        let value = field.getValue();
         if (Ext.isDate(field.getValue())) {
             record.set(dataIndex, Ext.Date.format(value, field.format));
         } else {
             record.set(dataIndex, value);
         }
     }
+    if (toBool(field.autoUpdate, false)) {
+        commitStoreUpdate(record.store);
+    }
 }
 
+/**
+ * 构建唯一标识符号
+ * @param prefix
+ * @returns {*}
+ */
+function buildOnlyCode(prefix) {
+    let key = prefix + Ext.now();
+    return $.md5(key);
+}

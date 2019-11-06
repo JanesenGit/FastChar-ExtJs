@@ -17,6 +17,18 @@ public class FastHeadScriptInfo extends FastHeadInfo {
         this.src = src;
     }
 
+    public void wrapHttp(String http) {
+        if (FastStringUtils.isEmpty(src)) {
+            return;
+        }
+        if (src.startsWith("http://") || src.startsWith("https://")) {
+            return;
+        }
+        if (src.startsWith("/")) {
+            return;
+        }
+        put("src", http + src);
+    }
     @Override
     public boolean isWriteHtml() {
         return false;

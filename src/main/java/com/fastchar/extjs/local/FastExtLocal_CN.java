@@ -15,5 +15,6 @@ public final class FastExtLocal_CN extends FastCharLocal_CN {
     private final String Db_Column_Error6 = "关联表格{0}的主键字段{1}并非该表格的主键！";
     private final String Db_Column_Error7 = "关联表格{0}的描述字段{1}不存在！";
     private final String Db_Column_Error8 = "属性[bind]值{0}不存在！必须为：{1} ！";
+    private final String Db_Column_Error9 = "关联表格{0}的描述字段不可为空！";
 
 }

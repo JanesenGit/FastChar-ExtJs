@@ -4,6 +4,7 @@ import com.fastchar.core.FastBaseInfo;
 import com.fastchar.utils.FastStringUtils;
 
 public class FastHeadInfo extends FastBaseInfo {
+    private static final long serialVersionUID = 5565876705941162979L;
     private String text;
 
     public String getText() {

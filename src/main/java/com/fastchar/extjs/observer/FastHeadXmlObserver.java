@@ -1,8 +1,10 @@
 package com.fastchar.extjs.observer;
 
 import com.fastchar.core.FastChar;
+import com.fastchar.core.FastConstant;
 import com.fastchar.database.info.FastDatabaseInfo;
 import com.fastchar.extjs.core.heads.*;
+import com.fastchar.utils.FastNumberUtils;
 import com.fastchar.utils.FastStringUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Attribute;
@@ -12,6 +14,7 @@ import org.jsoup.select.Elements;
 
 import java.io.File;
 import java.io.FilenameFilter;
+import java.net.InetAddress;
 import java.util.*;
 
 public class FastHeadXmlObserver {
@@ -79,7 +82,7 @@ public class FastHeadXmlObserver {
 
     private void initHeadHtml() throws Exception {
         File[] files = getHeadHtmlFiles();
-        if (files == null || files.length == 0) {
+        if (files.length == 0) {
             return;
         }
         FILE_COUNT = files.length;
@@ -148,6 +151,7 @@ public class FastHeadXmlObserver {
                 for (Attribute attribute : scriptElement.attributes()) {
                     scriptInfo.set(attribute.getKey(), attribute.getValue());
                 }
+                scriptInfo.setText(scriptElement.html());
                 scriptInfo.fromProperty();
                 heads.add(scriptInfo);
                 scriptElement.remove();
@@ -156,7 +160,7 @@ public class FastHeadXmlObserver {
             Elements styleElements = parse.getElementsByTag("style");
             for (Element styleElement : styleElements) {
                 FastHeadStyleInfo styleInfo = new FastHeadStyleInfo();
-                styleInfo.setText(styleElement.text());
+                styleInfo.setText(styleElement.html());
                 styleInfo.fromProperty();
                 heads.add(styleInfo);
                 styleElement.remove();
@@ -176,13 +180,29 @@ public class FastHeadXmlObserver {
 
         FastHeadExtInfo osExtInfo = new FastHeadExtInfo();
         osExtInfo.setName("os");
-        osExtInfo.setValue(System.getProperty("os.name") + " " + System.getProperty("os.version"));
+        osExtInfo.setValue(System.getProperty("os.name") + " ( " + System.getProperty("os.arch") + " ) " + System.getProperty("os.version"));
         osExtInfo.fromProperty();
 
         FastHeadExtInfo javaExtInfo = new FastHeadExtInfo();
         javaExtInfo.setName("java");
         javaExtInfo.setValue("Java " + System.getProperty("java.version") + " " + System.getProperty("sun.arch.data.model") + "位");
         javaExtInfo.fromProperty();
+
+        Runtime r = Runtime.getRuntime();
+        FastHeadExtInfo jvmExtInfo = new FastHeadExtInfo();
+        jvmExtInfo.setName("jvm");
+        float totalMemory = FastNumberUtils.formatToFloat(r.totalMemory() / 1024.0 / 1024.0, 2);
+        float freeMemory = FastNumberUtils.formatToFloat(r.freeMemory() / 1024.0 / 1024.0, 2);
+        float maxMemory = FastNumberUtils.formatToFloat(r.maxMemory() / 1024.0 / 1024.0, 2);
+        jvmExtInfo.setValue("可用内存：" + totalMemory + "M ，已用内存：" + FastNumberUtils.formatToFloat((totalMemory - freeMemory), 2) + "M ，最大允许内存：" + maxMemory + "M");
+        jvmExtInfo.fromProperty();
+
+        InetAddress addr = InetAddress.getLocalHost();
+        FastHeadExtInfo hostExtInfo = new FastHeadExtInfo();
+        hostExtInfo.setName("host");
+        hostExtInfo.setValue(addr.getHostAddress());
+        hostExtInfo.fromProperty();
+
 
         FastHeadExtInfo dbExtInfo = new FastHeadExtInfo();
         dbExtInfo.setName("db");
@@ -228,13 +248,23 @@ public class FastHeadXmlObserver {
             serverExtInfo.fromProperty();
             heads.add(serverExtInfo);
         }
+
+
+        FastHeadExtInfo fastcharExtInfo = new FastHeadExtInfo();
+        fastcharExtInfo.setName("fastchar");
+        fastcharExtInfo.setValue("FastChar " + FastConstant.FastCharVersion);
+        fastcharExtInfo.fromProperty();
+
         heads.add(indexExtInfo);
         heads.add(loginExtInfo);
         heads.add(welcomeExtInfo);
         heads.add(extInfo);
         heads.add(osExtInfo);
         heads.add(javaExtInfo);
+        heads.add(jvmExtInfo);
+        heads.add(hostExtInfo);
         heads.add(dbExtInfo);
+        heads.add(fastcharExtInfo);
     }
 
     private String replacePlaceholder(Map<String, Object> placeholders, String content) {

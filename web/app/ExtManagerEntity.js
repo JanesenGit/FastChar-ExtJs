@@ -3,9 +3,9 @@
  */
 function ExtManagerEntity() {
     this.getList = function (where) {
-        var me = this;
-        var dataStore = getEntityDataStore(me, where);
-        var grid = Ext.create('Ext.grid.Panel', {
+        let me = this;
+        let dataStore = getEntityDataStore(me, where);
+        let grid = Ext.create('Ext.grid.Panel', {
             entityList: true,
             selModel: getGridSelModel(),
             region: 'center',
@@ -55,6 +55,7 @@ function ExtManagerEntity() {
                     dataIndex: "managerMenuPower",
                     align: "center",
                     width: 220,
+                    search: false,
                     renderer: function (val, m, record) {
                         if (record.get("roleType") == 0) {
                             return "<span style='color: #ccc;'>已拥有最大权限</span>";
@@ -63,7 +64,7 @@ function ExtManagerEntity() {
                     },
                     listeners: {
                         dblclick: function (grid, obj, celNo, obj1, obj2, rowNo, e) {
-                            var currRecord = grid.getStore().getAt(celNo);
+                            let currRecord = grid.getStore().getAt(celNo);
                             if (currRecord.get("roleType") == 0) {
                                 return;
                             }
@@ -72,7 +73,7 @@ function ExtManagerEntity() {
                                 toast("不可对自己或相同角色的用户进行权限操作！");
                                 return;
                             }
-                            system.showPowerMenus(obj, currRecord.get("managerMenuPower")).then(function (result) {
+                            system.showPowerMenus(obj, currRecord.get("managerMenuPower"), currRecord.get("roleMenuPower")).then(function (result) {
                                 currRecord.set("managerMenuPower", result);
                                 commitStoreUpdate(grid.getStore());
                             });
@@ -83,6 +84,7 @@ function ExtManagerEntity() {
                     text: "管理员界面权限",
                     dataIndex: "managerExtPower",
                     align: "center",
+                    search: false,
                     width: 220,
                     renderer: function (val, m, record) {
                         if (record.get("roleType") == 0) {
@@ -92,7 +94,7 @@ function ExtManagerEntity() {
                     },
                     listeners: {
                         dblclick: function (grid, obj, celNo, obj1, obj2, rowNo, e) {
-                            var currRecord = grid.getStore().getAt(celNo);
+                            let currRecord = grid.getStore().getAt(celNo);
                             if (currRecord.get("roleType") == 0) {
                                 return;
                             }
@@ -101,7 +103,7 @@ function ExtManagerEntity() {
                                 toast("不可对自己或相同角色的用户进行权限操作！");
                                 return;
                             }
-                            system.showPowerExt(obj, currRecord.get("managerMenuPower"), currRecord.get("managerExtPower")).then(function (result) {
+                            system.showPowerExt(obj, currRecord.get("managerMenuPower"), currRecord.get("managerExtPower"), currRecord.get("roleExtPower")).then(function (result) {
                                 currRecord.set("managerExtPower", result);
                                 commitStoreUpdate(grid.getStore());
                             });
@@ -187,6 +189,31 @@ function ExtManagerEntity() {
                         handler: function () {
                             updateGridData(grid);
                         }
+                    }, {
+                        xtype: 'button',
+                        text: '与角色权限同步',
+                        subtext: '系统管理员',
+                        checkSelect: 2,
+                        iconCls: 'extIcon extPower redColor',
+                        handler: function () {
+                            Ext.Msg.confirm("系统提醒", "您确定与角色权限同步吗？", function (button, text) {
+                                if (button == "yes") {
+                                    showWait("正在同步中，请稍后……");
+                                    let selectLength = grid.getSelection().length;
+                                    let params = {};
+                                    for (let i = 0; i < selectLength; i++) {
+                                        params["managerId[" + i + "]"] = grid.getSelection()[i].get("managerId");
+                                    }
+                                    $.post("manager/updatePower", params, function (result) {
+                                        hideWait();
+                                        showAlert("系统提醒", result.message);
+                                        if (result.success) {
+                                            grid.getStore().reload();
+                                        }
+                                    });
+                                }
+                            });
+                        }
                     }]
             },
             bbar: getPageToolBar(dataStore),
@@ -197,7 +224,7 @@ function ExtManagerEntity() {
                 loadingText: '正在为您在加载数据…'
             }
         });
-        var panel = Ext.create('Ext.panel.Panel', {
+        let panel = Ext.create('Ext.panel.Panel', {
             layout: 'border',
             region: 'center',
             border: 0,
@@ -207,9 +234,9 @@ function ExtManagerEntity() {
     };
 
     this.showAdd = function (obj) {
-        var me = this;
+        let me = this;
         return new Ext.Promise(function (resolve, reject) {
-            var formPanel = Ext.create('Ext.form.FormPanel', {
+            let formPanel = Ext.create('Ext.form.FormPanel', {
                 url: 'entity/save',
                 cacheKey: me.entityCode,
                 bodyPadding: 5,
@@ -270,7 +297,7 @@ function ExtManagerEntity() {
                     }]
             });
 
-            var addWin = Ext.create('Ext.window.Window', {
+            let addWin = Ext.create('Ext.window.Window', {
                 title: '添加系统管理员',
                 height: 400,
                 icon: obj.icon,
@@ -323,17 +350,17 @@ function ExtManagerEntity() {
     };
 
     this.showWinList = function (obj, title, where) {
-        var me = this;
+        let me = this;
         me.menu = {
             id: $.md5(title),
             text: title
         };
-        var gridList = me.getList(where);
-        var entityOwner = gridList.down("[entityList=true]");
+        let gridList = me.getList(where);
+        let entityOwner = gridList.down("[entityList=true]");
         if (entityOwner) {
             entityOwner.code = $.md5(title);
         }
-        var win = Ext.create('Ext.window.Window', {
+        let win = Ext.create('Ext.window.Window', {
             title: title,
             height: 550,
             width: 700,
@@ -352,15 +379,15 @@ function ExtManagerEntity() {
     };
 
     this.showSelect = function (obj, title, callBack, where) {
-        var me = this;
+        let me = this;
         return new Ext.Promise(function (resolve, reject) {
             me.menu = {
                 id: $.md5(title),
                 text: title
             };
-            var dataStore = getEntityDataStore(me, where);
-            var grid = Ext.create('Ext.grid.Panel', {
-                entity: me,
+            let dataStore = getEntityDataStore(me, where);
+            let grid = Ext.create('Ext.grid.Panel', {
+                entityList: true,
                 code: $.md5(title),
                 selModel: getGridSelModel(),
                 region: 'center',
@@ -371,13 +398,14 @@ function ExtManagerEntity() {
                 columnMenu: false,
                 store: dataStore,
                 enableLocking: true,
-                columns: [{
-                    text: "登录名",
-                    dataIndex: "managerLoginName",
-                    align: "center",
-                    width: 220,
-                    renderer: renders.normal()
-                },
+                columns: [
+                    {
+                        text: "登录名",
+                        dataIndex: "managerLoginName",
+                        align: "center",
+                        width: 220,
+                        renderer: renders.normal()
+                    },
                     {
                         text: "管理员名称",
                         dataIndex: "managerName",
@@ -386,25 +414,11 @@ function ExtManagerEntity() {
                         renderer: renders.normal()
                     },
                     {
-                        text: "管理员菜单权限",
-                        dataIndex: "managerMenuPower",
-                        align: "center",
-                        width: 220,
-                        renderer: renders.normal()
-                    },
-                    {
-                        text: "管理员界面权限",
-                        dataIndex: "managerExtPower",
-                        align: "center",
-                        width: 220,
-                        renderer: renders.normal()
-                    },
-                    {
                         text: "管理员角色",
-                        dataIndex: "b__roleName",
+                        dataIndex: "a__roleName",
                         align: "center",
                         width: 220,
-                        rendererFunction: "renders.link('roleId','ExtManagerRoleEntity', 'roleId')"
+                        renderer: renders.normal()
                     },
                     {
                         text: "管理员状态",
@@ -427,11 +441,11 @@ function ExtManagerEntity() {
                 }
             });
 
-            var win = Ext.create('Ext.window.Window', {
+            let win = Ext.create('Ext.window.Window', {
                 title: title,
                 height: 550,
                 width: 700,
-                icon: 'icons/icon_select.svg',
+                iconCls: 'extIcon extSelect',
                 layout: 'border',
                 resizable: true,
                 constrain: true,
@@ -458,7 +472,7 @@ function ExtManagerEntity() {
                         text: '确定',
                         iconCls: 'extIcon extOk',
                         handler: function () {
-                            var data = grid.getSelectionModel().getSelection();
+                            let data = grid.getSelectionModel().getSelection();
                             if (data.length > 0) {
                                 if (!resolve.called) {
                                     resolve.called = true;
@@ -474,8 +488,8 @@ function ExtManagerEntity() {
     };
 
     this.showDetails = function (obj, where) {
-        var me = this;
-        var dataStore = getEntityDataStore(me, where);
+        let me = this;
+        let dataStore = getEntityDataStore(me, where);
         showWait("请稍后……");
         dataStore.load(function (records, operation, success) {
             hideWait();
@@ -483,13 +497,13 @@ function ExtManagerEntity() {
                 Ext.Msg.alert("系统提醒", "未获得到详情数据！");
                 return;
             }
-            var record = records[0];
+            let record = records[0];
             showDetailsWindow(obj, "系统管理员详情", me, record);
         });
     };
 
     this.resetPassword = function (obj, managerId) {
-        var loginPanel = Ext.create('Ext.form.FormPanel', {
+        let loginPanel = Ext.create('Ext.form.FormPanel', {
             url: 'manager/resetPassword',
             method: 'POST',
             fileUpload: true,
@@ -542,8 +556,8 @@ function ExtManagerEntity() {
             }
         });
 
-        var doSubmit = function () {
-            var form = loginPanel.form;
+        let doSubmit = function () {
+            let form = loginPanel.form;
             if (form.isValid()) {
                 form.submit({
                     waitMsg: '正在重置中……',
@@ -559,7 +573,7 @@ function ExtManagerEntity() {
         };
 
 
-        var win = Ext.create('Ext.window.Window', {
+        let win = Ext.create('Ext.window.Window', {
             title: '重置登录密码',
             height: 160,
             icon: obj.icon,

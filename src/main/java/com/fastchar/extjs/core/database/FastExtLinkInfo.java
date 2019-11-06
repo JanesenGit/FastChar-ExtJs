@@ -3,14 +3,20 @@ package com.fastchar.extjs.core.database;
 import com.fastchar.core.FastBaseInfo;
 import com.fastchar.database.info.FastColumnInfo;
 
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+
 public class FastExtLinkInfo extends FastBaseInfo {
 
+    private static final long serialVersionUID = -2930962312837008230L;
     private String tableName;//被关联的表明
     private String keyColumnName;//被关联的key列名
-    private String textColumnName;//被关联的text列名
+    private LinkedHashSet<String> textColumnNames = new LinkedHashSet<>();//被关联的text列名
+    private Map<String, FastColumnInfo<?>> textColumnInfo = new HashMap<>();
+
 
     private FastColumnInfo<?> keyColumn;
-    private FastColumnInfo<?> textColumn;
 
     public String getTableName() {
         return tableName;
@@ -30,16 +36,6 @@ public class FastExtLinkInfo extends FastBaseInfo {
         return this;
     }
 
-    public String getTextColumnName() {
-        return textColumnName;
-    }
-
-    public FastExtLinkInfo setTextColumnName(String textColumnName) {
-        this.textColumnName = textColumnName;
-        return this;
-    }
-
-
     public FastColumnInfo<?> getKeyColumn() {
         return keyColumn;
     }
@@ -49,12 +45,22 @@ public class FastExtLinkInfo extends FastBaseInfo {
         return this;
     }
 
-    public FastColumnInfo<?> getTextColumn() {
-        return textColumn;
-    }
-
-    public FastExtLinkInfo setTextColumn(FastColumnInfo<?> textColumn) {
-        this.textColumn = textColumn;
+    public FastExtLinkInfo addTextColumnName(String textColumnName) {
+        this.textColumnNames.add(textColumnName);
         return this;
     }
+
+    public LinkedHashSet<String> getTextColumnNames() {
+        return textColumnNames;
+    }
+
+    public FastExtLinkInfo putTextColumnInfo(String textColumnName, FastColumnInfo<?> columnInfo) {
+        this.textColumnInfo.put(textColumnName, columnInfo);
+        return this;
+    }
+
+    public FastColumnInfo<?> getTextColumnInfo(String textColumnName) {
+        return this.textColumnInfo.get(textColumnName);
+    }
+
 }

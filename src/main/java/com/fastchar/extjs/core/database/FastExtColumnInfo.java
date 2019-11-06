@@ -20,6 +20,7 @@ import java.util.List;
 @AFastPriority(AFastPriority.P_HIGH)
 @AFastOverride
 public class FastExtColumnInfo extends FastColumnInfo<FastExtColumnInfo> {
+    private static final long serialVersionUID = -7287875560648608769L;
     private static String[] BIND_VALUES = new String[]{"layer"};
 
     private String layer;
@@ -131,8 +132,8 @@ public class FastExtColumnInfo extends FastColumnInfo<FastExtColumnInfo> {
                 linkInfo.setKeyColumnName(split.get(1));
             }
 
-            if (split.size() > 2) {
-                linkInfo.setTextColumnName(split.get(2));
+            for (int i = 2; i < split.size(); i++) {
+                linkInfo.addTextColumnName(split.get(i));
             }
 
             FastColumnInfo linkColumnInfo = tableInfo.getColumnInfo(linkInfo.getKeyColumnName());
@@ -143,14 +144,21 @@ public class FastExtColumnInfo extends FastColumnInfo<FastExtColumnInfo> {
                 linkInfo.setKeyColumn(linkColumnInfo);
             }
 
-
-            FastColumnInfo textColumnInfo = tableInfo.getColumnInfo(linkInfo.getTextColumnName());
-            if (textColumnInfo == null) {
-                throw new FastDatabaseException(FastChar.getLocal().getInfo("Db_Column_Error7", "'" + linkInfo.getTableName() + "'", "'" + linkInfo.getTextColumnName() + "'")
+            if (linkInfo.getTextColumnNames().size() == 0) {
+                throw new FastDatabaseException(FastChar.getLocal().getInfo("Db_Column_Error9", "'" + linkInfo.getTableName() + "'")
                         + "\n\tat " + getStackTrace("link"));
-            }else{
-                linkInfo.setTextColumn(textColumnInfo);
             }
+            for (String textColumnName : linkInfo.getTextColumnNames()) {
+                FastColumnInfo textColumnInfo = tableInfo.getColumnInfo(textColumnName);
+                if (textColumnInfo == null) {
+                    throw new FastDatabaseException(FastChar.getLocal().getInfo("Db_Column_Error7", "'" + linkInfo.getTableName() + "'", "'" + textColumnName + "'")
+                            + "\n\tat " + getStackTrace("link"));
+                }else{
+                    linkInfo.putTextColumnInfo(textColumnName, textColumnInfo);
+                }
+            }
+
+
             linkInfo.fromProperty();
             setLinkInfo(linkInfo);
             if (FastStringUtils.isEmpty(getIndex())) {

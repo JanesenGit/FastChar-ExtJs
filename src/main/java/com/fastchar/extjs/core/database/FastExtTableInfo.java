@@ -19,6 +19,7 @@ import java.util.List;
 @AFastPriority(AFastPriority.P_HIGH)
 @AFastOverride
 public class FastExtTableInfo extends FastTableInfo<FastExtTableInfo> {
+    private static final long serialVersionUID = 4590861561177081866L;
     private static String[] BIND_VALUES = new String[]{"SessionLayer"};
 
     private String layer;
@@ -80,7 +81,7 @@ public class FastExtTableInfo extends FastTableInfo<FastExtTableInfo> {
                 columnInfo.setFileName(getFileName());
                 columnInfo.setLineNumber(getLineNumber());
                 columnInfo.fromProperty();
-                getColumns().add(columnInfo);
+                getColumns().add(0, columnInfo);
             }
         }
 

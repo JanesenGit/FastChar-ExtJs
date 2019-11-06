@@ -1,29 +1,62 @@
 Ext.override(Ext.Component, {
     initComponent: Ext.Function.createSequence(Ext.Component.prototype.initComponent, function () {
-        var me = this;
-
+        let me = this;
         try {
+            me.closeToolText = "关闭";
             if ((me.getXType() == "window" || me.getXType() == "panel")
                 && (!Ext.isEmpty(me.getTitle())||!Ext.isEmpty(me.subtitle)) && (me.resizable||me.split)) {
-                var fastOnlyCode = $.md5(me.getTitle() + me.subtitle+$("title").text());
+                let fastOnlyCode = $.md5(me.getTitle() + me.subtitle+$("title").text());
                 try {
                     fastOnlyCode = $.md5(fastOnlyCode + me.width + me.height);
                 } catch (e) {}
 
-                var width = getCache(fastOnlyCode + "Width");
-                var height = getCache(fastOnlyCode + "Height");
+                let width = getCache(fastOnlyCode + "Width");
+                let height = getCache(fastOnlyCode + "Height");
+                let collapse = toBool(getCache(fastOnlyCode + "Collapse"), false);
                 if (width != null) {
                     me.setWidth(width);
                 }
                 if (height != null) {
                     me.setHeight(height);
                 }
+                me.collapsed = collapse;
+                me.setCollapsed(collapse);
                 me.on('resize', function (obj, width, height, eOpts) {
                     if (width != Ext.getBody().getWidth()) {
                         setCache(fastOnlyCode + "Width", width);
                     }
                     if (height != Ext.getBody().getHeight()) {
                         setCache(fastOnlyCode + "Height", height);
+                    }
+                });
+                me.on('collapse', function (obj, width, height, eOpts) {
+                    setCache(fastOnlyCode + "Collapse", true);
+                });
+                me.on('expand', function (obj, width, height, eOpts) {
+                    setCache(fastOnlyCode + "Collapse", false);
+                });
+            }
+
+            if (me.getXType() == "menuitem") {
+                me.on('focus', function (obj, event, eOpts) {
+                    let icon = obj.icon;
+                    let regStr=/([^/]*.svg)/;
+                    if (icon && regStr.test(icon)) {
+                        let newIcon = server.getIcon(regStr.exec(icon)[1].trim(), "#ffffff");
+                        let iconEl = Ext.get(obj.getId() + "-iconEl");
+                        if (iconEl) {
+                            iconEl.setStyle("background-image", "url(" + newIcon + ")");
+                        }
+                    }
+                });
+                me.on('blur', function (obj, event, eOpts) {
+                    let icon = obj.icon;
+                    let regStr=/([^/]*.svg)/;
+                    if (icon && regStr.test(icon)) {
+                        let iconEl = Ext.get(obj.getId() + "-iconEl");
+                        if (iconEl) {
+                            iconEl.setStyle("background-image", "url(" + icon + ")");
+                        }
                     }
                 });
             }
@@ -36,14 +69,18 @@ Ext.override(Ext.Component, {
 Ext.override(Ext.Component, {
     show: function () {
         if (isSystem()) {
-            if (!this.sessionWin) {
-                //处理session弹窗
-                if (system.sessionOutAlert) {
-                    return;
+            if (this.getXType() == "window"
+                || this.getXType() == "messagebox") {
+                if (!toBool(this.sessionWin, false)) {
+                    //处理session弹窗
+                    if (system.sessionOutAlert) {
+                        this.hide();
+                        return null;
+                    }
                 }
             }
         }
-        var me = this,
+        let me = this,
             rendered = me.rendered;
 
         if (me.hierarchicallyHidden || (me.floating && !rendered && me.isHierarchicallyHidden())) {
@@ -86,9 +123,11 @@ Ext.override(Ext.Component, {
     }
 });
 
+
+
 Ext.override(Ext.grid.CellContext, {
     setRow: function (row) {
-        var me = this,
+        let me = this,
             dataSource = me.view.dataSource;
         if (row) {//解决row为null报错问题
             // Row index passed
@@ -113,21 +152,21 @@ Ext.override(Ext.grid.CellContext, {
 
 Ext.override(Ext.layout.container.Accordion, {
     nextCmp: function (cmp) {
-        var next = cmp.next();
+        let next = cmp.next();
         if (next && next.isHidden()) {
             return this.nextCmp(next);
         }
         return next;
     },
     prevCmp: function (cmp) {
-        var prev = cmp.prev();
+        let prev = cmp.prev();
         if (prev && prev.isHidden()) {
             return this.prevCmp(prev);
         }
         return prev;
     },
     onBeforeComponentCollapse: function (comp) {
-        var me = this,
+        let me = this,
             owner = me.owner,
             toExpand,
             expanded,
@@ -165,7 +204,7 @@ Ext.override(Ext.layout.container.Accordion, {
 Ext.override(Ext.dom.Element, {
     syncContent: function(source) {
         source = Ext.getDom(source);
-        var sourceNodes = source.childNodes,
+        let sourceNodes = source.childNodes,
             sourceLen = sourceNodes.length,
             dest = this.dom,
             destNodes = dest.childNodes,

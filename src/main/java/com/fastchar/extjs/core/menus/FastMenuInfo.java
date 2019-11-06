@@ -9,10 +9,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class FastMenuInfo extends FastBaseInfo {
+    private static final long serialVersionUID = 2745017046582346313L;
     private String id;
     private String text;
     private String method;
     private String iconValue;
+    private String iconName;
     private String icon;
     private String iconCls;
     private String color;
@@ -121,6 +123,14 @@ public class FastMenuInfo extends FastBaseInfo {
         return this;
     }
 
+    public String getIconName() {
+        return iconName;
+    }
+
+    public FastMenuInfo setIconName(String iconName) {
+        this.iconName = iconName;
+        return this;
+    }
 
     public void resetIcon() {
         if (FastStringUtils.isNotEmpty(getIconValue())) {
@@ -129,6 +139,7 @@ public class FastMenuInfo extends FastBaseInfo {
                 path = path + "&color=" + getColor().replace("#", "");
             }
             setIcon(path);
+            iconName = iconValue.substring(iconValue.lastIndexOf("/") + 1);
         }
     }
 
@@ -192,4 +203,5 @@ public class FastMenuInfo extends FastBaseInfo {
         newMenu.fromProperty();
         return newMenu;
     }
+
 }

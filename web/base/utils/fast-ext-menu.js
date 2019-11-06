@@ -1,7 +1,7 @@
 Ext.override(Ext.menu.Menu, {
     hide: function () {
         if(Ext.isEmpty(system)) return;
-        var me = this;
+        let me = this;
         if (!me.powerMenu) {
             if (power.menuShowing) {
                 return;
@@ -32,9 +32,9 @@ Ext.override(Ext.menu.Menu, {
  * @param target
  */
 function copyMenu(target) {
-    var menus = [];
+    let menus = [];
     target.items.each(function (item, index) {
-        var child = {
+        let child = {
             icon: item.icon,
             text: item.text,
             handler: item.handler

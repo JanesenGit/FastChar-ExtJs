@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <link href="css/bootstrap.css" rel="stylesheet">
+    <script src="../../js/jquery.js"></script>
+    <script>
+        function showContent(content) {
+            $("body").html(content);
+        }
+
+        function onLoad() {
+            if (window.parent.showEditorDone) {
+                window.parent.showEditorDone();
+            }
+        }
+    </script>
+</head>
+<body onload="onLoad()" style="padding: 10px;">
+
+</body>
+</html>

@@ -1,5 +1,7 @@
 package com.fastchar.extjs.core.heads;
 
+import com.fastchar.utils.FastStringUtils;
+
 public class FastHeadLinkInfo extends FastHeadInfo {
     public FastHeadLinkInfo() {
         this.setTagName("link");
@@ -30,6 +32,20 @@ public class FastHeadLinkInfo extends FastHeadInfo {
 
     public void setHref(String href) {
         this.href = href;
+    }
+
+
+    public void wrapHttp(String http) {
+        if (FastStringUtils.isEmpty(href)) {
+            return;
+        }
+        if (href.startsWith("http://") || href.startsWith("https://")) {
+            return;
+        }
+        if (href.startsWith("/")) {
+            return;
+        }
+        put("href", http + href);
     }
 
     @Override

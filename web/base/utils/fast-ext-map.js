@@ -3,18 +3,18 @@
  */
 function showMap(obj, lng, lat, address) {
     return new Ext.Promise(function (resolve, reject) {
-        var defaultLngLat = "";
+        let defaultLngLat = "";
         if (!Ext.isEmpty(lng) && !Ext.isEmpty(lat) && parseFloat(lng) != 0 && parseFloat(lat) != 0) {
             defaultLngLat = lng + "," + lat;
         }
 
-        var mapPanel = Ext.create('Ext.panel.Panel', {
+        let mapPanel = Ext.create('Ext.panel.Panel', {
             layout: 'border',
             region: 'center',
             border: 0
         });
 
-        var formPanel = Ext.create('Ext.form.FormPanel', {
+        let formPanel = Ext.create('Ext.form.FormPanel', {
             url: 'addData',
             method: 'POST',
             region: 'north',
@@ -55,11 +55,11 @@ function showMap(obj, lng, lat, address) {
         });
 
 
-        var doSearch = function () {
+        let doSearch = function () {
             mapFrame.window.searchAddress(Ext.getCmp("txtSearch").getValue());
         };
 
-        var bottomPanel = Ext.create('Ext.panel.Panel', {
+        let bottomPanel = Ext.create('Ext.panel.Panel', {
             layout: "column",
             region: 'south',
             border: 0,
@@ -86,10 +86,10 @@ function showMap(obj, lng, lat, address) {
                     columnWidth: 0.2,
                     text: '确定',
                     handler: function () {
-                        var lblLngLat = Ext.getCmp("lblLngLat");
-                        var lnglat = lblLngLat.getValue();
-                        var lng = lnglat.split(",")[0];
-                        var lat = lnglat.split(",")[1];
+                        let lblLngLat = Ext.getCmp("lblLngLat");
+                        let lnglat = lblLngLat.getValue();
+                        let lng = lnglat.split(",")[0];
+                        let lat = lnglat.split(",")[1];
                         if (!resolve.called) {
                             resolve.called = true;
                             resolve({
@@ -106,7 +106,7 @@ function showMap(obj, lng, lat, address) {
                 }]
         });
 
-        var containerPanel = Ext.create('Ext.panel.Panel', {
+        let containerPanel = Ext.create('Ext.panel.Panel', {
             layout: 'border',
             border: 0,
             items: [
@@ -114,7 +114,7 @@ function showMap(obj, lng, lat, address) {
             ]
         });
 
-        var win = Ext.create('Ext.window.Window', {
+        let win = Ext.create('Ext.window.Window', {
             title: '选择位置',
             height: 500,
             iconCls: 'extIcon extMap',
@@ -128,7 +128,7 @@ function showMap(obj, lng, lat, address) {
             modal: true,
             listeners: {
                 show: function () {
-                    var url = system.formatUrlVersion('base/map/select.html',
+                    let url = system.formatUrlVersion('base/map/select.html',
                         {
                             mapVersion: getExt("amap-version").value,
                             mapKey: getExt("amap-key").value
@@ -171,7 +171,7 @@ function showMap(obj, lng, lat, address) {
 
         window["setMarkCurrPos"] = function (lnglat, address, province, city, area) {
             Ext.getCmp("lblAddress").setValue(address);
-            var lblLngLat = Ext.getCmp("lblLngLat");
+            let lblLngLat = Ext.getCmp("lblLngLat");
             lblLngLat.setValue(lnglat);
             lblLngLat.province = province;
             lblLngLat.city = city;
@@ -184,13 +184,13 @@ function showMap(obj, lng, lat, address) {
  * 在地图上查看位置
  */
 function showAddressInMap(obj, lnglat) {
-    var mapPanel = Ext.create('Ext.panel.Panel', {
+    let mapPanel = Ext.create('Ext.panel.Panel', {
         layout: 'border',
         region: 'center',
         border: 0,
         listeners: {
             afterrender: function (obj, eOpts) {
-                var params = {
+                let params = {
                     lnglat: lnglat,
                     mapVersion: getExt("amap-version").value,
                     mapKey: getExt("amap-key").value
@@ -199,7 +199,7 @@ function showAddressInMap(obj, lnglat) {
             }
         }
     });
-    var win = Ext.create('Ext.window.Window', {
+    let win = Ext.create('Ext.window.Window', {
         title: '查看位置',
         height: 500,
         iconCls: 'extIcon extMap',

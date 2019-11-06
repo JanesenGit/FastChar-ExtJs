@@ -5,16 +5,19 @@ import com.fastchar.annotation.AFastRoute;
 import com.fastchar.core.FastAction;
 import com.fastchar.core.FastChar;
 import com.fastchar.core.FastFile;
+import com.fastchar.core.FastHandler;
 import com.fastchar.extjs.FastExtConfig;
 import com.fastchar.extjs.annotation.AFastSession;
 import com.fastchar.extjs.core.heads.FastHeadExtInfo;
 import com.fastchar.extjs.core.heads.FastHeadInfo;
+import com.fastchar.extjs.core.heads.FastHeadLinkInfo;
 import com.fastchar.extjs.core.heads.FastHeadScriptInfo;
 import com.fastchar.extjs.core.menus.FastMenuInfo;
 import com.fastchar.extjs.entity.ExtManagerEntity;
 import com.fastchar.extjs.entity.ExtManagerRoleEntity;
 import com.fastchar.extjs.entity.ExtSystemConfigEntity;
 import com.fastchar.extjs.interfaces.IFastExtEnum;
+import com.fastchar.extjs.interfaces.IFastManager;
 import com.fastchar.extjs.observer.FastHeadXmlObserver;
 import com.fastchar.extjs.observer.FastMenuXmlObserver;
 import com.fastchar.extjs.utils.ZXingUtils;
@@ -41,7 +44,6 @@ public class ExtDefaultAction extends FastAction {
 
 
     @AFastRoute({"/fast_index.html", "/index.html", "/index.jsp", "/index.vm"})
-    @AFastCache(checkClass = true, timeout = 30)
     public void index() throws Exception {
 
         if (FastHeadXmlObserver.isModified()) {
@@ -87,6 +89,9 @@ public class ExtDefaultAction extends FastAction {
         }
 
         String indexHtml = FastFileUtils.readFileToString(new File(FastChar.getPath().getWebRootPath(), "fast-index.html"), "utf-8");
+        if (FastStringUtils.isEmpty(indexHtml)) {
+            response404("系统fast-index.html文件异常！请及时告知开发人员！");
+        }
         indexHtml = FastExtConfig.replacePlaceholder(holders, indexHtml);
         responseHtml(indexHtml);
     }
@@ -97,15 +102,36 @@ public class ExtDefaultAction extends FastAction {
 
         List<FastHeadInfo> newHeads = new ArrayList<>(heads);
         String baseJsUrl = null;
-        if (getSession("manager") == null) {
-            FastHeadExtInfo loginUrl = FastChar.getConfig(FastExtConfig.class).getExtInfo("loginUrl");
-            if (loginUrl != null) {
-                baseJsUrl = loginUrl.getValue();
-            }
-        } else {
+        boolean hasLogin = false;
+        ExtManagerEntity manager = getSession("manager");
+        if (manager != null) {
             FastHeadExtInfo indexUrl = FastChar.getConfig(FastExtConfig.class).getExtInfo("indexUrl");
             if (indexUrl != null) {
                 baseJsUrl = indexUrl.getValue();
+            }else{
+                responseJson(-1, "初始化失败！系统index.js文件异常，请及时告知开发人员！");
+            }
+            ExtManagerEntity byId = ExtManagerEntity.dao().getById(manager.getId());
+            if (byId != null) {
+                hasLogin = true;
+                IFastManager iFastManager = FastChar.getOverrides().singleInstance(false, IFastManager.class);
+                if (iFastManager != null) {
+                    FastHandler handler = new FastHandler();
+                    iFastManager.onManagerLogin(byId, handler);
+                    if (handler.getCode() != 0) {
+                        responseJson(-1, handler.getError());
+                    }
+                }
+                setSession("manager", byId);
+            }
+        }
+
+        if (!hasLogin) {
+            FastHeadExtInfo loginUrl = FastChar.getConfig(FastExtConfig.class).getExtInfo("loginUrl");
+            if (loginUrl != null) {
+                baseJsUrl = loginUrl.getValue();
+            }else{
+                responseJson(-1, "初始化失败！系统login.js文件异常，请及时告知开发人员！");
             }
         }
 
@@ -114,6 +140,16 @@ public class ExtDefaultAction extends FastAction {
         headScriptInfo.fromProperty();
         newHeads.add(FastExtConfig.getInstance().getThemeInfo());
         newHeads.add(headScriptInfo);
+
+        for (FastHeadInfo newHead : newHeads) {
+            if (newHead instanceof FastHeadLinkInfo) {
+                FastHeadLinkInfo linkInfo = (FastHeadLinkInfo) newHead;
+                linkInfo.wrapHttp(getProjectHost());
+            } else if (newHead instanceof FastHeadScriptInfo) {
+                FastHeadScriptInfo scriptInfo = (FastHeadScriptInfo) newHead;
+                scriptInfo.wrapHttp(getProjectHost());
+            }
+        }
 
         responseJson(0, "获取成功！", newHeads);
     }
@@ -136,7 +172,11 @@ public class ExtDefaultAction extends FastAction {
         List<String> appJsUrls = new ArrayList<>();
         for (File app : appJs) {
             String replace = app.getAbsolutePath().replace(FastChar.getPath().getWebRootPath(), "");
-            appJsUrls.add(replace);
+            if (replace.startsWith("http://") || replace.startsWith("https://") || replace.startsWith("/")) {
+                appJsUrls.add(replace);
+            } else {
+                appJsUrls.add(getProjectHost() + replace);
+            }
         }
         Map<String, Object> data = new HashMap<>();
         data.put("app", appJsUrls);
@@ -277,7 +317,7 @@ public class ExtDefaultAction extends FastAction {
         String checked = getParam("checked");
         FastMenuInfo menus = FastChar.getValues().get("menus");
         List<FastMenuInfo> newMenus = new ArrayList<>(menus.copy().getChildren());
-        filterPowerMenus(newMenus);
+        filterPowerMenus(newMenus, getParam("parent"));
         filterMenus(newMenus, checked);
         return newMenus;
     }
@@ -361,7 +401,6 @@ public class ExtDefaultAction extends FastAction {
     /**
      * 上传文件
      */
-    @AFastSession
     public void upload() throws Exception {
         String type = getParam("type");
         FastFile<?> paramFile = getParamFile();
@@ -403,6 +442,23 @@ public class ExtDefaultAction extends FastAction {
 
 
     /**
+     * 删除附件
+     */
+    public void deleteAttach() {
+        List<String> paths = getParamToList("path");
+        for (String path : paths) {
+            path = path.replace("attach/", "");
+            File file = new File(path);
+            if (!file.exists()) {
+                file = new File(FastChar.getConstant().getAttachDirectory(), path);
+            }
+            file.delete();
+        }
+        responseJson(0, "删除成功！");
+    }
+
+
+    /**
      * 压缩文件
      */
     public void zipFile() throws IOException {
@@ -435,7 +491,7 @@ public class ExtDefaultAction extends FastAction {
     /**
      * 查看生成的接口文档
      */
-    @AFastRoute({"document", "interface", "document.html", "interface.html"})
+    @AFastRoute({"document", "interface", "document.html", "interface.html","api"})
     public void doc() throws Exception {
         File file = new File(FastChar.getPath().getWebRootPath(), "documents");
         File[] files = file.listFiles(new FilenameFilter() {
@@ -467,12 +523,12 @@ public class ExtDefaultAction extends FastAction {
         FastHeadExtInfo themeExt = FastExtConfig.getInstance().getExtInfo("theme-color");
         if (themeExt != null) {
             setRequestAttr("themeColor", themeExt.getColorValue());
-        }else{
+        } else {
             setRequestAttr("themeColor", "#3DB6A4");
         }
-        FastHeadExtInfo logoExt = FastExtConfig.getInstance().getExtInfo("system-logo");
-        if (logoExt != null) {
-            setRequestAttr("logo", logoExt.getValue());
+        String projectIcon = FastExtConfig.getInstance().getProjectIcon();
+        if (projectIcon != null) {
+            setRequestAttr("logo", projectIcon);
         }
         setRequestAttr("first", docs.get(0).get("id"));
         responseVelocity("fast-doc.html");
@@ -488,10 +544,17 @@ public class ExtDefaultAction extends FastAction {
     public void qrCode() throws Exception {
         String content = getParam("content", true);
         String logo = getParam("logo");
+        String render = getParam("render", "json");
+        String fileName = FastChar.getSecurity().MD5_Encrypt(content + logo) + ".png";
         FastFile fastFile = FastFile.newInstance(new File(FastChar.getConstant().getAttachDirectory(), "/qrcode").getAbsolutePath(),
-                FastChar.getSecurity().MD5_Encrypt(content + logo) + ".png");
-        if (fastFile.getFile().exists()) {
-            responseJson(0, "生成成功！", fastFile.getUrl());
+                fileName).setKey(FastChar.getSecurity().MD5_Encrypt(fileName));
+        if (fastFile.exists()) {
+            if (render.equalsIgnoreCase("json")) {
+                responseJson(0, "生成成功！", fastFile.getUrl());
+            } else if (render.equalsIgnoreCase("image")) {
+                redirect(fastFile.getUrl());
+            }
+            responseText(fastFile.getUrl());
         }
 
         BufferedImage qrImage = ZXingUtils.makeQRCode(content, getParamToInt("margin", 2), 500, 500);
@@ -513,7 +576,12 @@ public class ExtDefaultAction extends FastAction {
             }
         }
         ImageIO.write(qrImage, "jpg", fastFile.getFile());
-        responseJson(0, "生成成功！", fastFile.getUrl());
+        if (render.equalsIgnoreCase("json")) {
+            responseJson(0, "生成成功！", fastFile.getUrl());
+        } else if (render.equalsIgnoreCase("image")) {
+            redirect(fastFile.getUrl());
+        }
+        responseText(fastFile.getUrl());
     }
 
 

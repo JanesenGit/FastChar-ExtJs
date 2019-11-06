@@ -173,8 +173,8 @@ Ext.define('Ext.ux.TabCloseMenu', {
                 handler: function(){
                     var win = Ext.create('Ext.window.Window', {
                         title: me.item.title,
-                        height: 300,
-                        width: 700,
+                        height: 500,
+                        width: 800,
                         icon: me.item.icon,
                         layout: 'fit',
                         resizable: true,

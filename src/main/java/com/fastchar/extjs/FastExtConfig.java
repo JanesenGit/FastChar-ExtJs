@@ -1,18 +1,25 @@
 package com.fastchar.extjs;
 
 import com.fastchar.core.FastChar;
+import com.fastchar.extjs.compress.YuiCompress;
 import com.fastchar.extjs.core.FastExtEntities;
+import com.fastchar.extjs.core.FastLayerType;
 import com.fastchar.extjs.core.heads.FastHeadExtInfo;
 import com.fastchar.extjs.core.heads.FastHeadInfo;
 import com.fastchar.extjs.core.heads.FastHeadStyleInfo;
+import com.fastchar.extjs.utils.ColorUtils;
 import com.fastchar.interfaces.IFastConfig;
 import com.fastchar.utils.FastFileUtils;
+import com.fastchar.utils.FastNumberUtils;
 import com.fastchar.utils.FastStringUtils;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
+/**
+ * FastChar-ExtJs配置
+ */
 public final class FastExtConfig implements IFastConfig {
 
     public static FastExtConfig getInstance() {
@@ -21,12 +28,12 @@ public final class FastExtConfig implements IFastConfig {
 
 
     private String defaultThemeColor = "#62a3db";
-    private String signKey;
     private boolean compressAppJs;
     private boolean attachLog;
     private boolean mergeAppJs;
-    private boolean attachFilter;
     private FastExtEntities extEntities = new FastExtEntities();
+    private FastLayerType layerType = FastLayerType.Layer_Role;//权限级别，默认以当前管理角色为最高级别
+    private String menuPrefix = "fast-menus";
 
     public String getDefaultThemeColor() {
         return defaultThemeColor;
@@ -39,15 +46,6 @@ public final class FastExtConfig implements IFastConfig {
 
     public FastExtConfig setExtEntities(FastExtEntities extEntities) {
         this.extEntities = extEntities;
-        return this;
-    }
-
-    public String getSignKey() {
-        return signKey;
-    }
-
-    public FastExtConfig setSignKey(String signKey) {
-        this.signKey = signKey;
         return this;
     }
 
@@ -82,12 +80,21 @@ public final class FastExtConfig implements IFastConfig {
         return new File(FastChar.getPath().getWebRootPath(), "app.js");
     }
 
-    public boolean isAttachFilter() {
-        return attachFilter;
+    public FastLayerType getLayerType() {
+        return layerType;
     }
 
-    public FastExtConfig setAttachFilter(boolean attachFilter) {
-        this.attachFilter = attachFilter;
+    public FastExtConfig setLayerType(FastLayerType layerType) {
+        this.layerType = layerType;
+        return this;
+    }
+
+    public String getMenuPrefix() {
+        return menuPrefix;
+    }
+
+    public FastExtConfig setMenuPrefix(String menuPrefix) {
+        this.menuPrefix = menuPrefix;
         return this;
     }
 
@@ -123,11 +130,28 @@ public final class FastExtConfig implements IFastConfig {
     public String getProjectTitle() {
         List<FastHeadInfo> heads = FastChar.getValues().get("heads");
         for (FastHeadInfo head : heads) {
+            if (FastStringUtils.isEmpty(head.getTagName())) {
+                continue;
+            }
             if (head.getTagName().equalsIgnoreCase("title")) {
                 return FastStringUtils.defaultValue(head.get("value"), "后台管理");
             }
         }
         return "后台管理";
+    }
+
+    public String getProjectIcon() {
+        List<FastHeadInfo> heads = FastChar.getValues().get("heads");
+        for (FastHeadInfo head : heads) {
+            if (FastStringUtils.isEmpty(head.getTagName())) {
+                continue;
+            }
+            if (head.getTagName().equalsIgnoreCase("link")
+                    && head.getString("rel", "none").equalsIgnoreCase("icon")) {
+                return head.getString("href");
+            }
+        }
+        return null;
     }
 
 
@@ -151,6 +175,10 @@ public final class FastExtConfig implements IFastConfig {
             jsFiles.add(value.get(0));
         }
 
+        if (FastChar.getConfig(FastExtConfig.class).isMergeAppJs()) {
+            YuiCompress.merge(mergeFile, jsFiles.toArray(new File[]{}));
+            return Collections.singletonList(mergeFile);
+        }
         return jsFiles;
     }
 
@@ -198,12 +226,28 @@ public final class FastExtConfig implements IFastConfig {
                 if (file.exists()) {
                     String themeContent = FastFileUtils.readFileToString(file, "utf-8");
                     Map<String, Object> placeholder = new HashMap<String, Object>();
-                    FastHeadExtInfo extInfo = getExtInfo("theme-color");
-                    if (extInfo != null) {
-                        placeholder.put("color", extInfo.getColorValue());
+
+                    FastHeadExtInfo themeColor = getExtInfo("theme-color");
+                    if (themeColor != null) {
+                        placeholder.put("color", themeColor.getColorValue());
+                        placeholder.put("themeColor", themeColor.getColorValue());
+                        for (int i = 1; i < 9; i++) {
+                            placeholder.put("color" + i, ColorUtils.getLightColor(themeColor.getColorValue(), 1-FastNumberUtils.formatToDouble("0." + i)));
+                        }
                     } else {
                         placeholder.put("color", defaultThemeColor);
+                        for (int i = 1; i < 9; i++) {
+                            placeholder.put("color" + i, ColorUtils.getLightColor(defaultThemeColor, 1-FastNumberUtils.formatToDouble("0." + i)));
+                        }
                     }
+                    FastHeadExtInfo frontColor = getExtInfo("front-color");
+                    if (frontColor != null) {
+                        placeholder.put("frontColor", frontColor.getColorValue());
+                        for (int i = 1; i < 9; i++) {
+                            placeholder.put("frontColor" + i, ColorUtils.getLightColor(frontColor.getColorValue(), 1-FastNumberUtils.formatToDouble("0." + i)));
+                        }
+                    }
+
                     String theme = replacePlaceholder(placeholder, themeContent);
                     FastHeadStyleInfo styleInfo = new FastHeadStyleInfo();
                     styleInfo.setText(theme);
@@ -217,7 +261,6 @@ public final class FastExtConfig implements IFastConfig {
         return null;
     }
 
-
     public static String replacePlaceholder(Map<String, Object> placeholders, String content) {
         for (String key : placeholders.keySet()) {
             if (placeholders.get(key) != null) {
@@ -227,4 +270,6 @@ public final class FastExtConfig implements IFastConfig {
         }
         return content;
     }
+
+
 }

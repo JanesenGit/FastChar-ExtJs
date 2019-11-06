@@ -40,13 +40,15 @@ function getWelcomePanel() {
         items: [weatherPanel, timerPanel]
     });
 
-    let container = Ext.create('Ext.panel.Panel', {
+    let items = [accordionPanel];
+    if (toBool(getExt("weather-plugin").value, true)) {
+        items.push(rightPanel);
+    }
+    return Ext.create('Ext.panel.Panel', {
         layout: 'border',
         border: 0,
-        items: [accordionPanel, rightPanel]
+        items: items
     });
-
-    return container;
 }
 
 //获得系统操作日志
@@ -114,7 +116,7 @@ function systemOperate() {
         plugins: [{
             ptype: 'rowexpander',
             rowBodyTpl: new Ext.XTemplate('<p>操作用户: {a__managerName}</p>',
-                '<p>来自IP: {systemLogIp}</p>',
+                '<p>来自IP: <a target="_blank" href="https://www.baidu.com/s?wd=IP%E5%9C%B0%E5%9D%80%3A{systemLogIp}">{systemLogIp}</a></p>',
                 '<p>浏览器: {systemLogClient}</p>',
                 '<p><br/> {systemLogData}</p>')
         }],
@@ -253,8 +255,12 @@ function systemVersion() {
         fields: [],
         data: [
             {
-                "name": "当前版本",
+                "name": "项目版本",
                 "value": system["version"].desc
+            },
+            {
+                "name": "本机IP地址",
+                "value": system["host"].value
             },
             {
                 "name": "系统环境",
@@ -269,12 +275,23 @@ function systemVersion() {
                 "value": system["server"].value
             },
             {
+                "name": "核心框架",
+                "value": "<a href='http://www.fastchar.com' target='_blank' >" + system["fastchar"].value + "</a>"
+            },
+            {
                 "name": "开发语言",
                 "value": system["java"].value + "+ExtJs6.2.0+HTML5+CSS3"
             },
             {
+                "name": "JVM信息",
+                "value": system["jvm"].value
+            },
+            {
                 "name": "开发服务商",
                 "value": "<a href='" + system["developer"].href + "' target='_blank'>" + system["developer"].value + "</a>"
+            },{
+                "name": "版权归属",
+                "value": "<a href='" + getExt("copyright").href + "' target='_blank'>" + getExt("copyright").value + "</a>"
             }]
     });
 
@@ -284,14 +301,17 @@ function systemVersion() {
         power:true,
         multiColumnSort: true,
         columnLines: true,
-        title: '系统版本信息',
+        title: '系统基本信息',
         iconCls: 'extIcon extVersion',
         hideHeaders: true,
         store: dataStoreVersion,
+        viewConfig: {
+            enableTextSelection: true
+        },
         columns: [{
             header: '名称',
             dataIndex: 'name',
-            flex: 0.5,
+            flex: 0.3,
             align: 'center',
             listeners: {
                 dblclick: function (grid, obj, celNo, obj1, obj2, rowNo, e) {
@@ -304,7 +324,7 @@ function systemVersion() {
             {
                 header: '描述',
                 dataIndex: 'value',
-                flex: 0.5,
+                flex: 0.7,
                 align: 'center',
                 listeners: {
                     dblclick: function (grid, obj, celNo, obj1, obj2, rowNo, e) {
@@ -352,9 +372,28 @@ function systemConfig() {
                     {
                         name: 'theme-color',
                         xtype: 'colorfield',
-                        fieldLabel: '系统主题色',
+                        fieldLabel: '系统主题颜色',
                         columnWidth: 1,
                         bind: '{theme-color}'
+                    },
+                    {
+                        name: 'front-color',
+                        xtype: 'colorfield',
+                        fieldLabel: '系统前景颜色',
+                        columnWidth: 1,
+                        bind: '{front-color}'
+                    },
+                    {
+                        name: 'theme',
+                        fieldLabel: '系统主题风格',
+                        columnWidth: 1,
+                        xtype: 'combo',
+                        displayField: 'text',
+                        valueField: 'id',
+                        editable: false,
+                        value: 1,
+                        bind: '{theme}',
+                        store: getThemeDataStore()
                     },
                     {
                         name: 'window-anim',
@@ -366,6 +405,30 @@ function systemConfig() {
                         editable: false,
                         value: 1,
                         bind: '{window-anim}',
+                        store: getYesOrNoDataStore()
+                    },
+                    {
+                        name: 'tab-record',
+                        fieldLabel: '标签记忆功能',
+                        columnWidth: 1,
+                        xtype: 'combo',
+                        displayField: 'text',
+                        valueField: 'id',
+                        editable: false,
+                        value: 1,
+                        bind: '{tab-record}',
+                        store: getYesOrNoDataStore()
+                    },
+                    {
+                        name: 'weather-plugin',
+                        fieldLabel: '右侧天气插件',
+                        columnWidth: 1,
+                        xtype: 'combo',
+                        displayField: 'text',
+                        valueField: 'id',
+                        editable: false,
+                        value: 1,
+                        bind: '{weather-plugin}',
                         store: getYesOrNoDataStore()
                     }
                 ]

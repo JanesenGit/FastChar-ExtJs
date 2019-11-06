@@ -1,0 +1,629 @@
+*{
+     -moz-transition: opacity 300ms ,border-color 500ms ,box-shadow 300ms ,text-shadow 300ms  !important;
+     -webkit-transition: opacity 300ms,border-color 500ms ,box-shadow 300ms,text-shadow 300ms !important;
+     -o-transition:opacity 300ms,border-color 500ms ,box-shadow 300ms,text-shadow 300ms !important;
+     transition:opacity 300ms,border-color 500ms ,box-shadow 300ms ,text-shadow 300ms !important;
+}
+.headPanel{
+    text-shadow: 0px 0px 8px #dadada;
+}
+
+.loginLogo{
+    margin-top: 20px;
+    -moz-box-shadow: 0 0 8px ${color};
+    -webkit-box-shadow: 0 0 8px ${color};
+    box-shadow: 0 0 8px ${color};
+    border-radius: 8px;
+    transition:  box-shadow 500ms ease;
+    -moz-transition: box-shadow 500ms ease,; /* Firefox 4 */
+    -webkit-transition: box-shadow 500ms ease; /* Safari 和 Chrome */
+    -o-transition:  box-shadow 500ms ease; /* Opera */
+}
+.loginLogo:hover {
+    -moz-box-shadow: 0 0 20px ${color};
+    -webkit-box-shadow: 0 0 20px ${color};
+    box-shadow: 0 0 20px ${color};
+}
+
+
+
+.headContainer{
+     background: linear-gradient(0deg, $[color], $[color7]) !important;
+     /*background-image: linear-gradient(45deg, $[color] 80%, $[color5] 20%) !important;*/
+}
+.headButton{
+    background: $[frontColor] !important;
+    border: 0;
+    color: '#eeeee' !important;
+    box-shadow:0 0 4px #fefefe !important;
+
+     -moz-transition: background 300ms ,box-shadow 300ms  !important;
+     -webkit-transition: background 300ms,box-shadow 300ms !important;
+     -o-transition:background 300ms,box-shadow 300ms !important;
+     transition:background 300ms,box-shadow 300ms !important;
+}
+
+
+.headButton:hover{
+    background: $[frontColor3] !important;
+    box-shadow:0 0 18px #fefefe !important;
+}
+
+.headLogo {
+  box-shadow:0 0 4px #fefefe !important;
+}
+
+.headLogo:hover{
+    box-shadow:0 0 18px #fefefe !important;
+}
+
+.headTitle{
+    background-image:-webkit-linear-gradient(160deg, $[color1] 20%, $[frontColor] 80%);
+   -webkit-background-clip:text;
+   -webkit-text-fill-color:transparent;
+}
+.headTitle:hover{
+    text-shadow:0 0 18px #fefefe !important;
+}
+.leftBottom{
+    background: linear-gradient(0deg, #32404e, #425365) !important;
+    cursor: pointer;
+}
+
+.x-grid-header-ct{
+    box-shadow:0 0 8px #bbbbbb !important;
+}
+
+.x-form-checkbox-default{
+     -moz-transition: color 450ms !important;
+     -webkit-transition: color 450ms !important;
+     -o-transition:color 450ms !important;
+     transition:color 450ms !important;
+}
+
+.x-grid-item , .x-tab-default,.x-column-header,.x-treelist-row {
+     -moz-transition: background 350ms !important;
+     -webkit-transition: background 350ms !important;
+     -o-transition:background 350ms !important;
+     transition:background 350ms !important;
+}
+
+.x-menu-item {
+    -moz-transition: background 150ms !important;
+    -webkit-transition: background 150ms !important;
+    -o-transition:background 150ms !important;
+    transition:background 150ms !important;
+}
+
+
+::selection {
+    background: $[color];
+    color: #ffffff;
+}
+
+::-moz-selection {
+    background: $[color];
+    color: #ffffff;
+}
+
+::-webkit-selection {
+    background: $[color];
+    color: #ffffff;
+}
+
+
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background-color: transparent;
+    /*border:1px solid #e8e8e8;*/
+}
+::-webkit-scrollbar-thumb {
+    border-radius: 8px;
+    background: #dddddd;
+}
+
+::-webkit-scrollbar-thumb:hover{
+    background: #aaaaaa;
+}
+
+::-webkit-scrollbar-button{
+    background-color: transparent !important;
+    border:0;
+    display: none;
+}
+
+
+/* 修改默认字体的大小*/
+.x-btn-default-small .x-btn-inner, .x-btn-default-medium .x-btn-inner,
+	.x-btn-default-large .x-btn-inner, .x-btn-default-toolbar-small .x-btn-inner,
+	.x-btn-default-toolbar-medium .x-btn-inner,
+	.x-btn-default-toolbar-large .x-btn-inner, .x-menu-item-text,
+	.x-html-editor-tb .x-font-select, .x-panel-header-default,
+	.x-panel-header-text-default, .x-panel-header-default-framed,
+	.x-tip-header, .x-tip-body, .x-form-invalid-tip-body,
+	.x-tip-header-text, .x-progress-text, .x-toolbar, .x-toolbar .x-form-item-label,
+	.x-toolbar .x-toolbar-text, .x-window-header-text-default, .x-tab-bar,
+	.x-tab button, .x-grid-rowbody, .x-grid-row .x-grid-cell,
+	.x-grid-group-title, .x-grid-row-editor .x-form-field,
+	.x-grid-row-editor .x-form-display-field, .x-form-invalid-under,
+	.x-fieldset-header, .x-column-header, .x-mask-msg div,
+	.x-btn-group-header-text-default-framed, table.x-datepicker-inner a,
+	.x-monthpicker-item, .x-dd-drag-ghost {
+	font-size: 14px !important;
+}
+
+.x-window-default {
+    border-radius: 8px !important;
+    overflow: inherit !important;
+}
+
+
+
+.x-treelist-row .x-treelist-item-wrap .x-treelist-item-text {
+	height: 50px !important;
+	font-size: 14px !important;
+	line-height: 50px !important;
+}
+
+.x-treelist-nav .x-treelist-item-icon {
+	line-height: 54px !important;
+}
+
+@media all and (-ms-high-contrast: none), (-ms-high-contrast: active) {
+    .x-treelist-nav .x-treelist-item-icon {
+    	top: 4px !important;
+    }
+}
+
+.x-treelist-nav .x-treelist-item-expander{
+	line-height: 50px !important;
+}
+
+.x-tab-default .x-tab-close-btn{
+    height:15px !important;
+}
+
+.x-btn-icon-el-default-toolbar-small, .x-btn-icon-el-default-small {
+	width: 20px !important;
+	height: 20px !important;
+}
+
+.x-title-icon-default {
+	width: 20px !important;
+	height: 20px !important;
+}
+
+/* 去除tab的边框 */
+#tabs-body {
+	border-width: 0 !important;
+}
+
+.x-column-header {
+	background-color: #f1f7fd;
+	font-weight: 600;
+	color:#000000;
+}
+
+
+.x-message-box {
+	z-index: 99999999 !important;
+}
+
+/* .x-htmleditor-iframe{
+	border: 1px solid #d0d0d0 !important;
+} */
+.x-tree-icon {
+	width: 20px !important;
+}
+
+.x-column-header-text {
+	min-Width: 30px !important;
+}
+
+/* 主色调更改*/
+
+.x-tool-default {
+	background-color: transparent !important;
+}
+
+.x-tool-img {
+	background-color: transparent !important;
+}
+
+.x-btn-focus.x-btn-default-toolbar-small-focus {
+	box-shadow: transparent 0 0 0 0 !important;
+}
+
+.x-splitter-focus:after{
+	border: 0px !important;
+}
+
+
+
+.x-grid-body{
+	border-width:1px;
+}
+
+.x-tab-focus.x-tab-default {
+	 outline: transparent !important;
+}
+.x-treelist-nav .x-treelist-item-text{
+	color:#ffffff;
+}
+
+.tdVTop{
+	vertical-align: baseline;
+}
+
+.x-grid-cell-inner-row-expander {
+    padding: 8px 8px 8px 4px !important;
+}
+
+.x-grid-cell-row-checker .x-grid-cell-inner {
+    padding: 7px 4px 7px 4px !important;
+}
+
+.x-column-header-checkbox .x-column-header-inner {
+    padding: 7px 4px 7px 4px !important;
+}
+
+.no-show-power{
+   filter:alpha(opacity=30) !important;
+   -moz-opacity:0.3 !important;
+   -khtml-opacity: 0.3 !important;
+   opacity: 0.3 !important;
+}
+.no-edit-power{
+   background-color: #fff20799 !important;
+}
+
+.text-clear{
+    color:#c2c2c2
+}
+.text-clear:before {
+   content: "\f00d"
+}
+
+.text-search{
+    color:#c2c2c2
+}
+.text-search:before {
+    content: "\f002";
+}
+
+.text-help{
+    color:#c2c2c2;
+}
+.text-help:before {
+    content: "\f128";
+}
+
+body>.x-mask {
+    background-image: none;
+    background-color: rgba(0, 0, 0, 0.55);
+}
+
+.x-column-header{
+    background:linear-gradient(0deg, $[color2], #fefefe);
+}
+
+.x-column-header-over{
+    background: linear-gradient(0deg, #fefefe, $[color2]) !important;
+}
+
+.x-column-header-open{
+     background: linear-gradient(0deg, #fefefe, $[color6]) !important;
+}
+
+.x-column-header-open .x-column-header-trigger {
+    background: linear-gradient(0deg, #fefefe, $[color6]) !important;
+}
+
+.x-column-header-over .x-column-header-trigger {
+     background: linear-gradient(0deg, #fefefe, $[color6]) !important;
+}
+.x-column-header-default-focus{
+     background: linear-gradient(0deg, #fefefe, $[color6]) !important;
+ }
+.x-column-header-over .x-column-header-trigger, .x-column-header-open .x-column-header-trigger {
+    color: $[color] !important;
+}
+.x-btn-wrap-default-toolbar-small.x-btn-arrow-right:after {
+    color: $[color] !important;
+}
+
+.x-grid-row-checker, .x-column-header-checkbox .x-column-header-text {
+    color: $[color] !important;
+}
+
+.x-grid-with-row-lines .x-grid-item-selected+.x-grid-item {
+    border-top-style: solid;
+    border-top-color:$[color3] !important;
+}
+.x-grid-with-row-lines .x-grid-item.x-grid-item-selected {
+    border-style: solid;
+    border-color: $[color3] !important;
+}
+
+.x-grid-with-col-lines .x-grid-item-selected .x-grid-cell {
+    border-color: $[color3] !important;
+    border-style: solid;
+}
+
+.x-grid-item:hover{
+    background-color: $[frontColor4];
+}
+
+.x-grid-item-selected {
+    background-color: $[frontColor6];
+}
+.x-grid-item-selected:hover{
+    background-color: $[frontColor8];
+}
+
+.x-window-header-default {
+	border-width:0 !important;
+    /*background-color: $[color] !important;*/
+    background: linear-gradient(0deg, $[color], $[color7]) !important;
+}
+
+.x-panel-header-default {
+	border-width:0 !important;
+    background: linear-gradient(0deg, $[color], $[color7]);
+}
+.x-accordion-item .x-accordion-hd{
+     border-width:0 !important;
+     background: linear-gradient(0deg, #dcdcdc, #f5f5f5);
+}
+.x-accordion-item .x-accordion-hd-over{
+     border-width:0 !important;
+     background: linear-gradient(0deg, #f5f5f5, #dcdcdc);
+}
+
+.x-window-default {
+	border-width:0 !important;
+}
+
+.x-window-body-default {
+	border-width:0 !important;
+}
+
+.x-menu{
+    border-radius: 8px;
+    overflow:hidden;
+}
+.x-btn{
+    border-radius: 8px;
+}
+
+.x-btn-default-small {
+	background: linear-gradient(0deg, $[color], $[color7]) !important;
+	border-color: #dddddd;
+}
+
+.x-btn-over.x-btn-default-small {
+    background: linear-gradient(0deg, $[color7], $[color]) !important;
+    border-color:  $[color];
+}
+
+.x-btn-over .x-btn-default-small-mc {
+    background-color: $[color];
+	border-color: $[color];
+	filter:alpha(opacity=70);
+    -moz-opacity:0.7;
+    -khtml-opacity: 0.7;
+    opacity: 0.7;
+}
+
+
+.x-btn-focus.x-btn-default-small {
+	background: linear-gradient(0deg, $[color7], $[color]) !important;
+	border-color:  $[color];
+}
+
+
+.x-btn-focus {
+	border-color: $[color] !important;
+}
+
+.x-btn-default-small-focus {
+	border-color:$[color] !important;
+}
+
+.x-btn.x-btn-pressed.x-btn-default-small{
+	background-color: $[color];
+	border-color:$[color];
+	filter:alpha(opacity=50);
+    -moz-opacity:0.5;
+    -khtml-opacity: 0.5;
+    opacity: 0.5;
+}
+.x-btn.x-btn-disabled.x-btn-default-small{
+	background-color: $[color6];
+	border-color:$[color6];
+}
+
+/*toolbar上面的按钮   开始*/
+.x-btn-default-toolbar-small {
+    background: linear-gradient(0deg, #eeeeee, #ffffff);
+}
+.x-btn-over.x-btn-default-toolbar-small{
+     background: linear-gradient(0deg, #ffffff,#eeeeee) ;
+}
+.x-btn-focus.x-btn-pressed.x-btn-default-toolbar-small{
+     background: linear-gradient(0deg, #ffffff,#cccccc) ;
+}
+.x-btn.x-btn-menu-active.x-btn-default-toolbar-small, .x-btn.x-btn-pressed.x-btn-default-toolbar-small {
+ background: linear-gradient(0deg, #ffffff,#cccccc) ;
+}
+/*toolbar上面的按钮   结束*/
+
+
+.x-progress-bar-default {
+	background-color:$[color] !important;
+}
+
+.x-boundlist-selected {
+	background-color: $[color] !important;
+	border-color: $[color] !important;
+}
+
+.x-boundlist-item-over {
+	background-color: $[color] !important;
+	border-color: $[color] !important;
+}
+
+.x-form-trigger-wrap-focus {
+	border-color: $[color] !important;
+}
+
+.x-grid-cell-inner:before {
+	border-color: $[color] !important;
+}
+
+.x-menu-item-active {
+	background-color:$[color] !important;
+}
+
+.x-tab-bar-default{
+	background-color:$[color];
+}
+
+.x-treelist-nav .x-treelist-item-selected>.x-treelist-row:before{
+	background-color:$[color];
+}
+.x-treelist-nav .x-treelist-item-selected.x-treelist-item-tool{
+	background-color:$[color];
+}
+
+.x-treelist-nav .x-treelist-item-tool-floated:after{
+	background-color:$[color];
+}
+
+.x-treelist-nav .x-treelist-row:hover:before{
+	background-color:$[color];
+}
+.x-treelist-nav .x-treelist-item-selected>.x-treelist-row:before{
+	background-color:$[color];
+}
+.x-treelist-nav .x-treelist-row:hover:before{
+	background-color:$[color];
+}
+.x-treelist-nav .x-treelist-item-selected>.x-treelist-row:hover:before{
+	background-color:$[color];
+}
+.x-treelist-nav .x-treelist-item-selected>.x-treelist-row:before {
+    background-color:$[color];
+}
+
+.x-column-header.x-column-header-focus .x-column-header-inner:after {
+	border-color: $[color];
+}
+.x-datepicker-selected div.x-datepicker-date{
+	background-color:$[color];
+}
+
+.x-monthpicker-item a.x-monthpicker-selected{
+	background-color:$[color];
+	border-color:$[color];
+}
+
+.x-monthpicker-item a.x-monthpicker-selected{
+	background-color:$[color];
+	border-color:$[color];
+}
+
+.x-tab-bar-plain .x-tab.x-tab-active.x-tab-default .x-tab-icon-el{
+    color:$[color];
+    font-size:18px;
+    transition: color 0.5s
+}
+.x-tab-bar-plain .x-tab.x-tab-active.x-tab-default .x-tab-inner-default{
+	color:$[color];
+	font-weight: bold;
+	font-size:14px;
+	transition: color 0.5s
+}
+
+.x-window-header-title-default>.x-title-icon-wrap-default>.x-title-icon-default {
+    color: white;
+    line-height: 20px;
+}
+
+.x-panel-header-title-default>.x-title-icon-wrap-default>.x-title-icon-default{
+    line-height: 20px;
+}
+
+.x-btn-icon-el-default-small{
+    line-height: 20px;
+}
+
+.x-grid-row-expander:focus {
+    outline: 0;
+}
+
+.x-accordion-hd .x-tool-img {
+    color: $[color];
+}
+
+/* 修改默认阴影 */
+.x-css-shadow {
+    box-shadow:0 0 8px 2px $[color8] !important;
+    border-radius: 8px;
+}
+
+.x-form-cb-checked .x-form-checkbox-default {
+    color: $[color] !important;
+}
+
+.x-form-rd-checked .x-form-radio-default {
+    color: $[color] !important;
+}
+
+.x-form-checkbox-focus.x-form-radio-default {
+    color: #919191
+}
+
+.x-form-checkbox-focus.x-form-checkbox-default {
+    color: #919191
+}
+
+.x-tab {
+    transition:box-shadow 300ms !important;
+}
+
+.x-tab-default-top{
+    background: linear-gradient(0deg,  $[color2], #ffffff);
+    border-radius: 8px 8px 0 0;
+}
+.x-tab.x-tab-active.x-tab-default{
+     background: linear-gradient(0deg, #ffffff,#ffffff,$[color1],$[color6]);
+     box-shadow:0 0 12px $[color6] !important;
+}
+.x-tab-over.x-tab-default{
+    background: linear-gradient(0deg, #ffffff, #ffffff,$[color3]);
+}
+.x-tab-over.x-tab-active.x-tab-default{
+    background: linear-gradient(0deg, #ffffff,#ffffff,$[color1],$[color8]);
+}
+.x-tab-focus.x-tab-default{
+    background: linear-gradient(0deg, #ffffff,$[color2]);
+}
+.x-tab-focus.x-tab-over.x-tab-default{
+    background: linear-gradient(0deg, #ffffff,$[color2]);
+}
+.x-tab-over.x-tab-focus.x-tab-active.x-tab-default{
+    background: linear-gradient(0deg, #ffffff,#ffffff,$[color1],$[color8]);
+}
+
+.x-message-box .x-window-body{
+     overflow:hidden !important;
+}
+
+.x-datepicker-month .x-btn-default-small{
+    background:transparent !important;
+}

@@ -1,5 +1,5 @@
 //定义fileModules
-var files = {
+const files = {
     validate: function (modules, name) {
         if (Ext.isEmpty(modules)) {
             showAlert("系统提醒", "参数" + name + "必传！");
@@ -84,7 +84,7 @@ var files = {
  */
 function uploadFile(obj, fileModules) {
     return new Ext.Promise(function (resolve, reject) {
-        var title = "上传文件", type = "files", width = -1, height = -1;
+        let title = "上传文件", type = "files", width = -1, height = -1;
         if (!files.validate(fileModules, "fileModules")) {
             return;
         }
@@ -95,7 +95,7 @@ function uploadFile(obj, fileModules) {
             height = fileModules[0].height;
         }
 
-        var formPanel = Ext.create('Ext.form.FormPanel', {
+        let formPanel = Ext.create('Ext.form.FormPanel', {
             url: 'upload',
             method: 'POST',
             margin: '5',
@@ -117,9 +117,9 @@ function uploadFile(obj, fileModules) {
                     listeners: {
                         change: function (obj, value, eOpts) {
                             if (value != null && value.length != 0) {
-                                var errorMsg = "";
-                                for (var i = 0; i < fileModules.length; i++) {
-                                    var fileModule = fileModules[i];
+                                let errorMsg = "";
+                                for (let i = 0; i < fileModules.length; i++) {
+                                    let fileModule = fileModules[i];
                                     if (fileModule.reg.test(value)) {
                                         formPanel.doSubmit();
                                         return;
@@ -148,9 +148,9 @@ function uploadFile(obj, fileModules) {
                     value: height
                 }],
             doSubmit: function () {
-                var form = formPanel.form;
+                let form = formPanel.form;
                 if (form.isValid()) {
-                    var myMask = new Ext.LoadMask({
+                    let myMask = new Ext.LoadMask({
                         msg: '正在上传附件中…',
                         target: uploadWin
                     });
@@ -181,8 +181,8 @@ function uploadFile(obj, fileModules) {
                 }
             }
         });
-        var btnSubmitId = "btnSubmit" + new Date().getTime();
-        var uploadWin = Ext.create('Ext.window.Window', {
+        let btnSubmitId = "btnSubmit" + new Date().getTime();
+        let uploadWin = Ext.create('Ext.window.Window', {
             title: title,
             layout: 'fit',
             resizable: false,
@@ -244,13 +244,13 @@ function showFiles(obj, callBack, fileModules, defaultFiles) {
     if (!files.validate(fileModules, "fileModules")) {
         return;
     }
-    var datas = [], renderer = renders.file(), title = "文件管理";
+    let datas = [], renderer = renders.file(), title = "文件管理";
     if (!Ext.isEmpty(defaultFiles)) {
-        var fileArray = defaultFiles;
+        let fileArray = defaultFiles;
         if (Ext.isString(defaultFiles)) {
             fileArray = Ext.JSON.decode(defaultFiles);
         }
-        for (var i = 0; i < fileArray.length; i++) {
+        for (let i = 0; i < fileArray.length; i++) {
             datas.push({url: fileArray[i]});
         }
     }
@@ -260,12 +260,12 @@ function showFiles(obj, callBack, fileModules, defaultFiles) {
     }
 
 
-    var currTime = Ext.now();
-    var fileStore = Ext.create('Ext.data.Store', {
+    let currTime = Ext.now();
+    let fileStore = Ext.create('Ext.data.Store', {
         autoLoad: true,
         data: datas
     });
-    var dataGridFiles = Ext.create('Ext.grid.Panel', {
+    let dataGridFiles = Ext.create('Ext.grid.Panel', {
         selModel: getGridSelModel(),
         store: fileStore,
         columnLines: true,
@@ -290,22 +290,32 @@ function showFiles(obj, callBack, fileModules, defaultFiles) {
                 iconCls: 'extIcon extDelete',
                 disabled: true,
                 handler: function () {
-                    var data = dataGridFiles.getSelectionModel().getSelection();
+                    let data = dataGridFiles.getSelectionModel().getSelection();
                     if (data.length == 0) {
                         toast("请您选择需要删除的文件！");
-                        return;
                     } else {
-                        Ext.Msg.confirm("系统提醒", "您确定立即删除选中的附件吗？",
-                            function (button, text) {
-                                if (button == "yes") {
-                                    Ext.Array.each(data,
-                                        function (record) {
+                        Ext.Msg.confirm("系统提醒", "您确定立即删除选中的附件吗？", function (button, text) {
+                            if (button == "yes") {
+                                let params = {};
+                                Ext.Array.each(data, function (record,index) {
+                                    params["path[" + index + "]"] = record.get("url");
+                                });
+                                showWait("正在删除中……");
+                                server.deleteAttach(params, function (success, message) {
+                                    hideWait();
+                                    if (success) {
+                                        dataGridFiles.getSelectionModel().deselectAll();
+                                        showAlert("系统提醒", "删除成功！");
+                                        Ext.Array.each(data, function (record,index) {
                                             fileStore.remove(record);
                                             fileStore.modify = true;
                                         });
-                                    dataGridFiles.getSelectionModel().deselectAll();
-                                }
-                            });
+                                    }else{
+                                        showAlert("系统提醒", message);
+                                    }
+                                });
+                            }
+                        });
                     }
                 }
             },
@@ -326,13 +336,13 @@ function showFiles(obj, callBack, fileModules, defaultFiles) {
         ],
         listeners: {
             selectionchange: function () {
-                var data = this.getSelectionModel().getSelection();
+                let data = this.getSelectionModel().getSelection();
                 Ext.getCmp("btnDeleteFile" + currTime).setDisabled(!(data.length > 0));
             }
         }
     });
 
-    var win = Ext.create('Ext.window.Window', {
+    let win = Ext.create('Ext.window.Window', {
         title: title,
         height: 300,
         width: 400,
@@ -348,7 +358,7 @@ function showFiles(obj, callBack, fileModules, defaultFiles) {
         listeners: {
             close: function () {
                 if (fileStore.modify) {
-                    var data = [];
+                    let data = [];
                     fileStore.each(function (record, index) {
                         data.push(record.get("url"));
                     });
@@ -366,10 +376,36 @@ function showFiles(obj, callBack, fileModules, defaultFiles) {
 /**
  * 导入excel数据
  */
-function importExcel(obj, params) {
+function importExcel(obj, params, formItems, serverUrl) {
     return new Ext.Promise(function (resolve, reject) {
-        var formPanel = Ext.create('Ext.form.FormPanel', {
-            url: 'entity/importData',
+        if (!formItems) {
+            formItems = [];
+        } else {
+            formItems = Ext.Array.clone(formItems);
+        }
+        if (!serverUrl) {
+            serverUrl = "entity/importData";
+        }
+        formItems.push({
+            xtype: 'filefield',
+            fieldLabel: 'Excel文件',
+            buttonText: '选择文件',
+            allowBlank: false,
+            name: 'file',
+            columnWidth: 1,
+            listeners: {
+                change: function (obj, value, eOpts) {
+                    if (value != null && value.length != 0) {
+                        if (!files.excel().reg.test(value)) {
+                            formPanel.form.reset();
+                            Ext.Msg.alert('系统提醒', "请上传有效的Excel文档！");
+                        }
+                    }
+                }
+            }
+        });
+        let formPanel = Ext.create('Ext.form.FormPanel', {
+            url: serverUrl,
             method: 'POST',
             margin: '5',
             fileUpload: true,
@@ -377,31 +413,17 @@ function importExcel(obj, params) {
             callBacked: false,
             border: 0,
             layout: 'column',
-            items: [
-                {
-                    xtype: 'filefield',
-                    fieldLabel: 'Excel文件',
-                    labelWidth: 60,
-                    labelAlign: 'right',
-                    buttonText: '选择文件',
-                    allowBlank: false,
-                    name: 'file',
-                    columnWidth: 1,
-                    listeners: {
-                        change: function (obj, value, eOpts) {
-                            if (value != null && value.length != 0) {
-                                if (!files.excel().reg.test(value)) {
-                                    formPanel.form.reset();
-                                    Ext.Msg.alert('系统提醒', "请上传有效的Excel文档！");
-                                }
-                            }
-                        }
-                    }
-                }],
+            defaults: {
+                labelWidth: 80,
+                margin: '5 5 5 5',
+                labelAlign: 'right',
+                emptyText: '请填写'
+            },
+            items: formItems,
             doSubmit: function () {
-                var form = formPanel.form;
+                let form = formPanel.form;
                 if (form.isValid()) {
-                    var myMask = new Ext.LoadMask({
+                    let myMask = new Ext.LoadMask({
                         msg: '正在导入中…',
                         target: uploadWin
                     });
@@ -409,11 +431,11 @@ function importExcel(obj, params) {
                     form.submit({
                         params: params,
                         success: function (form, action) {
-                            if (!resolve.called) {
-                                resolve.called = true;
-                                resolve(action.result);
-                            }
-                            uploadWin.close();
+                            myMask.destroy();
+                            Ext.Msg.alert('系统提醒', action.result.message, function () {
+                                runCallBack(resolve, action.result);
+                                uploadWin.close();
+                            });
                         },
                         failure: function (form, action) {
                             myMask.destroy();
@@ -432,13 +454,13 @@ function importExcel(obj, params) {
                 }
             }
         });
-        var btnSubmitId = "btnSubmit" + new Date().getTime();
-        var uploadWin = Ext.create('Ext.window.Window', {
+        let btnSubmitId = "btnSubmit" + new Date().getTime();
+        let uploadWin = Ext.create('Ext.window.Window', {
             title: "导入Excel数据",
             layout: 'fit',
             resizable: false,
             scrollable: false,
-            items: formPanel,
+            items: [formPanel],
             modal: true,
             iconCls: 'extIcon extUpload',
             animateTarget: obj,
@@ -463,13 +485,9 @@ function importExcel(obj, params) {
                 }],
             listeners: {
                 show: function (winObj, eOpts) {
-                    formPanel.getForm().findField('file').fileInputEl.dom.click();
-                    Ext.getCmp(btnSubmitId).focus();
-                },
-                close: function (winObj, eOpts) {
-                    if (!resolve.called) {
-                        resolve.called = true;
-                        resolve();
+                    if (formItems.length == 1) {
+                        formPanel.getForm().findField('file').fileInputEl.dom.click();
+                        Ext.getCmp(btnSubmitId).focus();
                     }
                 }
             }

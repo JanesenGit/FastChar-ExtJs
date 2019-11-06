@@ -13,7 +13,6 @@ import com.fastchar.exception.FastSqlException;
 import com.fastchar.extjs.core.FastExtEntity;
 
 import com.fastchar.utils.FastClassUtils;
-import com.fastchar.utils.FastMD5Utils;
 import com.fastchar.utils.FastStringUtils;
 
 import java.util.ArrayList;
@@ -77,6 +76,14 @@ public class FastExtMySql extends FastMySql {
 
     @Override
     public FastSqlInfo buildInsertSql(FastEntity<?> entity, String... checks) {
+        setLayerValue(entity);
+        return super.buildInsertSql(entity,checks);
+    }
+
+    /**
+     * 设置权限编号的值
+     */
+    private void setLayerValue(FastEntity<?> entity) {
         if (entity instanceof FastExtEntity) {
             FastExtEntity extEntity = (FastExtEntity) entity;
             //配置权限字段
@@ -98,17 +105,58 @@ public class FastExtMySql extends FastMySql {
                     }
                 }
 
-                String myLayerCode = FastMD5Utils.MD5(FastStringUtils.buildOnlyCode(entity.getTableName()));
-                if (FastStringUtils.isNotEmpty(parentLayerCode)) {
-                    myLayerCode = parentLayerCode + "@" + myLayerCode;
-                }
+                String myLayerCode = extEntity.buildLayerCode(parentLayerCode);
                 entity.set(layerColumn.getName(), myLayerCode);
             }
         }
-        return super.buildInsertSql(entity,checks);
     }
 
-//    同步更新层级编号
+    @Override
+    public FastSqlInfo buildCopySql(FastEntity<?> entity) {
+        if (entity == null) {
+            return null;
+        }
+        if (entity instanceof FastExtEntity) {
+            FastExtEntity extEntity = (FastExtEntity) entity;
+            List<String> columns = new ArrayList<>();
+            List<String> valueColumns = new ArrayList<>();
+            List<FastColumnInfo> tableColumns = extEntity.getTable().getColumns();
+            for (FastColumnInfo column : tableColumns) {
+                FastExtColumnInfo extColumn = (FastExtColumnInfo) column;
+                if (extColumn.isPrimary()) {
+                    continue;
+                }
+                columns.add(column.getName());
+                if (extColumn.isLayer()) {
+                    String selectLayerValue = extEntity.selectLayerValue();
+                    extEntity.setLayerValue(selectLayerValue);
+                    String newLayerCode = extEntity.buildLayerCode(extEntity.getParentLayerCode());
+                    valueColumns.add("'" + newLayerCode + "'");
+                    continue;
+                }
+                valueColumns.add(column.getName());
+            }
+            List<Object> values = new ArrayList<>();
+            StringBuilder sqlBuilder = new StringBuilder();
+            sqlBuilder.append("insert into ").append(entity.getTableName()).append(" (").append(FastStringUtils.join(columns, ",")).append(") ").append(" select ").append(FastStringUtils.join(valueColumns, ",")).append(" from ").append(entity.getTableName()).append(" where ").append(" 1=1 ");
+
+            for (FastColumnInfo primary : entity.getPrimaries()) {
+                if (entity.isEmpty(primary.getName())) {
+                    throw new FastSqlException(FastChar.getLocal().getInfo("Db_Sql_Error4", "'" + primary.getName() + "'"));
+                }
+                sqlBuilder.append(" and ").append(primary.getName()).append(" = ? ");
+                values.add(getColumnValue(entity, primary));
+            }
+            FastSqlInfo sqlInfo = newSqlInfo();
+            sqlInfo.setSql(sqlBuilder.toString());
+            sqlInfo.setLog(entity.getBoolean("log", true));
+            sqlInfo.setParams(values);
+            return sqlInfo;
+        }
+        return super.buildCopySql(entity);
+    }
+
+    //    同步更新层级编号
 //    @Override
 //    public FastSqlInfo toUpdateSql(FastEntity<?> entity, String... checks) {
 //        List<FastSqlInfo> children = new ArrayList<>();

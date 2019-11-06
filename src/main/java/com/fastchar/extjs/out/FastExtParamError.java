@@ -6,7 +6,6 @@ import com.fastchar.core.FastAction;
 import com.fastchar.out.FastOutParamError;
 
 @AFastPriority
-@AFastOverride
 public class FastExtParamError extends FastOutParamError {
 
     @Override

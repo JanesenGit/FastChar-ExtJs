@@ -4,39 +4,42 @@
  */
 function commitStoreUpdate(store) {
     return new Ext.Promise(function (resolve, reject) {
+        if (!store) {
+            return;
+        }
         if (!store.entity) {
             return;
         }
         if (store.commiting) {
             return;
         }
-        var records = store.getUpdatedRecords();
-        var phantoms = store.getNewRecords();
+        let records = store.getUpdatedRecords();
+        let phantoms = store.getNewRecords();
         records = records.concat(phantoms);
         if (records.length == 0) {
             return;
         }
         store.commiting = true;
-        var params = {"entityCode": store.entity.entityCode};
+        let params = {"entityCode": store.entity.entityCode};
         if (store.entity.menu) {
             params["menu"] = store.entity.menu.text;
         }
-        for (var i = 0; i < records.length; i++) {
-            var record = records[i];
-            for (var j = 0; j < store.entity.idProperty.length; j++) {
-                var idName = store.entity.idProperty[j];
+        for (let i = 0; i < records.length; i++) {
+            let record = records[i];
+            for (let j = 0; j < store.entity.idProperty.length; j++) {
+                let idName = store.entity.idProperty[j];
                 params['data[' + i + '].' + idName] = record.get(idName);
             }
-            for (var key in record.modified) {
+            for (let key in record.modified) {
                 params["data[" + i + "]." + key] = record.get(key);
             }
         }
         server.updateEntity(params, function (success, message) {
+            store.commiting = false;
             resolve(success);
             if (success) {
                 toast('修改成功!');
                 store.commitChanges();
-                store.commiting = false;
             } else {
                 Ext.Msg.alert('系统提醒', message);
             }
@@ -52,14 +55,14 @@ function commitStoreDelete(store, data) {
         if (!store.entity) {
             return;
         }
-        var params = {"entityCode": store.entity.entityCode};
+        let params = {"entityCode": store.entity.entityCode};
         if (store.entity.menu) {
             params["menu"] = store.entity.menu.text;
         }
-        for (var i = 0; i < data.length; i++) {
-            var record = data[i];
-            for (var j = 0; j < store.entity.idProperty.length; j++) {
-                var idName = store.entity.idProperty[j];
+        for (let i = 0; i < data.length; i++) {
+            let record = data[i];
+            for (let j = 0; j < store.entity.idProperty.length; j++) {
+                let idName = store.entity.idProperty[j];
                 params['data[' + i + '].' + idName] = record.get(idName);
             }
         }
@@ -67,7 +70,7 @@ function commitStoreDelete(store, data) {
             resolve(success);
             if (success) {
                 toast('删除成功!');
-                var reloadPage = store.currentPage;
+                let reloadPage = store.currentPage;
                 if (store.count() - data.length <= 0) {
                     reloadPage = reloadPage - 1;
                 }
@@ -88,14 +91,14 @@ function commitStoreCopy(store, data) {
         if (!store.entity) {
             return;
         }
-        var params = {"entityCode": store.entity.entityCode};
+        let params = {"entityCode": store.entity.entityCode};
         if (store.entity.menu) {
             params["menu"] = store.entity.menu.text;
         }
-        for (var i = 0; i < data.length; i++) {
-            var record = data[i];
-            for (var j = 0; j < store.entity.idProperty.length; j++) {
-                var idName = store.entity.idProperty[j];
+        for (let i = 0; i < data.length; i++) {
+            let record = data[i];
+            for (let j = 0; j < store.entity.idProperty.length; j++) {
+                let idName = store.entity.idProperty[j];
                 params['data[' + i + '].' + idName] = record.get(idName);
             }
         }
@@ -103,7 +106,7 @@ function commitStoreCopy(store, data) {
             resolve(success);
             if (success) {
                 toast('复制成功!');
-                var reloadPage = store.currentPage;
+                let reloadPage = store.currentPage;
                 if (store.count() - data.length <= 0) {
                     reloadPage = reloadPage - 1;
                 }
@@ -123,7 +126,7 @@ function commitStoreCopy(store, data) {
  * @param record
  */
 function isModified(record) {
-    for (var name in record.data) {
+    for (let name in record.data) {
         try {
             if (record.isModified(name)) {
                 return true;
@@ -142,12 +145,12 @@ function getEntityDataStore(entity, where, tree) {
         showAlert("系统提醒", "参数entity不可为空！");
         return;
     }
-    var config = {
+    let config = {
         fields: [],
-        pageSize: 10,
+        pageSize: 20,
         where: where,
         entity: entity,
-        remoteSort: true,
+        remoteSort: toBool(entity.remoteSort, true),
         proxy: {
             type: 'ajax',
             url: 'entity/list',
@@ -159,7 +162,7 @@ function getEntityDataStore(entity, where, tree) {
             },
             listeners: {
                 exception: function (obj, request, operation, eOpts) {
-                    var data = eval("(" + request.responseText + ")");
+                    let data = eval("(" + request.responseText + ")");
                     if (!data.success) {
                         Ext.Msg.alert('数据获取失败', data.message);
                     }
@@ -176,13 +179,13 @@ function getEntityDataStore(entity, where, tree) {
             },
             beforeload: function (store, options) {
                 try {
-                    var params = store.proxy.extraParams;
-                    var newParams = {
+                    let params = store.proxy.extraParams;
+                    let newParams = {
                         "entityCode": store.entity.entityCode,
                         "limit": store.pageSize
                     };
                     if (store.where) {
-                        for (var w in store.where) {
+                        for (let w in store.where) {
                             newParams["where['" + w + "']"] = store.where[w];
                         }
                     }
@@ -191,7 +194,7 @@ function getEntityDataStore(entity, where, tree) {
                             tree.parentIdValue = -1;
                         }
                         newParams["page"] = -1;
-                        var parentValue = options.node.data[tree.idName];
+                        let parentValue = options.node.data[tree.idName];
                         if (Ext.isEmpty(parentValue)) {
                             parentValue = tree.parentIdValue;
                         }
@@ -213,7 +216,7 @@ function getEntityDataStore(entity, where, tree) {
                             store.grid.fireEvent("selectionchange", store.grid);
                         }
                         if (store.grid.where) {
-                            for (var w in store.grid.where) {
+                            for (let w in store.grid.where) {
                                 newParams["where['" + w + "']"] = store.grid.where[w];
                             }
                         }
@@ -222,7 +225,7 @@ function getEntityDataStore(entity, where, tree) {
                             newParams["indexSort['" + item.getProperty() + "']"] = getColumn(store.grid, item.getProperty()).getIndex();
                         });
                     }
-                    Ext.apply(store.proxy.extraParams, mergeJson(params, newParams));
+                    store.getProxy().setExtraParams(mergeJson(params, newParams));
                     return true;
                 } catch (e) {
                     showException(e, "store:beforeload");
@@ -241,48 +244,52 @@ function getEntityDataStore(entity, where, tree) {
 /**
  * 获得枚举数据源
  * @param enumName
+ * @param firstData
+ * @param lastData
  */
-function getEnumDataStore(enumName) {
-    var cacheKey = $.md5(enumName);
-    if (MemoryCache.hasOwnProperty(cacheKey)) {
-        var store = Ext.create('Ext.data.Store', {
-            autoLoad: false,
-            fields: ["id", "text"],
-            enumName: enumName,
-            data: MemoryCache[cacheKey]
-        });
-        return store;
-    }
-    Ext.Ajax.request({
-        url: 'showEnums?enumName=' + enumName,
-        async: false,
-        success: function (response, opts) {
-            try {
-                var result = Ext.decode(response.responseText);
-                if (result.success) {
-                    MemoryCache[cacheKey] = result.data;
-                } else {
-                    Ext.Msg.alert('枚举获取失败', result.message);
+function getEnumDataStore(enumName, firstData, lastData) {
+    let cacheKey = $.md5(enumName);
+    if (!MemoryCache.hasOwnProperty(cacheKey)) {
+        Ext.Ajax.request({
+            url: 'showEnums?enumName=' + enumName,
+            async: false,
+            success: function (response, opts) {
+                try {
+                    let result = Ext.decode(response.responseText);
+                    if (result.success) {
+                        MemoryCache[cacheKey] = result.data;
+                    } else {
+                        Ext.Msg.alert('枚举获取失败', result.message);
+                    }
+                } catch (e) {
+                    showException(e, "获取枚举数据源！[getEnumDataStore]");
                 }
-            } catch (e) {
-                showException(e, "获取枚举数据源！[getEnumDataStore]");
             }
-        }
-    });
-    var enumDataStore = Ext.create('Ext.data.Store', {
+        });
+    }
+    let dataArray = Ext.clone(MemoryCache[cacheKey]);
+    if (firstData) {
+        dataArray = Ext.Array.insert(dataArray, 0, firstData);
+    }
+    if (lastData) {
+        dataArray = Ext.Array.push(dataArray, lastData);
+    }
+    return Ext.create('Ext.data.Store', {
         autoLoad: false,
         enumName: enumName,
-        fields: ["id", "text"],
-        data: MemoryCache[cacheKey]
+        data: dataArray
     });
-    return enumDataStore;
 }
 
 /**
  * 获得枚举的文本值
  */
 function getEnumText(enumName, id) {
-    return getEnumDataStore(enumName).findRecord("id", id).get("text");
+    let findRecord = getEnumDataStore(enumName).findRecord("id", id, 0, false, false, true);
+    if (findRecord) {
+        return findRecord.get("text");
+    }
+    return null;
 }
 
 
@@ -293,21 +300,20 @@ function getEnumText(enumName, id) {
 function getPageDataStore(maxSize, iteration) {
     if (maxSize == null || maxSize.length == 0) maxSize = 100;
     if (iteration == null || iteration.length == 0) iteration = 10;
-    var dataArray = new Array();
-    for (var i = 0; i < maxSize / 10; i++) {
-        var text = ((i + 1) * iteration) + '条';
-        var id = ((i + 1) * iteration);
-        dataArray[i] = {
+    let dataArray = [];
+    for (let i = 0; i < maxSize / 10; i++) {
+        let text = ((i + 1) * iteration) + '条';
+        let id = ((i + 1) * iteration);
+        dataArray.push({
             'text': text,
             "id": id
-        };
+        });
     }
-    var dataStore = Ext.create('Ext.data.Store', {
+    return  Ext.create('Ext.data.Store', {
         id: 'pageSizeDataStore',
         fields: ["id", "text"],
         data: dataArray
     });
-    return dataStore;
 }
 
 /**
@@ -362,6 +368,44 @@ function getCompareDataStore() {
 }
 
 /**
+ * 获取grid列的数据源
+ * @param grid
+ * @param search
+ */
+function getGridColumnStore(grid, search) {
+    let dataArray = [];
+    let configColumns = grid.getColumns();
+    for (let i = 0; i < configColumns.length; i++) {
+        let column = configColumns[i];
+        if (Ext.isEmpty(column.dataIndex)) {
+            continue;
+        }
+        if (toBool(search, false)) {
+            if (isFilesColumn(column)
+                || isFileColumn(column)) {
+                continue;
+            }
+            if (!toBool(column.search, true)) {
+                continue;
+            }
+            if (toBool(column["encrypt"], false)) {
+                continue;
+            }
+        }
+        dataArray.push({
+            'text': column.configText,
+            "id": column.dataIndex,
+            'index': i
+        });
+    }
+    return Ext.create('Ext.data.Store', {
+        fields: ["id", "text", "index"],
+        data: dataArray
+    });
+}
+
+
+/**
  * 获取yes或no的数据源
  */
 function getYesOrNoDataStore() {
@@ -380,4 +424,21 @@ function getYesOrNoDataStore() {
     });
 }
 
-
+/**
+ * 获取系统主题的数据源
+ */
+function getThemeDataStore() {
+    return Ext.create('Ext.data.Store', {
+        id: 'themeDataStore',
+        fields: ["id", "text"],
+        data: [
+            {
+                'text': '圆润立体',
+                "id": 'extjs/theme/fast-theme-wrap'
+            },
+            {
+                'text': '清爽扁平',
+                "id": 'extjs/theme/fast-theme-flat'
+            }]
+    });
+}

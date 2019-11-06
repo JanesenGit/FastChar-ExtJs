@@ -24,10 +24,6 @@ public class FastExtAppJsAccepter implements IFastScannerAccepter {
                 filePath = FastStringUtils.strip(filePath.replace(engine.getPath().getWebRootPath(), ""), "/");
                 if (filePath.startsWith("app/")) {
                     YuiCompress.compress(file.getPath());
-                    if (extConfig.isMergeAppJs()) {
-                        File mergeFile = new File(FastChar.getPath().getWebRootPath(), "app.js");
-                        YuiCompress.merge(mergeFile, file, mergeFile);
-                    }
                 }
             }
         }

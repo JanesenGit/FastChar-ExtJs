@@ -7,9 +7,17 @@ import com.fastchar.extjs.core.FastExtEntity;
 import com.fastchar.utils.FastDateUtils;
 
 public class ExtManagerEntity extends FastExtEntity<ExtManagerEntity> {
-
+    private static final long serialVersionUID = 1L;
     public static ExtManagerEntity getInstance() {
         return FastChar.getOverrides().singleInstance(ExtManagerEntity.class);
+    }
+
+    public static ExtManagerEntity dao() {
+        return FastChar.getOverrides().singleInstance(ExtManagerEntity.class);
+    }
+
+    public static ExtManagerEntity newInstance() {
+        return FastChar.getOverrides().newInstance(ExtManagerEntity.class);
     }
 
     @Override
@@ -32,19 +40,15 @@ public class ExtManagerEntity extends FastExtEntity<ExtManagerEntity> {
 
     @Override
     public FastPage<ExtManagerEntity> showList(int page, int pageSize) {
-        String sqlStr = "select t.*,a.roleName as a__roleName,a.roleMenuPower,a.roleExtPower,a.roleType from ext_manager as t " +
+        String sqlStr = "select t.*," +
+                "a.roleName as a__roleName," +
+                "a.roleMenuPower," +
+                "a.roleExtPower," +
+                "a.roleType" +
+                " from ext_manager as t " +
                 " left join ext_manager_role as a on a.roleId=t.roleId";
         FastSqlInfo sqlInfo = toSelectSql(sqlStr);
-        FastPage<ExtManagerEntity> select = selectBySql(page, pageSize, sqlInfo.getSql(), sqlInfo.toParams());
-        for (ExtManagerEntity extManagerEntity : select.getList()) {
-            if (extManagerEntity.isEmpty("managerMenuPower")) {
-                extManagerEntity.set("managerMenuPower", extManagerEntity.get("roleMenuPower"));
-            }
-            if (extManagerEntity.isEmpty("managerExtPower")) {
-                extManagerEntity.set("managerExtPower", extManagerEntity.get("roleExtPower"));
-            }
-        }
-        return select;
+        return selectBySql(page, pageSize, sqlInfo.getSql(), sqlInfo.toParams());
     }
 
     @Override
@@ -59,6 +63,37 @@ public class ExtManagerEntity extends FastExtEntity<ExtManagerEntity> {
         禁用
     }
 
+    @Override
+    public boolean save() {
+        int roleId = getInt("roleId");
+        ExtManagerRoleEntity extManagerRoleEntity = ExtManagerRoleEntity.getInstance().selectById(roleId);
+        if (extManagerRoleEntity != null) {
+            set("managerMenuPower", extManagerRoleEntity.getRoleMenuPower());
+            set("managerExtPower", extManagerRoleEntity.getRoleExtPower());
+        }
+        return super.save();
+    }
+
+    @Override
+    public boolean delete() {
+        if (getId() == 1) {
+            setError("禁止删除系统默认的管理员账号！");
+            return false;
+        }
+        return super.delete();
+    }
+
+    public ExtManagerEntity getById(int managerId) {
+        String sqlStr = "select * from ext_manager as t " +
+                " left join ext_manager_role as a on a.roleId=t.roleId " +
+                " where managerId = ? ";
+        ExtManagerEntity extManagerEntity = selectFirstBySql(sqlStr, managerId);
+        if (extManagerEntity != null) {
+            ExtManagerRoleEntity extManagerRoleEntity = extManagerEntity.toEntity(ExtManagerRoleEntity.class);
+            extManagerEntity.put("role", extManagerRoleEntity);
+        }
+        return extManagerEntity;
+    }
 
     public ExtManagerEntity login(String loginName, String loginPassword) {
         String sqlStr = "select * from ext_manager as t " +
@@ -66,13 +101,6 @@ public class ExtManagerEntity extends FastExtEntity<ExtManagerEntity> {
                 " where managerLoginName = ? and managerPassword = ? ";
         ExtManagerEntity extManagerEntity = selectFirstBySql(sqlStr, loginName, loginPassword);
         if (extManagerEntity != null) {
-            if (extManagerEntity.isEmpty("managerMenuPower")) {
-                extManagerEntity.set("managerMenuPower", extManagerEntity.get("roleMenuPower"));
-            }
-            if (extManagerEntity.isEmpty("managerExtPower")) {
-                extManagerEntity.set("managerExtPower", extManagerEntity.get("roleExtPower"));
-            }
-
             ExtManagerRoleEntity extManagerRoleEntity = extManagerEntity.toEntity(ExtManagerRoleEntity.class);
             extManagerEntity.put("role", extManagerRoleEntity);
         }

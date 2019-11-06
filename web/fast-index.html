@@ -17,7 +17,6 @@
             margin: 0px;
             padding: 0px;
         }
-
         .progress {
             height: 3px;
             position: fixed;
@@ -360,7 +359,7 @@
 </div>
 </body>
 <script>
-    var data = null, powerValue = "${power}", loadIndex = [];
+    let data = null, powerValue = "${power}", loadIndex = [];
     $(function () {
         if (checkBroswer()) {
             $.post("loadApp", function (result) {
@@ -387,7 +386,7 @@
                 return;
             }
             loadIndex.push(index);
-            var head = data[index];
+            let head = data[index];
             if (head == null) {
                 load(index + 1);
                 return;
@@ -416,21 +415,34 @@
 
     function addScript(script, callBack) {
         if (script == null) return;
-        var oHead = document.getElementsByTagName('head').item(0);
-        var oScript = document.createElement("script");
+        let oHead = document.getElementsByTagName('head').item(0);
+        let oScript = document.createElement("script");
+        let isCode = false;
         oScript.type = "text/javascript";
         if (script.src != null && script.src.length > 0) {
             oScript.src = script.src + "?v=" + getExt("version").value;
         } else if (script.href != null && script.href.length > 0) {
             oScript.src = script.href + "?v=" + getExt("version").value;
-        } else {
+        } else if(script.text){
             try {
                 oScript.appendChild(document.createTextNode(script.text));
             } catch (ex) {
                 oScript.text = script.text;
             }
+            isCode = true;
+        }else{
+            if (callBack != null) {
+                callBack();
+            }
+            return;
         }
         oHead.appendChild(oScript);
+        if (isCode) {
+            if (callBack != null) {
+                callBack();
+            }
+            return;
+        }
         oScript.onload = oScript.readystatechange = function () {
             if (callBack != null) {
                 callBack();
@@ -443,8 +455,8 @@
 
     function addLink(link, callBack) {
         if (link == null) return;
-        var oHead = document.getElementsByTagName('head').item(0);
-        var oLink = document.createElement("link");
+        let oHead = document.getElementsByTagName('head').item(0);
+        let oLink = document.createElement("link");
         oLink.rel = link.rel;
         oLink.href = link.href + "?v=" + getExt("version").value;
         oHead.appendChild(oLink);
@@ -465,8 +477,8 @@
     }
 
     function addStyle(style, callBack) {
-        var oHead = document.getElementsByTagName('head').item(0);
-        var oStyle = document.createElement("style");
+        let oHead = document.getElementsByTagName('head').item(0);
+        let oStyle = document.createElement("style");
         oStyle.type = "text/css";
         if (oStyle.styleSheet) {
             oStyle.styleSheet.cssText = style.text;
@@ -480,8 +492,8 @@
     }
 
     function getExt(name) {
-        for (var i = 0; i < data.length; i++) {
-            var head = data[i];
+        for (let i = 0; i < data.length; i++) {
+            let head = data[i];
             if (head.tag == "ext" && head.name == name) {
                 return head;
             }
@@ -490,9 +502,9 @@
     }
 
     function getAllExt() {
-        var exts = [];
-        for (var i = 0; i < data.length; i++) {
-            var head = data[i];
+        let exts = [];
+        for (let i = 0; i < data.length; i++) {
+            let head = data[i];
             if (head.tag == "ext") {
                 exts.push(head);
             }
@@ -510,7 +522,7 @@
 
 
     function getScrollBarWidth() {
-        var el = document.createElement("p"),
+        let el = document.createElement("p"),
             styles = {
                 width: "100px",
                 height: "100px",
@@ -522,15 +534,15 @@
             el.style[i] = styles[i];
         }
         document.body.appendChild(el);
-        var scrollBarWidth = el.offsetWidth - el.clientWidth;
+        let scrollBarWidth = el.offsetWidth - el.clientWidth;
         el.remove();
         return scrollBarWidth;
     }
 
 
     function checkBroswer() {
-        var browser = navigator.appName
-        var version = parseFloat(navigator.appVersion)
+        let browser = navigator.appName
+        let version = parseFloat(navigator.appVersion)
         if (browser == "Microsoft Internet Explorer") {
             if (version < 11) {
                 alert("您当前的IE版本太低，至少在IE11以上才能使用本系统！");

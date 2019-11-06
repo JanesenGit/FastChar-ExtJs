@@ -5,15 +5,19 @@ Ext.define("Fast.ext.EnumComboBox", {
     alias: ['widget.enumcombobox', 'widget.enumcombo'],
     extend: 'Ext.form.field.ComboBox',
     enumName: 'NONE',//枚举名称
+    enumValue: 'id',
+    enumText: 'text',
     exclude: [],//排除id
+    firstData:null,//插入到头部的数据
+    lastData:null,//插入到尾部的数据
     initComponent: function () {
-        var me = this;
-        me.displayField = "text";
-        me.valueField = "id";
+        let me = this;
+        me.displayField = me.enumText;
+        me.valueField = me.enumValue;
         me.editable = false;
-        me.store = getEnumDataStore(me.enumName);
+        me.store = getEnumDataStore(me.enumName, me.firstData, me.lastData);
         me.store.filterBy(function (record) {
-            if (me.exclude.exists(record.get("id"))) {
+            if (me.exclude.exists(record.get(me.enumValue))) {
                 return false;
             }
             return true;
@@ -42,7 +46,7 @@ Ext.define("Fast.ext.FastFile", {
             }
         },
         afterrender: function (obj) {
-            var me = this;
+            let me = this;
             if (!this.editable) {
                 obj.inputEl.on('click', function () {
                     me.selectData();
@@ -51,9 +55,9 @@ Ext.define("Fast.ext.FastFile", {
         }
     },
     initComponent: function () {
-        var errorMsg = "";
-        for (var i = 0; i < this.fileModules.length; i++) {
-            var fileModule = this.fileModules[i];
+        let errorMsg = "";
+        for (let i = 0; i < this.fileModules.length; i++) {
+            let fileModule = this.fileModules[i];
             errorMsg = errorMsg + "或" + fileModule.tipMsg;
         }
         this.emptyText = '请上传' + errorMsg.substring(1);
@@ -65,7 +69,7 @@ Ext.define("Fast.ext.FastFile", {
             cls: 'extIcon extEye',
             hidden: true,
             handler: function () {
-                var me = this;
+                let me = this;
                 if (me.fileModules.length == 1) {
                     if (me.fileModules[0].type == 'images') {
                         if (me.getMenu()) {
@@ -91,7 +95,7 @@ Ext.define("Fast.ext.FastFile", {
         }
     },
     selectData: function () {
-        var me = this;
+        let me = this;
         if (me.getMenu()) {
             me.getMenu().holdShow = true;
         }
@@ -116,12 +120,13 @@ Ext.define("Fast.ext.FastFiles", {
     editable: false,
     fileModules: [],
     allowBlank: true,
+    autoUpdate: true,
     getMenu: function () {
         return this.up("menu");
     },
     listeners: {
         afterrender: function (obj) {
-            var me = this;
+            let me = this;
             if (!this.editable) {
                 obj.inputEl.on('click', function () {
                     me.showWindow(me);
@@ -130,9 +135,9 @@ Ext.define("Fast.ext.FastFiles", {
         }
     },
     initComponent: function () {
-        var errorMsg = "";
-        for (var i = 0; i < this.fileModules.length; i++) {
-            var fileModule = this.fileModules[i];
+        let errorMsg = "";
+        for (let i = 0; i < this.fileModules.length; i++) {
+            let fileModule = this.fileModules[i];
             errorMsg = errorMsg + "或" + fileModule.tipMsg;
         }
         this.emptyText = '请上传' + errorMsg.substring(1);
@@ -148,7 +153,7 @@ Ext.define("Fast.ext.FastFiles", {
         }
     },
     showWindow: function (obj, callBack, title) {
-        var me = this;
+        let me = this;
         showFiles(this, function (result) {
             me.setValue(result);
             if (Ext.isFunction(callBack)) {
@@ -175,7 +180,7 @@ Ext.define("Fast.ext.Content", {
         if (Ext.isEmpty(title)) {
             title = "编辑内容";
         }
-        var me = this;
+        let me = this;
         me.oldValue = me.getValue();
         if (!me.editorWin) {
             me.editorWin = Ext.create('Ext.window.Window', {
@@ -261,16 +266,15 @@ Ext.define("Fast.ext.HtmlContent", {
     autoShowEditor: true,
     allowBlank: true,
     showEditor: function () {
-        var me = this;
-        console.log("showEditor");
+        let me = this;
         window["editorLoadDone"] = function () {
             me.setValue(me.value);
             me.setPostImageUrl(system.formatUrl("upload?type=editor"));
         };
-        var frameId = "EditorFrame" + Ext.now();
+        let frameId = "EditorFrame" + Ext.now();
         me.editorFrameId = frameId;
-        var url = system.formatUrlVersion("base/editor/index.html");
-        var html = "<iframe id='" + frameId + "' " + " src='" + url + "' width='100%' height='100%'" +
+        let url = system.formatUrlVersion("base/editor/index.html");
+        let html = "<iframe id='" + frameId + "' " + " src='" + url + "' width='100%' height='100%'" +
             " frameborder='0' scrolling='no' style='border: 1px solid #d0d0d0;'/>";
         me.update(html);
     },
@@ -278,6 +282,7 @@ Ext.define("Fast.ext.HtmlContent", {
         afterrender: function (obj) {
             if (obj.autoShowEditor) {
                 obj.showEditor();
+                console.log(obj);
             }
         }
     },
@@ -288,32 +293,35 @@ Ext.define("Fast.ext.HtmlContent", {
         return true;
     },
     getValue: function () {
-        var me = this;
-        var value = me.down("[realValue=true]");
+        let me = this;
+        let value = me.down("[realValue=true]");
         if (value) {
             return value.getValue();
         }
         return me.value;
     },
     setValue: function (val) {
-        var me = this;
-        var value = me.down("[realValue=true]");
+        let me = this;
+        let value = me.down("[realValue=true]");
         if (value) {
             value.setValue(val);
         }
         me.value = val;
     },
+    setHtml: function (val) {
+        this.setValue(val);
+    },
     setPostImageUrl: function (val) {
-        var me = this;
+        let me = this;
         if (me.editorFrameId) {
-            var iframe = document.getElementById(me.editorFrameId);
+            let iframe = document.getElementById(me.editorFrameId);
             if (iframe && Ext.isFunction(iframe.contentWindow.getHtmlValue)) {
                 iframe.contentWindow.setPostImageUrl(val);
             }
         }
     },
     initComponent: function () {
-        var me = this;
+        let me = this;
         me.items = [
             {
                 xtype: 'textfield',
@@ -333,7 +341,7 @@ Ext.define("Fast.ext.HtmlContent", {
                 },
                 getRawValue: function () {
                     if (me.editorFrameId) {
-                        var iframe = document.getElementById(me.editorFrameId);
+                        let iframe = document.getElementById(me.editorFrameId);
                         if (iframe && Ext.isFunction(iframe.contentWindow.getHtmlValue)) {
                             return iframe.contentWindow.getHtmlValue();
                         }
@@ -342,7 +350,7 @@ Ext.define("Fast.ext.HtmlContent", {
                 },
                 setValue: function (val) {
                     if (me.editorFrameId) {
-                        var iframe = document.getElementById(me.editorFrameId);
+                        let iframe = document.getElementById(me.editorFrameId);
                         if (iframe && Ext.isFunction(iframe.contentWindow.setHtmlValue)) {
                             iframe.contentWindow.setHtmlValue(val);
                         }
@@ -356,7 +364,7 @@ Ext.define("Fast.ext.HtmlContent", {
         if (Ext.isEmpty(title)) {
             title = "编辑内容";
         }
-        var me = this;
+        let me = this;
         me.autoShowEditor = false;
         me.oldValue = me.value;
         if (!me.editorWin) {
@@ -411,7 +419,7 @@ Ext.define("Fast.ext.HtmlContent", {
                         text: '确定',
                         iconCls: 'extIcon extOk',
                         handler: function () {
-                            var params = {
+                            let params = {
                                 "configKey": me.getCode(),
                                 "configType": "HtmlEditorCache"
                             };
@@ -450,29 +458,31 @@ Ext.define("Fast.ext.Link", {
     layout: 'fit',
     submitValue: true,
     onBeforeSelect: null,
+    onAfterSelect: null,
     isValid: function () {
-        var me = this;
-        var display = me.down("[name=" + me.name + "Display]");
+        let me = this;
+        let display = me.down("[name=" + me.name + "Display]");
+        display.allowBlank = me.allowBlank;
         return display.isValid();
     },
     getName: function () {
         return this.name;
     },
     getValue: function () {
-        var me = this;
+        let me = this;
         if (me.submitValue) {
-            var value = me.down("[name=" + me.name + "]");
+            let value = me.down("[name=" + me.name + "]");
             return value.getValue();
         }
         return me.getText();
     },
     getText: function () {
-        var me = this;
-        var display = me.down("[name=" + me.name + "Display]");
+        let me = this;
+        let display = me.down("[name=" + me.name + "Display]");
         return display.getValue();
     },
     setRecordValue: function (record) {
-        var me = this;
+        let me = this;
         if (record) {
             if (Ext.isEmpty(me.getText()) && Ext.isEmpty(record.get(me.dataIndex))) {
                 return;
@@ -481,15 +491,16 @@ Ext.define("Fast.ext.Link", {
                 record.store.holdUpdate = true;
             }
             record.set(me.name, me.getValue());
+            record.set(me.dataIndex, me.getText());
             if (record.store) {
                 record.store.holdUpdate = false;
+                record.store.fireEvent("endupdate");
             }
-            record.set(me.dataIndex, me.getText());
         }
     },
     setValue: function (val, record) {
-        var me = this;
-        var display = me.down("[name=" + me.name + "Display]");
+        let me = this;
+        let display = me.down("[name=" + me.name + "Display]");
         display.setValue(val);
         if (record) {
             me.setRawValue(record.get(me.name));
@@ -498,16 +509,19 @@ Ext.define("Fast.ext.Link", {
             me.setRawValue(-1);
         }
     },
+    setHtml: function (val) {
+        this.setValue(val);
+    },
     setRawValue: function (val) {
-        var me = this;
-        var value = me.down("[name=" + me.name + "]");
+        let me = this;
+        let value = me.down("[name=" + me.name + "]");
         if (value) {
             value.setValue(val);
         }
     },
     getRawValue: function () {
-        var me = this;
-        var value = me.down("[name=" + me.name + "]");
+        let me = this;
+        let value = me.down("[name=" + me.name + "]");
         if (value) {
             return value.getValue();
         }
@@ -517,7 +531,7 @@ Ext.define("Fast.ext.Link", {
         return this.up("menu");
     },
     selectData: function () {
-        var me = this;
+        let me = this;
         if (Ext.isFunction(me.onBeforeSelect)) {
             if (!me.onBeforeSelect(me)) {
                 return;
@@ -550,7 +564,7 @@ Ext.define("Fast.ext.Link", {
             });
             return;
         }
-        var entity = system.getEntity(me.entityCode);
+        let entity = system.getEntity(me.entityCode);
         if (!entity) {
             showAlert("系统提醒", "未获取到 '" + me.entityCode + "' 实体类！", function () {
                 if (me.getMenu()) {
@@ -567,7 +581,7 @@ Ext.define("Fast.ext.Link", {
             });
             return;
         }
-        var entityObj = eval("new " + me.entityCode + "()");
+        let entityObj = eval("new " + me.entityCode + "()");
         if (!Ext.isFunction(entityObj.showSelect)) {
             showAlert("系统提醒", "'" + me.entityCode + "' JS对象不存在函数showSelect(obj,callBack)！").then(function () {
                 if (me.getMenu()) {
@@ -576,26 +590,37 @@ Ext.define("Fast.ext.Link", {
             });
             return;
         }
-        var display = me.down("[name=" + me.name + "Display]");
+        let display = me.down("[name=" + me.name + "Display]");
         display.blur();
-        entityObj.showSelect(this, "选择" + entity.shortName, me.linkValue.where).then(function (result) {
+        let selectTitle = entity.shortName;
+        if (me.fieldLabel) {
+            selectTitle = me.fieldLabel;
+        }
+        if (me.labelTitle) {
+            selectTitle = me.labelTitle;
+        }
+        entityObj.showSelect(this, "选择" + selectTitle, me.linkValue.where).then(function (result) {
             if (result) {
-                var data = result[0];
+                let data = result[0];
                 me.setValue(data.get(me.entityText));
                 me.setRawValue(data.get(me.entityId));
+                me.record = data;
             }
             if (me.getMenu()) {
                 me.getMenu().holdShow = false;
             }
+            if (Ext.isFunction(me.onAfterSelect)) {
+                me.onAfterSelect(me);
+            }
         });
     },
     clearData: function () {
-        var me = this;
+        let me = this;
         me.setValue(null);
         me.setRawValue(-1);
     },
     initComponent: function () {
-        var me = this;
+        let me = this;
         if (!me.linkValue) {
             me.linkValue = {};
             me.linkValue[me.entityId] = -1;
@@ -607,7 +632,7 @@ Ext.define("Fast.ext.Link", {
         if (Ext.isEmpty(me.name)) {
             me.name = "LinkField" + Ext.now();
         }
-        var displayValue = me.linkValue[me.entityText];
+        let displayValue = me.linkValue[me.entityText];
         if (!displayValue) {
             displayValue = me.value;
         }
@@ -669,19 +694,19 @@ Ext.define("Fast.ext.Target", {
     layout: "column",
     labelWidth: null,
     targetType: null,
-    targetTypeReadOnly:false,
+    targetTypeReadOnly: false,
     targetTypeEnum: null,
     targetId: null,
     targetValue: null,
     targetFunction: 'getTargetEntity',
     getValue: function () {
-        var me = this;
-        var targetIdCmp = me.down("[name=" + me.targetId + "]");
+        let me = this;
+        let targetIdCmp = me.down("[name=" + me.targetId + "]");
         return targetIdCmp.getText();
     },
     setValue: function (val, record) {
-        var me = this;
-        var targetIdCmp = me.down("[name=" + me.targetId + "]");
+        let me = this;
+        let targetIdCmp = me.down("[name=" + me.targetId + "]");
         targetIdCmp.setValue(val);
         if (record) {
             me.targetValue = {};
@@ -692,11 +717,14 @@ Ext.define("Fast.ext.Target", {
             me.setTargetTypeValue(record.get(me.targetType));
         }
     },
+    setHtml: function (val) {
+        this.setValue(val);
+    },
     getSearchField: function () {
 
     },
     setRecordValue: function (record) {
-        var me = this;
+        let me = this;
         if (record) {
             if (record.store) {
                 record.store.holdUpdate = true;
@@ -710,45 +738,46 @@ Ext.define("Fast.ext.Target", {
             if (me.targetText && me.targetText != me.dataIndex) {
                 record.set(me.targetText, me.getValue());
             }
+            record.set(me.dataIndex, me.getValue());
             if (record.store) {
                 record.store.holdUpdate = false;
+                record.store.fireEvent("endupdate");
             }
-            record.set(me.dataIndex, me.getValue());
         }
     },
     setTargetTypeValue: function (value) {
-        var me = this;
-        var targetTypeCmp = me.down("[name=" + me.targetType + "]");
+        let me = this;
+        let targetTypeCmp = me.down("[name=" + me.targetType + "]");
         if (targetTypeCmp) {
             targetTypeCmp.setValue(value);
         }
     },
     getTargetTypeValue: function () {
-        var me = this;
-        var targetTypeCmp = me.down("[name=" + me.targetType + "]");
+        let me = this;
+        let targetTypeCmp = me.down("[name=" + me.targetType + "]");
         if (targetTypeCmp) {
             return targetTypeCmp.getValue();
         }
         return 0;
     },
     setTargetIdValue: function (value) {
-        var me = this;
-        var targetIdCmp = me.down("[name=" + me.targetId + "]");
+        let me = this;
+        let targetIdCmp = me.down("[name=" + me.targetId + "]");
         if (targetIdCmp) {
             targetIdCmp.setRawValue(value);
         }
     },
     getTargetIdValue: function () {
-        var me = this;
-        var targetIdCmp = me.down("[name=" + me.targetId + "]");
+        let me = this;
+        let targetIdCmp = me.down("[name=" + me.targetId + "]");
         if (targetIdCmp) {
             return targetIdCmp.getRawValue();
         }
         return -1;
     },
     getTargetEntity: function (targetType) {
-        var me = this;
-        var targetEntity = window[me.targetFunction](targetType, me.targetType);
+        let me = this;
+        let targetEntity = window[me.targetFunction](targetType, me.targetType);
         if (!targetEntity) {
             showAlert("目标组件错误", "未获取到TargetType为：" + targetType + "的实体配置！");
             return null;
@@ -759,7 +788,7 @@ Ext.define("Fast.ext.Target", {
         if (Ext.isEmpty(title)) {
             title = "编辑目标数据";
         }
-        var me = this;
+        let me = this;
         if (!me.editorWin) {
             me.editorWin = Ext.create('Ext.window.Window', {
                 title: title,
@@ -787,7 +816,7 @@ Ext.define("Fast.ext.Target", {
                         iconCls: 'extIcon extOk',
                         handler: function () {
                             me.editorWin.close();
-                            if (Ext.isFunction( me.editorWin.callBack)) {
+                            if (Ext.isFunction(me.editorWin.callBack)) {
                                 me.editorWin.callBack(me);
                             }
                         }
@@ -800,7 +829,7 @@ Ext.define("Fast.ext.Target", {
         me.editorWin.show();
     },
     initComponent: function () {
-        var me = this;
+        let me = this;
         me.fieldLabel = "";
         if (!me.labelWidth) {
             me.labelWidth = 60;
@@ -812,7 +841,7 @@ Ext.define("Fast.ext.Target", {
         if (!me.margin) {
             me.margin = '5 5 5 5';
         }
-        var linkValue = {};
+        let linkValue = {};
         if (!Ext.isFunction(window[me.targetFunction])) {
             showAlert("目标组件错误", "未检测到方法" + me.targetFunction + "!");
             me.callParent(arguments);
@@ -823,6 +852,13 @@ Ext.define("Fast.ext.Target", {
             me.targetValue[me.targetType] = 0;
             me.targetValue[me.targetId] = -1;
         }
+        if (!me.targetValue[me.targetType]) {
+            me.targetValue[me.targetType] = 0;
+        }
+        if (!me.targetValue[me.targetId]) {
+            me.targetValue[me.targetId] = -1;
+        }
+
         if (me.targetEnum) {
             me.targetTypeEnum = me.targetEnum;
         }
@@ -830,14 +866,15 @@ Ext.define("Fast.ext.Target", {
             me.targetTypeEnum = me.targetType.replace(me.targetType[0], me.targetType[0].toUpperCase()) + "Enum";
         }
 
-        var targetTypeValue = me.targetValue[me.targetType];
-        var targetEntity = me.getTargetEntity(targetTypeValue);
+        let targetTypeValue = me.targetValue[me.targetType];
+        let targetEntity = me.getTargetEntity(targetTypeValue);
         if (!targetEntity) {
             return;
         }
 
         linkValue[targetEntity.entityId] = me.targetValue[me.targetId];
-        var targetTypeCmp = {
+        linkValue[targetEntity.entityText] = me.targetValue["targetText"];
+        let targetTypeCmp = {
             name: me.targetType,
             xtype: "enumcombo",
             fieldLabel: "目标类型",
@@ -852,9 +889,9 @@ Ext.define("Fast.ext.Target", {
             enumName: me.targetTypeEnum,
             listeners: {
                 change: function (obj, newValue, oldValue) {
-                    var newEntity = me.getTargetEntity(newValue);
+                    let newEntity = me.getTargetEntity(newValue);
                     if (newEntity) {
-                        var targetIdCmp = me.down("[name=" + me.targetId + "]");
+                        let targetIdCmp = me.down("[name=" + me.targetId + "]");
                         targetIdCmp.entityCode = newEntity.entityCode;
                         targetIdCmp.entityId = newEntity.entityId;
                         targetIdCmp.entityText = newEntity.entityText;
@@ -867,7 +904,7 @@ Ext.define("Fast.ext.Target", {
                 }
             }
         };
-        var targetIdCmp = {
+        let targetIdCmp = {
             name: me.targetId,
             xtype: "linkfield",
             fieldLabel: "目标数据",
@@ -902,21 +939,21 @@ Ext.define("Fast.ext.Map", {
     layout: 'fit',
     submitValue: true,
     isValid: function () {
-        var me = this;
-        var value = me.down("[name=" + me.name + "]");
+        let me = this;
+        let value = me.down("[name=" + me.name + "]");
         return value.isValid();
     },
     getName: function () {
         return this.name;
     },
     getValue: function () {
-        var me = this;
-        var value = me.down("[name=" + me.name + "]");
+        let me = this;
+        let value = me.down("[name=" + me.name + "]");
         return value.getValue();
     },
     setValue: function (val, record) {
-        var me = this;
-        var value = me.down("[name=" + me.name + "]");
+        let me = this;
+        let value = me.down("[name=" + me.name + "]");
         value.setValue(val);
         if (record) {
             if (me.latName) {
@@ -936,8 +973,11 @@ Ext.define("Fast.ext.Map", {
             }
         }
     },
+    setHtml: function (val) {
+        this.setValue(val);
+    },
     setRecordValue: function (record) {
-        var me = this;
+        let me = this;
         if (record) {
             if (record.store) {
                 record.store.holdUpdate = true;
@@ -957,82 +997,83 @@ Ext.define("Fast.ext.Map", {
             if (me.areaName) {
                 record.set(me.areaName, me.getAreaValue());
             }
+            record.set(me.name, me.getValue());
             if (record.store) {
                 record.store.holdUpdate = false;
+                record.store.fireEvent("endupdate");
             }
-            record.set(me.name, me.getValue());
         }
     },
     setLatValue: function (val) {
-        var me = this;
-        var lat = me.down("[name=" + me.latName + "]");
+        let me = this;
+        let lat = me.down("[name=" + me.latName + "]");
         if (lat) {
             lat.setValue(val);
         }
     },
     setLngValue: function (val) {
-        var me = this;
-        var lng = me.down("[name=" + me.lngName + "]");
+        let me = this;
+        let lng = me.down("[name=" + me.lngName + "]");
         if (lng) {
             lng.setValue(val);
         }
     },
     setProValue: function (val) {
-        var me = this;
-        var pro = me.down("[name=" + me.proName + "]");
+        let me = this;
+        let pro = me.down("[name=" + me.proName + "]");
         if (pro) {
             pro.setValue(val);
         }
     },
     setCityValue: function (val) {
-        var me = this;
-        var city = me.down("[name=" + me.cityName + "]");
+        let me = this;
+        let city = me.down("[name=" + me.cityName + "]");
         if (city) {
             city.setValue(val);
         }
     },
     setAreaValue: function (val) {
-        var me = this;
-        var area = me.down("[name=" + me.areaName + "]");
+        let me = this;
+        let area = me.down("[name=" + me.areaName + "]");
         if (area) {
             area.setValue(val);
         }
     },
     getLatValue: function () {
-        var me = this;
-        var lat = me.down("[name=" + me.latName + "]");
+        let me = this;
+        let lat = me.down("[name=" + me.latName + "]");
         if (lat) {
             return lat.getValue();
         }
         return 0;
     },
     getLngValue: function () {
-        var me = this;
-        var lng = me.down("[name=" + me.lngName + "]");
+        let me = this;
+        let lng = me.down("[name=" + me.lngName + "]");
         if (lng) {
             return lng.getValue();
         }
         return 0;
     },
     getProValue: function () {
-        var me = this;
-        var pro = me.down("[name=" + me.proName + "]");
+        let me = this;
+        let pro = me.down("[name=" + me.proName + "]");
         if (pro) {
             return pro.getValue();
         }
         return null;
     },
     getCityValue: function () {
-        var me = this;
-        var city = me.down("[name=" + me.cityName + "]");
+        let me = this;
+        let city = me.down("[name=" + me.cityName + "]");
         if (city) {
             return city.getValue();
         }
         return null;
     },
     getAreaValue: function () {
-        var me = this;
-        var area = me.down("[name=" + me.areaName + "]");
+        let me = this;
+        let area = me.down("[name=" + me.areaName + "]");
         if (area) {
             return area.getValue();
         }
@@ -1042,11 +1083,11 @@ Ext.define("Fast.ext.Map", {
         return this.up("menu");
     },
     selectData: function () {
-        var me = this;
+        let me = this;
         if (me.getMenu()) {
             me.getMenu().holdShow = true;
         }
-        var value = me.down("[name=" + me.name + "]");
+        let value = me.down("[name=" + me.name + "]");
         value.blur();
         showMap(me, me.getLngValue(), me.getLatValue(), me.getValue()).then(function (result) {
             if (result) {
@@ -1063,13 +1104,13 @@ Ext.define("Fast.ext.Map", {
         });
     },
     clearData: function () {
-        var me = this;
+        let me = this;
         me.setValue(null);
         me.setLatValue(0);
         me.setLngValue(0);
     },
     initComponent: function () {
-        var me = this;
+        let me = this;
         if (!me.name) {
             me.name = me.dataIndex;
         }
@@ -1140,6 +1181,166 @@ Ext.define("Fast.ext.Map", {
     }
 });
 
+
+/**
+ * 省市区组件
+ */
+Ext.define("Fast.ext.PCA", {
+    alias: ['widget.pca', 'widget.pcafield'],
+    extend: 'Ext.form.field.Text',
+    proName: null,
+    cityName: null,
+    areaName: null,
+    onAfterSelect: null,
+    selectType: 0,//选择类型 0 拼接省份城市区 1 不拼接只返回选择的对象值
+    setRecordValue: function (record) {
+        let me = this;
+        if (record) {
+            if (record.store) {
+                record.store.holdUpdate = true;
+            }
+            if (me.proName && me.name != me.proName && me.province) {
+                record.set(me.proName, me.province.provinceName);
+            }
+            if (me.cityName && me.name != me.cityName && me.city) {
+                record.set(me.cityName, me.city.cityName);
+            }
+            if (me.areaName && me.name != me.areaName && me.area) {
+                record.set(me.areaName, me.area.areaName);
+            }
+            record.set(me.name, me.getValue());
+            if (record.store) {
+                record.store.holdUpdate = false;
+                record.store.fireEvent("endupdate");
+            }
+        }
+        me.clearData();
+    },
+    getMenu: function () {
+        return this.up("menu");
+    },
+    selectData: function () {
+        let me = this;
+        if (me.getMenu()) {
+            me.getMenu().holdShow = true;
+        }
+        if (!Ext.isFunction(window["selectPCA"])) {
+            showAlert("系统提醒", "未检测到函数selectPCA！请导入FastChar-Location插件！", function () {
+                if (me.getMenu()) {
+                    me.getMenu().holdShow = false;
+                }
+            });
+            return;
+        }
+
+        window["selectPCA"](me, function (success, province, city, area) {
+            if (!toBool(success, false)) {
+                return;
+            }
+            me.province = province;
+            me.area = area;
+            me.city = city;
+            let formPanel = me.up("form");
+            if (formPanel) {
+                if (province && me.proName) {
+                    formPanel.setFieldValue(me.proName, province.provinceName);
+                }
+                if (city && me.cityName) {
+                    formPanel.setFieldValue(me.cityName, city.cityName);
+                }
+                if (area && me.areaName) {
+                    formPanel.setFieldValue(me.areaName, area.areaName);
+                }
+            }
+            let normalValue = "";
+            if (province) {
+                normalValue = province.provinceName;
+                if (me.name == me.proName) {
+                    me.setValue(province.provinceName);
+                    normalValue = null;
+                }
+            }
+            if (city) {
+                if (normalValue) {
+                    if (me.selectType == 0) {
+                        normalValue += " " + city.cityName;
+                    } else {
+                        normalValue = city.cityName;
+                    }
+                }
+                if (me.name == me.cityName) {
+                    me.setValue(city.cityName);
+                    normalValue = null;
+                }
+            }
+            if (area) {
+                if (normalValue) {
+                    if (me.selectType == 0) {
+                        normalValue += " " + area.areaName;
+                    } else {
+                        normalValue = area.areaName;
+                    }
+                }
+                if (me.name == me.areaName) {
+                    me.setValue(area.areaName);
+                    normalValue = null;
+                }
+            }
+            if (normalValue) {
+                me.setValue(normalValue);
+            }
+            if (me.getMenu()) {
+                me.getMenu().holdShow = false;
+            }
+            if (Ext.isFunction(me.onAfterSelect)) {
+                me.onAfterSelect(me);
+            }
+        }, me.level);
+    },
+    clearData: function () {
+        let me = this;
+        me.setValue(null);
+        me.province = null;
+        me.area = null;
+        me.city = null;
+    },
+    triggers: {
+        close: {
+            cls: 'text-clear',
+            handler: function () {
+                this.clearData();
+                if (Ext.isFunction(this.onClearValue)) {
+                    this.onClearValue();
+                }
+            }
+        },
+        search: {
+            cls: 'text-search',
+            handler: function () {
+                this.selectData();
+                this.inputEl.blur();
+            }
+        }
+    },
+    listeners: {
+        afterrender: function (obj) {
+            let me = this;
+            if (!this.editable) {
+                obj.inputEl.on('click', function () {
+                    me.selectData();
+                });
+            }
+        }
+    },
+    initComponent: function () {
+        this.emptyText = "请选择省市区";
+        this.editable = false;
+        this.province = null;
+        this.area = null;
+        this.city = null;
+        this.callParent(arguments);
+    }
+});
 
 
 

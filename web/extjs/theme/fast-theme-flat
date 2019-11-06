@@ -1,5 +1,120 @@
+*{
+     -moz-transition: opacity 300ms ,border-color 500ms ,box-shadow 300ms ,text-shadow 300ms  !important;
+     -webkit-transition: opacity 300ms,border-color 500ms ,box-shadow 300ms,text-shadow 300ms !important;
+     -o-transition:opacity 300ms,border-color 500ms ,box-shadow 300ms,text-shadow 300ms !important;
+     transition:opacity 300ms,border-color 500ms ,box-shadow 300ms ,text-shadow 300ms !important;
+}
 
-/* 修改默认字体的大小 */
+.loginLogo{
+    margin-top: 20px;
+}
+
+.headContainer{
+}
+
+.headButton{
+    background: $[frontColor] !important;
+    border: 0;
+    color: '#eeeee' !important;
+    box-shadow:0 0 4px #fefefe !important;
+
+     -moz-transition: background 300ms ,box-shadow 300ms  !important;
+     -webkit-transition: background 300ms,box-shadow 300ms !important;
+     -o-transition:background 300ms,box-shadow 300ms !important;
+     transition:background 300ms,box-shadow 300ms !important;
+}
+
+
+.headButton:hover{
+    background: $[frontColor3] !important;
+    box-shadow:0 0 18px #fefefe !important;
+}
+
+.headLogo {
+    box-shadow:0 0 4px #fefefe !important;
+}
+
+.headLogo:hover{
+    box-shadow:0 0 18px #fefefe !important;
+}
+
+.headTitle{
+    background-image:-webkit-linear-gradient(160deg, $[color1] 20%, $[frontColor] 80%);
+   -webkit-background-clip:text;
+   -webkit-text-fill-color:transparent;
+}
+.headTitle:hover{
+    text-shadow:0 0 18px #fefefe !important;
+}
+.leftBottom{
+    background: #32404e !important;
+    cursor: pointer;
+}
+
+.x-form-checkbox-default{
+     -moz-transition: color 450ms !important;
+     -webkit-transition: color 450ms !important;
+     -o-transition:color 450ms !important;
+     transition:color 450ms !important;
+}
+
+.x-grid-item , .x-tab-default,.x-column-header,.x-treelist-row {
+     -moz-transition: background 350ms !important;
+     -webkit-transition: background 350ms !important;
+     -o-transition:background 350ms !important;
+     transition:background 350ms !important;
+}
+
+.x-menu-item {
+    -moz-transition: background 150ms !important;
+    -webkit-transition: background 150ms !important;
+    -o-transition:background 150ms !important;
+    transition:background 150ms !important;
+}
+
+
+::selection {
+    background: $[color];
+    color: #ffffff;
+}
+
+::-moz-selection {
+    background: $[color];
+    color: #ffffff;
+}
+
+::-webkit-selection {
+    background: $[color];
+    color: #ffffff;
+}
+
+
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background-color: transparent;
+    /*border:1px solid #e8e8e8;*/
+}
+::-webkit-scrollbar-thumb {
+    border-radius: 5px;
+    background: #dddddd;
+}
+
+::-webkit-scrollbar-thumb:hover{
+    background: #aaaaaa;
+}
+
+::-webkit-scrollbar-button{
+    background-color: transparent !important;
+    border:0;
+    display: none;
+}
+
+
+/* 修改默认字体的大小*/
 .x-btn-default-small .x-btn-inner, .x-btn-default-medium .x-btn-inner,
 	.x-btn-default-large .x-btn-inner, .x-btn-default-toolbar-small .x-btn-inner,
 	.x-btn-default-toolbar-medium .x-btn-inner,
@@ -24,9 +139,6 @@
 }
 
 
-.x-column-header {
-	text-shadow: 0 0 0 rgba(255, 255, 255, 0.3);
-}
 
 .x-treelist-row .x-treelist-item-wrap .x-treelist-item-text {
 	height: 50px !important;
@@ -36,6 +148,12 @@
 
 .x-treelist-nav .x-treelist-item-icon {
 	line-height: 54px !important;
+}
+
+@media all and (-ms-high-contrast: none), (-ms-high-contrast: active) {
+    .x-treelist-nav .x-treelist-item-icon {
+    	top: 4px !important;
+    }
 }
 
 .x-treelist-nav .x-treelist-item-expander{
@@ -94,6 +212,7 @@
 
 .x-panel-header-default {
 	border-color: transparent !important;
+	background-color: $[color];
 }
 
 .x-tool-default {
@@ -178,25 +297,27 @@ body>.x-mask {
 }
 
 .x-column-header{
-    background-color: $[color]22;
+    background-color:$[color2];
 }
 
 .x-column-header-over{
-    background-color: $[color]44 !important;
+    background-color:$[color4];
 }
 
 .x-column-header-open{
-    background-color: $[color]66 !important;
+     background-color:$[color6];
 }
 
 .x-column-header-open .x-column-header-trigger {
-    background-color: $[color]66 !important;
+    background-color:$[color6];
 }
 
 .x-column-header-over .x-column-header-trigger {
-    background-color: $[color]66 !important;
+    background-color:$[color6];
 }
-
+.x-column-header-default-focus{
+     background-color:$[color6];
+ }
 .x-column-header-over .x-column-header-trigger, .x-column-header-open .x-column-header-trigger {
     color: $[color] !important;
 }
@@ -208,31 +329,29 @@ body>.x-mask {
     color: $[color] !important;
 }
 
-.x-form-checkbox-default {
-    color: $[color] !important;
-}
-
 .x-grid-with-row-lines .x-grid-item-selected+.x-grid-item {
     border-top-style: solid;
-    border-top-color:$[color]33 !important;
+    border-top-color:$[color3] !important;
 }
 .x-grid-with-row-lines .x-grid-item.x-grid-item-selected {
     border-style: solid;
-    border-color: $[color]33 !important;
+    border-color: $[color3] !important;
 }
 
 .x-grid-with-col-lines .x-grid-item-selected .x-grid-cell {
-    border-color: $[color]33 !important;
+    border-color: $[color3] !important;
     border-style: solid;
 }
 
-
-.x-grid-item-selected {
-    background-color: $[color]22;
+.x-grid-item:hover{
+    background-color: $[frontColor4];
 }
 
-.x-panel-header-default {
-	background-color: $[color];
+.x-grid-item-selected {
+    background-color: $[frontColor6];
+}
+.x-grid-item-selected:hover{
+    background-color: $[frontColor8];
 }
 
 .x-window-header-default {
@@ -240,12 +359,12 @@ body>.x-mask {
 }
 
 .x-window-default {
-	border-color: $[color] !important;
+	border-width:0 !important;
     background-color: $[color] !important;
 }
 
 .x-window-body-default {
-	border-color: $[color] !important;
+	border-width:0 !important;
 }
 
 .x-menu{
@@ -297,14 +416,14 @@ body>.x-mask {
 .x-btn.x-btn-pressed.x-btn-default-small{
 	background-color: $[color];
 	border-color:$[color];
-	filter:alpha(opacity=50);  
-    -moz-opacity:0.5;  
-    -khtml-opacity: 0.5;  
-    opacity: 0.5;  
+	filter:alpha(opacity=50);
+    -moz-opacity:0.5;
+    -khtml-opacity: 0.5;
+    opacity: 0.5;
 }
 .x-btn.x-btn-disabled.x-btn-default-small{
-	background-color: $[color]66;
-	border-color:$[color]66;
+	background-color: $[color6];
+	border-color:$[color6];
 }
 
 
@@ -362,6 +481,9 @@ body>.x-mask {
 .x-treelist-nav .x-treelist-item-selected>.x-treelist-row:hover:before{
 	background-color:$[color];
 }
+.x-treelist-nav .x-treelist-item-selected>.x-treelist-row:before {
+    background-color:$[color];
+}
 
 .x-column-header.x-column-header-focus .x-column-header-inner:after {
 	border-color: $[color];
@@ -411,4 +533,37 @@ body>.x-mask {
 
 .x-accordion-hd .x-tool-img {
     color: $[color];
+}
+
+/* 修改默认阴影 */
+.x-css-shadow {
+    box-shadow:0 -2px 8px $[color] !important;
+    border-radius: 5px;
+}
+
+.x-accordion-item .x-accordion-hd {
+    background: #ececec !important;
+}
+
+.x-form-cb-checked .x-form-checkbox-default {
+    color: $[color] !important;
+}
+
+.x-form-rd-checked .x-form-radio-default {
+    color: $[color] !important;
+}
+
+.x-form-checkbox-focus.x-form-radio-default {
+    color: #919191
+}
+
+.x-form-checkbox-focus.x-form-checkbox-default {
+    color: #919191
+}
+
+.x-message-box .x-window-body{
+     overflow:hidden !important;
+}
+.x-datepicker-month .x-btn-default-small{
+    background:transparent !important;
 }

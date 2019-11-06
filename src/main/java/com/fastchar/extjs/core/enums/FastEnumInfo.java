@@ -3,6 +3,7 @@ package com.fastchar.extjs.core.enums;
 import com.fastchar.core.FastBaseInfo;
 
 public class FastEnumInfo extends FastBaseInfo {
+    private static final long serialVersionUID = 1443478881929662576L;
     private int id;
     private String text;
 
@@ -12,6 +13,7 @@ public class FastEnumInfo extends FastBaseInfo {
 
     public FastEnumInfo setId(int id) {
         this.id = id;
+        put("id", id);
         return this;
     }
 
@@ -21,6 +23,7 @@ public class FastEnumInfo extends FastBaseInfo {
 
     public FastEnumInfo setText(String text) {
         this.text = text;
+        put("text", text);
         return this;
     }
 }

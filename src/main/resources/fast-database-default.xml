@@ -79,13 +79,13 @@
                 primary="true" autoincrement="true" nullable="not null"/>
 
         <column name="systemLogType" comment="日志类型" type="varchar"
-                length="250" nullable="null"/>
+                length="250" nullable="null" index="true"/>
 
         <column name="managerId" comment="所属管理员" type="int"
                 length="11" nullable="null" bind="layer" link="ext_manager@managerId@managerLoginName"/>
 
         <column name="systemLogContent" comment="日志内容" type="longtext"
-                nullable="null" charset="utf8mb4"/>
+                nullable="null" charset="utf8mb4" index="true"/>
 
         <column name="systemLogIp" comment="IP地址" type="text"
                 nullable="null" />
@@ -94,10 +94,10 @@
                 nullable="null" charset="utf8mb4"/>
 
         <column name="systemLogData" comment="被操作的数据" type="longtext"
-                nullable="null" charset="utf8mb4"/>
+                nullable="null" charset="utf8mb4" index="true"/>
 
         <column name="systemLogDateTime" comment="录入时间" type="datetime"
-                length="6" nullable="null"/>
+                length="6" nullable="null" index="true"/>
     </table>
 
 
@@ -125,7 +125,7 @@
                 nullable="null"/>
 
         <column name="configDateTime" comment="录入时间" type="datetime"
-                length="6" nullable="null"/>
+                length="6" nullable="null" index="true"/>
     </table>
 
 </database>

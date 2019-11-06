@@ -1,14 +1,17 @@
-let system = {
+const system = {
     currTabId: -1,
     currTab: null,
     dateFormat: 'Y-m-d H:i:s',
     init: false,
+    manager:null,//当前登录的管理员
+    menus:null,//菜单
+    http:null,//项目http路径
     regByImage: /\.(jpg|png|gif|jpeg)$/i,
     regByMP4: /\.(mp4)$/i,
     regByExcel: /\.(xls|xlsx)$/i,
     regByWord: /\.(doc)$/i,
     regByText: /\.(txt)$/i,
-    formatUrl: function (url,params) {
+    formatUrl: function (url, params) {
         if (url.startWith("http://") || url.startWith("https://")) {
             return url;
         }
@@ -16,10 +19,12 @@ let system = {
     },
     formatUrlVersion: function (url, params) {
         let newUrl = url;
-        if (url.indexOf("?") > 0) {
-            newUrl = url + "&v=" + this.version.value;
-        }else{
-            newUrl = url + "?v=" + this.version.value;
+        if (url.indexOf("v=") < 0) {
+            if (url.indexOf("?") > 0) {
+                newUrl = url + "&v=" + this.version.value;
+            } else {
+                newUrl = url + "?v=" + this.version.value;
+            }
         }
         if (params) {
             for (let key in params) {
@@ -32,7 +37,7 @@ let system = {
     },
     isSuperRole: function () {
         let me = this;
-        if (me.manager&&me.manager.role) {
+        if (me.manager && me.manager.role) {
             if (me.manager.role.roleType == 0) {//拥有最大权限
                 return true;
             }
@@ -118,6 +123,22 @@ let system = {
                 if (!power.powers) {
                     power.powers = {};
                 }
+                system.managerPowers = jsonToObject(window.parent.getParentExtPower());
+
+                //如果父级权限为false，默认同步子管理员为false
+                if (system.managerPowers) {
+                    for (let code in power.powers) {
+                        if (system.managerPowers.hasOwnProperty(code)) {
+                            let managerPower = system.managerPowers[code];
+                            for (let managerPowerKey in managerPower) {
+                                if (!managerPower[managerPowerKey]) {
+                                    power.powers[code][managerPowerKey] = false;
+                                }
+                            }
+                        }
+                    }
+                }
+
                 window["getExtPower"] = function () {
                     return power.savePower();
                 };
@@ -215,7 +236,9 @@ let system = {
             height: 60,
             padding: '0 0 0 0',
             border: 0,
+            flex:1,
             power: false,
+            cls: 'headContainer',
             style: {
                 background: systemBgColor
             },
@@ -223,15 +246,18 @@ let system = {
                 {
                     xtype: 'image',
                     src: systemLogo,
-                    height: 50,
-                    width: 50,
-                    margin: '5 5 5 5'
+                    height: 40,
+                    width: 40,
+                    cls: 'headLogo',
+                    margin: '10 5 5 5',
+                    style:{
+                        borderRadius: '10px'
+                    }
                 },
                 {
-                    xtype: 'displayfield',
+                    xtype: 'label',
                     margin: '0 0 0 5',
-                    value: "<span style='color: " + systemTlColor + ";font-size: 20px;line-height: 20px;font-weight: 700;' >" + systemTitle + "</span>"
-
+                    html: "<div class='headTitle' style='color: " + systemTlColor + ";font-size: 20px;line-height: 20px;font-weight: 700;' >" + systemTitle + "</div>"
                 },
                 "->",
                 {
@@ -239,11 +265,7 @@ let system = {
                     iconCls: 'extIcon extRole',
                     text: me.manager.managerName,
                     minWidth: 135,
-                    style: {
-                        background: systemTlColor,
-                        borderWidth: 0,
-                        color: '#eeeee'
-                    },
+                    cls: 'headButton',
                     menu: [{
                         text: "修改登录密码",
                         iconCls: 'extIcon extResetPassword',
@@ -256,12 +278,7 @@ let system = {
                     xtype: 'button',
                     iconCls: 'extIcon extExits',
                     text: "退出登录",
-                    hidden: power.config,
-                    style: {
-                        background: systemTlColor,
-                        borderWidth: 0,
-                        color: '#eeeee'
-                    },
+                    cls: 'headButton',
                     handler: function () {
                         me.logout();
                     }
@@ -271,6 +288,8 @@ let system = {
         let headerTip = Ext.create('Ext.toolbar.Toolbar', {
             border: 0,
             padding: '0 0 0 0',
+            flex:1,
+            height: 3,
             style: {
                 background: systemBgColor
             },
@@ -283,7 +302,7 @@ let system = {
             height: 60,
             border: 0,
             hidden: power.config,
-            items: [headerInfo, headerTip]
+            items: [headerInfo,headerTip]
         });
         let leftTreeWidth = 200;
         let leftTreePanel = Ext.create('Ext.panel.Panel', {
@@ -380,10 +399,10 @@ let system = {
             width: leftTreeWidth,
             minWidth: 44,
             maxWidth: 500,
-            subtitle:'左侧菜单',
+            subtitle: '左侧菜单',
             split: true,
             style: {
-                background: '#eeeeee'
+                background: '#32404e'
             },
             items: [
                 {
@@ -393,10 +412,7 @@ let system = {
                     padding: '5 5 5 5',
                     region: 'south',
                     src: server.getIcon("icon_v_menu.svg"),
-                    style: {
-                        background: '#32404e',
-                        cursor: 'pointer'
-                    },
+                    cls: 'leftBottom',
                     listeners: {
                         el: {
                             click: function () {
@@ -449,16 +465,26 @@ let system = {
             items: [headerPanel, leftContainer, rightContainer]
         });
         container.add(containerPanel);
-        Ext.MessageBox.updateProgress(1, '即将完成操作，请耐心等待', '系统初始化成功！获取菜单中…');
-        me.restoreTab().then(function (value) {
-            let tabs = jsonToObject(value);
-            Ext.each(tabs, function (tab) {
-                me.showTab(tab.method, tab.id, tab.title, tab.icon, tab.active, true, tab.where, tab.closable, tab.reorderable);
+        if (toBool(me['tab-record'].value, true)) {
+            Ext.MessageBox.updateProgress(1, '即将完成操作，请耐心等待', '系统初始化成功！获取菜单中…');
+            me.restoreTab().then(function (value) {
+                let tabs = jsonToObject(value);
+                Ext.each(tabs, function (tab) {
+                    me.showTab(tab.method, tab.id, tab.title, tab.icon, tab.active, true, tab.where, tab.closable, tab.reorderable);
+                });
+                if (Ext.MessageBox.isVisible()) {
+                    Ext.MessageBox.hide();
+                }
+                if (tabs.length == 0) {
+                    rightPanel.setActiveTab(Ext.getCmp("tabWelcome"));
+                }
             });
+        }else{
             if (Ext.MessageBox.isVisible()) {
                 Ext.MessageBox.hide();
             }
-        });
+            rightPanel.setActiveTab(Ext.getCmp("tabWelcome"));
+        }
     },
     asyncMethod: function (method) {
         return new Ext.Promise(function (resolve, reject) {
@@ -481,6 +507,23 @@ let system = {
         if (Ext.isEmpty(activate)) {
             activate = true;
         }
+
+        let changeIcon = function (targetTab, selected) {
+            if (targetTab) {
+                let menu = me.getMenu(targetTab.getId());
+                if (menu) {
+                    let btnIconEl = Ext.get(targetTab.tabBtnId + "-btnIconEl");
+                    if (btnIconEl) {
+                        let color = menu.color;
+                        if (selected) {
+                            color = toColor(me["theme-color"].value);
+                        }
+                        btnIconEl.setStyle("background-image", "url(" + server.getIcon(menu.iconName, color) + ")");
+                    }
+                }
+            }
+        };
+
         let tabs = Ext.getCmp("tabs");
         me.currTab = Ext.getCmp(tabId);
         if (me.currTab == null) {
@@ -492,8 +535,9 @@ let system = {
                 layout: 'fit',
                 title: title,
                 border: 0,
+                tabContainer: true,
                 closable: toBool(closable, true),
-                reorderable:toBool(reorderable, true),
+                reorderable: toBool(reorderable, true),
                 methodInvoked: false,
                 method: method,
                 where: where,
@@ -501,16 +545,15 @@ let system = {
                 tabBtnId: null,
                 doFixed: function () {
                     let me = this;
-
                     me.tab.setClosable(!me.tab.closable);
                     if (!me.tab.closable) {
                         let cmp = system.findLastTag();
                         if (cmp) {
                             tabs.moveAfter(me, cmp);
                         }
-                        me.tab.reorderable = !me.tab.reorderable;
-                    }else{
-                        me.tab.reorderable = !me.tab.reorderable;
+                        me.reorderable = me.tab.reorderable = false;
+                    } else {
+                        me.reorderable = me.tab.reorderable = true;
                         let cmp = system.findLastTag();
                         if (cmp) {
                             tabs.moveAfter(me, cmp);
@@ -521,13 +564,21 @@ let system = {
                     }
                 },
                 listeners: {
+                    deactivate: function (tab) {
+                        changeIcon(tab, false);
+                    },
                     activate: function (tab) {
+                        if (!tab) {
+                            return;
+                        }
                         if (me.existMenu(tab.id)) {
                             me.selectMenu(tab.id, false);
                         }
+                        changeIcon(tab, true);
+
                         if (!tab.methodInvoked) {
                             me.asyncMethod(method).then(function (obj) {
-                                if (obj == null) {
+                                if (!obj) {
                                     return;
                                 }
                                 tab.methodInvoked = true;
@@ -552,6 +603,9 @@ let system = {
                                         }
                                     }
                                 });
+                            };
+                            if (tabs.getActiveTab() == me.currTab) {
+                                changeIcon(me.currTab, true);
                             }
                         } catch (e) {
                         }
@@ -565,6 +619,7 @@ let system = {
                 }
             });
         }
+
         if (activate) {
             if (!tabs.getActiveTab() || tabs.getActiveTab() != me.currTab) {
                 if (moveFirst) {
@@ -686,6 +741,7 @@ let system = {
         if (me.sessionOutAlert) {
             return;
         }
+        Ext.MessageBox.hide();
         me.sessionOutAlert = true;
         let win = Ext.create('Ext.window.Window', {
             title: '系统提醒',
@@ -826,7 +882,7 @@ let system = {
         let win = Ext.create('Ext.window.Window', {
             title: '修改登录密码',
             height: 250,
-            icon:obj.icon,
+            icon: obj.icon,
             iconCls: obj.iconCls,
             width: 400,
             layout: 'border',
@@ -850,7 +906,7 @@ let system = {
         }
         return null;
     },
-    showPowerMenus: function (obj, checked) {
+    showPowerMenus: function (obj, checked, parent) {
         return new Ext.Promise(function (resolve, reject) {
             let dataStore = Ext.create('Ext.data.TreeStore', {
                 proxy: {
@@ -883,7 +939,8 @@ let system = {
                     },
                     beforeload: function (store, operation) {
                         Ext.apply(store.proxy.extraParams, {
-                            "checked": checked
+                            "checked": checked,
+                            "parent": parent
                         });
                     }
                 }
@@ -957,13 +1014,16 @@ let system = {
             win.show();
         });
     },
-    showPowerExt: function (obj, menuPower, extPower) {
+    showPowerExt: function (obj, menuPower, extPower, parentExtPower) {
         return new Ext.Promise(function (resolve, reject) {
             window["getMenuPower"] = function () {
                 return menuPower;
             };
             window["getExtPower"] = function () {
                 return extPower;
+            };
+            window["getParentExtPower"] = function () {
+                return parentExtPower;
             };
             window["close"] = function () {
                 Ext.getCmp("ExtPowerWindow").close();
@@ -1072,47 +1132,49 @@ let system = {
                 width: 400,
                 height: 470,
                 layout: 'fit',
-                iconCls:'extIcon extLink',
+                iconCls: 'extIcon extLink',
                 resizable: true,
                 animateTarget: obj,
                 maximizable: true,
                 constrain: true,
                 items: [treePanel],
                 modal: true,
-                buttons: [{
-                    text: '重置',
-                    iconCls:'extIcon extReset',
-                    handler: function () {
-                        dataStore.reload();
-                    }
-                },
+                buttons: [
+                    {
+                        text: '重置',
+                        iconCls: 'extIcon extReset',
+                        handler: function () {
+                            dataStore.reload();
+                        }
+                    },
                     {
                         text: '确定',
-                        iconCls:'extIcon extOk',
+                        iconCls: 'extIcon extOk',
                         handler: function () {
-                            let checkeds = treePanel.getChecked();
+                            let checkedArray = treePanel.getChecked();
                             let treeData = [];
                             let menuIds = "";
-                            for (i = 0; i < checkeds.length; i++) {
-                                if (checkeds[i].isLeaf()) {
+                            for (i = 0; i < checkedArray.length; i++) {
+                                if (checkedArray[i].isLeaf()) {
                                     let data = {};
-                                    let parent = {};
+                                    data.text = checkedArray[i].data.text;
+                                    data.id = checkedArray[i].data.id;
+                                    data.dataIndex = checkedArray[i].data.dataIndex;
+                                    data.parentId = checkedArray[i].data.parentId;
 
-                                    data.text = checkeds[i].data.text;
-                                    data.id = checkeds[i].data.id;
-                                    data.dataIndex = checkeds[i].data.dataIndex;
-                                    data.parentId = checkeds[i].data.parentId;
-
-                                    let parentData = treePanel.getStore().findRecord("id", data.parentId).data;
-                                    parent.text = parentData.text;
-                                    parent.id = parentData.id;
-                                    parent.method = parentData.method;
-                                    parent.icon = parentData.icon;
-
-                                    data.parent = parent;
-                                    treeData.push(data);
+                                    let findRecord = treePanel.getStore().findNode("id", data.parentId, 0, false, false, true);
+                                    if (findRecord) {
+                                        let parent = {};
+                                        let parentData = findRecord.data;
+                                        parent.text = parentData.text;
+                                        parent.id = parentData.id;
+                                        parent.method = parentData.method;
+                                        parent.icon = parentData.icon;
+                                        data.parent = parent;
+                                        treeData.push(data);
+                                    }
                                 }
-                                menuIds += "," + checkeds[i].data.id;
+                                menuIds += "," + checkedArray[i].data.id;
                             }
                             resolve({checked: menuIds, columns: treeData});
                             win.close();

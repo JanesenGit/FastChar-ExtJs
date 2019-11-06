@@ -3,17 +3,17 @@
  */
 function ExtManagerRoleEntity() {
     this.getList = function (where) {
-        var me = this;
-        var parentIdValue = system.manager.roleId;
+        let me = this;
+        let parentIdValue = system.manager.roleId;
         if (system.manager.role.roleType == 0) {
             parentIdValue = -1;
         }
-        var dataStore = getEntityDataStore(me, where, {
+        let dataStore = getEntityDataStore(me, where, {
             idName: 'roleId',
             parentIdName: 'parentRoleId',
             parentIdValue: parentIdValue
         });
-        var grid = Ext.create('Ext.tree.Panel', {
+        let grid = Ext.create('Ext.tree.Panel', {
             entityList: true,
             selModel: getGridSelModel(),
             region: 'center',
@@ -57,11 +57,11 @@ function ExtManagerRoleEntity() {
                     },
                     listeners: {
                         dblclick: function (grid, obj, celNo, obj1, obj2, rowNo, e) {
-                            var currRecord = grid.getStore().getAt(celNo);
+                            let currRecord = grid.getStore().getAt(celNo);
                             if (currRecord.get("roleType") == 0) {
                                 return;
                             }
-                            system.showPowerMenus(obj, currRecord.get("roleMenuPower")).then(function (result) {
+                            system.showPowerMenus(obj, currRecord.get("roleMenuPower"), currRecord.get("a__roleMenuPower")).then(function (result) {
                                 currRecord.set("roleMenuPower", result);
                                 commitStoreUpdate(grid.getStore());
                             });
@@ -82,15 +82,14 @@ function ExtManagerRoleEntity() {
                     },
                     listeners: {
                         dblclick: function (grid, obj, celNo, obj1, obj2, rowNo, e) {
-                            var currRecord = grid.getStore().getAt(celNo);
+                            let currRecord = grid.getStore().getAt(celNo);
                             if (currRecord.get("roleType") == 0) {
                                 return;
                             }
-                            system.showPowerExt(obj, currRecord.get("roleMenuPower"), currRecord.get("roleExtPower"))
-                                .then(function (result) {
-                                    currRecord.set("roleExtPower", result);
-                                    commitStoreUpdate(grid.getStore());
-                                });
+                            system.showPowerExt(obj, currRecord.get("roleMenuPower"), currRecord.get("roleExtPower"), currRecord.get("a__roleExtPower")).then(function (result) {
+                                currRecord.set("roleExtPower", result);
+                                commitStoreUpdate(grid.getStore());
+                            });
                         }
                     }
                 },
@@ -128,16 +127,24 @@ function ExtManagerRoleEntity() {
             tbar: {
                 xtype: 'toolbar',
                 overflowHandler: 'menu',
-                items: [{
-                    xtype: 'button',
-                    text: '删除管理员角色',
-                    iconCls: 'extIcon extDelete',
-                    tipText: '删除管理员角色！',
-                    checkSelect: 2,
-                    handler: function () {
-                        deleteGridData(grid);
-                    }
-                },
+                items: [
+                    {
+                        xtype: 'button',
+                        iconCls: 'extIcon extRefresh',
+                        tipText: '刷新数据！',
+                        handler: function () {
+                            dataStore.loadPage(1);
+                        }
+                    }, {
+                        xtype: 'button',
+                        text: '删除管理员角色',
+                        iconCls: 'extIcon extDelete',
+                        tipText: '删除管理员角色！',
+                        checkSelect: 2,
+                        handler: function () {
+                            deleteGridData(grid);
+                        }
+                    },
                     {
                         xtype: 'button',
                         text: '添加管理员角色',
@@ -168,7 +175,7 @@ function ExtManagerRoleEntity() {
                 loadingText: '正在为您在加载数据…'
             }
         });
-        var panel = Ext.create('Ext.panel.Panel', {
+        let panel = Ext.create('Ext.panel.Panel', {
             layout: 'border',
             region: 'center',
             border: 0,
@@ -178,9 +185,9 @@ function ExtManagerRoleEntity() {
     };
 
     this.showAdd = function (obj, callBack) {
-        var me = this;
+        let me = this;
         return new Ext.Promise(function (resolve, reject) {
-            var formPanel = Ext.create('Ext.form.FormPanel', {
+            let formPanel = Ext.create('Ext.form.FormPanel', {
                 url: 'entity/save',
                 cacheKey: me.entityCode,
                 bodyPadding: 5,
@@ -236,7 +243,7 @@ function ExtManagerRoleEntity() {
                     }]
             });
 
-            var addWin = Ext.create('Ext.window.Window', {
+            let addWin = Ext.create('Ext.window.Window', {
                 title: '添加管理员角色',
                 height: 300,
                 icon: obj.icon,
@@ -288,17 +295,17 @@ function ExtManagerRoleEntity() {
     };
 
     this.showWinList = function (obj, title, where) {
-        var me = this;
+        let me = this;
         me.menu = {
             id: $.md5(title),
             text: title
         };
-        var gridList = me.getList(where);
-        var entityOwner = gridList.down("[entity]");
+        let gridList = me.getList(where);
+        let entityOwner = gridList.down("[entity]");
         if (entityOwner) {
             entityOwner.code = $.md5(title);
         }
-        var win = Ext.create('Ext.window.Window', {
+        let win = Ext.create('Ext.window.Window', {
             title: title,
             height: 550,
             width: 700,
@@ -317,22 +324,22 @@ function ExtManagerRoleEntity() {
     };
 
     this.showSelect = function (obj, title, callBack, where) {
-        var me = this;
+        let me = this;
         me.menu = {
             id: $.md5(title),
             text: title
         };
         return new Ext.Promise(function (resolve, reject) {
-            var parentIdValue = system.manager.roleId;
+            let parentIdValue = system.manager.roleId;
             if (system.manager.role.roleType == 0) {
                 parentIdValue = -1;
             }
-            var dataStore = getEntityDataStore(me, where, {
+            let dataStore = getEntityDataStore(me, where, {
                 idName: 'roleId',
                 parentIdName: 'parentRoleId',
                 parentIdValue: parentIdValue
             });
-            var grid = Ext.create('Ext.tree.Panel', {
+            let grid = Ext.create('Ext.tree.Panel', {
                 entity: me,
                 code: $.md5(title),
                 selModel: getGridSelModel(),
@@ -384,7 +391,7 @@ function ExtManagerRoleEntity() {
                 }
             });
 
-            var win = Ext.create('Ext.window.Window', {
+            let win = Ext.create('Ext.window.Window', {
                 title: title,
                 height: 550,
                 width: 700,
@@ -415,7 +422,7 @@ function ExtManagerRoleEntity() {
                         text: '确定',
                         iconCls: 'extIcon extOk',
                         handler: function () {
-                            var data = grid.getSelectionModel().getSelection();
+                            let data = grid.getSelectionModel().getSelection();
                             if (data.length > 0) {
                                 if (!resolve.called) {
                                     resolve.called = true;
@@ -431,8 +438,8 @@ function ExtManagerRoleEntity() {
     };
 
     this.showDetails = function (obj, where) {
-        var me = this;
-        var dataStore = getEntityDataStore(me, where);
+        let me = this;
+        let dataStore = getEntityDataStore(me, where);
         showWait("请稍后……");
         dataStore.load(function (records, operation, success) {
             hideWait();
@@ -440,7 +447,7 @@ function ExtManagerRoleEntity() {
                 Ext.Msg.alert("系统提醒", "未获得到详情数据！");
                 return;
             }
-            var record = records[0];
+            let record = records[0];
             showDetailsWindow(obj, "管理员角色详情", me, record);
         });
     };

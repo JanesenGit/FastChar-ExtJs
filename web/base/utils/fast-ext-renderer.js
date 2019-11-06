@@ -1,6 +1,6 @@
-var renders = {
+const renders = {
     normal: function (append, isFirst) {
-        return function (val) {
+        return function (val, m, record, rowIndex, colIndex, store, view, details) {
             if (Ext.isEmpty(val)) {
                 return "<span style='color: #ccc;'>无</span>";
             }
@@ -12,6 +12,11 @@ var renders = {
             }
             if (isFirst) {
                 return append + val;
+            }
+            if (details) {
+                return (val + append).replace(new RegExp("\n", 'g'), "<br/>")
+                    .replace(new RegExp("\t", 'g'), "&nbsp;&nbsp;&nbsp;&nbsp;")
+                    .replace(new RegExp(" ", 'g'), "&nbsp;");
             }
             return val + append;
         };
@@ -37,7 +42,7 @@ var renders = {
             if (Ext.isEmpty(val) || val == "null") {
                 return "<span style='color: #ccc;'>暂无文件</span>";
             }
-            return "<a href=\"" + system.formatUrlVersion(val) + "\" target='_blank' >" + val.substring(val.lastIndexOf("/") + 1) + "</a>";
+            return "&nbsp;<a href=\"" + system.formatUrlVersion(val) + "\" target='_blank' >" + val.substring(val.lastIndexOf("/") + 1) + "</a>&nbsp;";
         };
     },
     files: function () {
@@ -45,7 +50,7 @@ var renders = {
             if (Ext.isEmpty(val) || val == "null") {
                 return "<span style='color: #ccc;'>暂无文件</span>";
             }
-            var data = [];
+            let data = [];
             if (!Ext.isEmpty(val)) {
                 try {
                     data = Ext.decode(val);
@@ -55,29 +60,42 @@ var renders = {
             if (data.length == 0) {
                 return "<span style='color: #ccc;'>暂无文件</span>";
             }
-            if (details) {
-                var list = "";
-                for (var i = 0; i < data.length; i++) {
-                    list += renders.file()(data[i]) + "<br/>";
-                }
-                return list;
+            let dataId = $.md5(val);
+            let detailsList = "";
+            for (let i = 0; i < data.length; i++) {
+                detailsList += renders.file()(data[i]) + "<br/>";
             }
-            return "<span style='color: #4279fa;'>共有" + data.length + "个文件！</span>";
+            if (details) {
+                return detailsList;
+            }
+            let html = "<span id='" + dataId + "' style='color: #4279fa;'>共有" + data.length + "个文件！</span>";
+            let detailsId = $.md5(html);
+            window[detailsId] = detailsList;
+            return html;
         };
     },
-    image: function (height) {
+    image: function (height, width) {
         return function (val) {
-            var imageHeight = "16px";
+            let imageHeight = "16px";
+            let imageWidth = "auto";
             if (Ext.isEmpty(val) || val == "null") {
                 return "<img style='border:1px solid #cccccc;height:" + imageHeight + ";' src='images/default_img.png'   />";
+            }
+            if (val.startWith("//")) {
+                val = "http:" + val;
             }
             try {
                 if (height) {
                     imageHeight = height + "px";
                 }
+                if (width) {
+                    imageWidth = width + "px";
+                }
             } catch (e) {
             }
-            return "<img style='border:1px solid #cccccc;height:"+imageHeight+";' onerror=\"javascript:this.src='images/default_img.png';\" onclick=\"showImage(this,'" + system.formatUrlVersion(val) + "')\"  src='" + system.formatUrlVersion(val) + "'   />";
+            let dataId = $.md5(val);
+            window[dataId] = "<img src='" + val + "' style='border:1px solid #cccccc;width: 100px;' onerror=\"javascript:this.src='images/default_img.png';\" >";
+            return "<img details-id='" + dataId + "' style='border:1px solid #cccccc;height:" + imageHeight + ";width: " + imageWidth + ";' onerror=\"javascript:this.src='images/default_img.png';\" onclick=\"showImage(this,'" + system.formatUrlVersion(val) + "')\"  src='" + system.formatUrlVersion(val) + "'/>";
         };
     },
     images: function () {
@@ -85,43 +103,53 @@ var renders = {
             if (Ext.isEmpty(val) || val == "null") {
                 return "<span style='color: #ccc;'>暂无图片</span>";
             }
-            var data = val;
-            if(Ext.isString(val)){
+            let data = val;
+            if (Ext.isString(val)) {
                 if (!Ext.isEmpty(val)) {
                     try {
                         data = Ext.decode(val);
-                    } catch (e) {}
+                    } catch (e) {
+                    }
                 }
             }
             if (data.length == 0) {
                 return "<span style='color: #ccc;'>暂无图片</span>";
             }
-            if (details) {
-                var list = "";
-                for (var i = 0; i < data.length; i++) {
-                    list += renders.image(24)(data[i]) + "&nbsp;&nbsp;";
-                }
-                return list;
+            let dataId = $.md5(JSON.stringify(data));
+            let detailsList = "";
+            for (let i = 0; i < data.length; i++) {
+                detailsList += renders.image(24)(data[i]) + "&nbsp;&nbsp;";
+                // if ((i + 1) % 3 == 0) {
+                //     detailsList += "<br/>";
+                // }
             }
-            return "<span style='color: #4279fa;'>共有" + data.length + "张图片！</span>";
+            if (details) {
+                return detailsList;
+            }
+            let html = "<span details-id='" + dataId + "' style='color: #4279fa;'>共有" + data.length + "张图片！</span>";
+            window[dataId] = detailsList;
+            return html;
         };
     },
     html: function () {
         return function (val, m, record, rowIndex, colIndex, store, view, details) {
-            if (Ext.isEmpty(val)) {
+            if (Ext.isEmpty(val) || val == "null") {
                 return "<span style='color: #ccc;'>无</span>";
             }
-            return val.replace(/<[^>]+>/g,"");
+            let key = $.md5(val);
+            MemoryCache[key] = val;
+            let functionStr = "showEditorHtml(this,'查看内容',MemoryCache['" + key + "'])";
+            return "&nbsp;<a href=\"javascript:" + functionStr + ";\">查看内容</a>&nbsp;";
         };
     },
-    link: function (name,entityCode, entityId) {
+    link: function (name, entityCode, entityId) {
         return function (val, m, record) {
             if (Ext.isEmpty(val) || val == "null") {
                 return "<span style='color: #ccc;'>无</span>";
             }
-            var keyValue = record.get(name);
-            var functionStr = "new " + entityCode + "().showDetails(null, {'t." + entityId + "':'" + keyValue + "'});";
-            return "<a href=\"javascript:"+functionStr+"\" target='_blank' >" + val + "</a>";
+            let keyValue = record.get(name);
+            let functionStr = "new " + entityCode + "().showDetails(null, {'t." + entityId + "':'" + keyValue + "'})";
+            return "&nbsp;<a href=\"javascript:" + functionStr + ";\" >" + val + "</a>&nbsp;";
         };
     },
     target: function (targetId, targetType, targetFunction) {
@@ -135,12 +163,14 @@ var renders = {
             if (!Ext.isFunction(window[targetFunction])) {
                 return val;
             }
-            var targetTypeValue = record.get(targetType);
-            var targetIdValue = record.get(targetId);
-            var targetEntity = window[targetFunction](targetTypeValue, targetType);
-
-            var functionStr = "new " + targetEntity.entityCode + "().showDetails(null, {'t." + targetEntity.entityId + "':'" + targetIdValue + "'});";
-            return "<a href=\"javascript:" + functionStr + "\" target='_blank' >" + val + "</a>";
+            let targetTypeValue = record.get(targetType);
+            let targetIdValue = record.get(targetId);
+            let targetEntity = window[targetFunction](targetTypeValue, targetType);
+            if (targetEntity) {
+                let functionStr = "new " + targetEntity.entityCode + "().showDetails(null, {'t." + targetEntity.entityId + "':'" + targetIdValue + "'})";
+                return "&nbsp;<a href=\"javascript:" + functionStr + ";\" >" + val + "</a>&nbsp;";
+            }
+            return val;
         };
     },
     map: function (lngName, latName) {
@@ -148,12 +178,12 @@ var renders = {
             if (Ext.isEmpty(val) || val == "null") {
                 return "<span style='color: #ccc;'>无</span>";
             }
-            var lng = record.get(lngName);
-            var lat = record.get(latName);
+            let lng = record.get(lngName);
+            let lat = record.get(latName);
             if (lng && lat) {
-                var lnglat = lng + "," + lat;
-                var functionStr = "showAddressInMap(null,'" + lnglat + "')";
-                return "<a href=\"javascript:"+functionStr+"\" target='_blank' >" + val + "</a>";
+                let lnglat = lng + "," + lat;
+                let functionStr = "showAddressInMap(null,'" + lnglat + "')";
+                return "&nbsp;<a href=\"javascript:" + functionStr + ";\" >" + val + "</a>&nbsp;";
             }
             return val;
         };
@@ -166,6 +196,30 @@ var renders = {
             return "<span>******</span>";
         };
 
+    },
+    href: function () {
+        return function (val, m, record) {
+            if (Ext.isEmpty(val) || val == "null") {
+                return "<span style='color: #ccc;'>无</span>";
+            }
+            return "&nbsp;<a href='" + val + "' target='_blank'>" + val + "</a>&nbsp;";
+        };
+    },
+    fileSize: function () {
+        return function (val, m, record) {
+            if (Ext.isEmpty(val) || val == "null") {
+                return "<span style='color: #ccc;'>无</span>";
+            }
+
+            if (val >= 1024 * 1024) {
+                return (val / 1024.0 / 1024.0).toFixed(2) + "M";
+            }
+
+            if (val >= 1024) {
+                return (val / 1024.0).toFixed(2) + "KB";
+            }
+            return val + "B";
+        };
     }
 };
 renders["enum"] = function (enumName) {
@@ -173,6 +227,10 @@ renders["enum"] = function (enumName) {
         if (Ext.isEmpty(val)) {
             return "<span style='color: #ccc;'>无</span>";
         }
-        return getEnumText(enumName, val);
+        let enumText = getEnumText(enumName, val);
+        if (Ext.isEmpty(enumText)) {
+            return "<span style='color: #ccc;'>无</span>";
+        }
+        return enumText;
     }
 };

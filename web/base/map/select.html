@@ -20,32 +20,21 @@
 </body>
 
 <script type="text/javascript">
-    var map = null, geolocation = null, marker = null, geocoder;
+    let map = null, geolocation = null, marker = null, geocoder;
 
     function getQueryString(name) {
-        var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)");
-        var r = window.location.search.substr(1).match(reg);
+        let reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)");
+        let r = window.location.search.substr(1).match(reg);
         if (r != null) return unescape(r[2]);
         return null;
     }
 
     function addScript(script, callBack) {
         if (script == null) return;
-        var oHead = document.getElementsByTagName('head').item(0);
-        var oScript = document.createElement("script");
+        let oHead = document.getElementsByTagName('head').item(0);
+        let oScript = document.createElement("script");
         oScript.type = "text/javascript";
-        if (script.src != null && script.src.length > 0) {
-            oScript.src = script.src;
-        } else if (script.href != null && script.href.length > 0) {
-            oScript.src = script.href;
-        } else {
-            try {
-                oScript.appendChild(document.createTextNode(script.text));
-            } catch (ex) {
-                oScript.text = script.text;
-            }
-        }
-        oHead.appendChild(oScript);
+        oScript.src = script.src;
         oScript.onload = oScript.readystatechange = function () {
             if (callBack != null) {
                 callBack();
@@ -54,11 +43,12 @@
         oScript.onerror = function () {
             alert("脚本文件" + script.src + "加载失败，请您稍后重试！");
         };
+        oHead.appendChild(oScript);
     }
 
     function onPageLoad() {
-        var mapVersion = "1.4.14";
-        var mapKey = "33eafcd2e5c636e3d527f14e0f3b8cb1";
+        let mapVersion = "1.4.14";
+        let mapKey = "33eafcd2e5c636e3d527f14e0f3b8cb1";
 
         if (getQueryString("mapVersion")) {
             mapVersion = getQueryString("mapVersion");
@@ -66,7 +56,7 @@
         if (getQueryString("mapKey")) {
             mapKey = getQueryString("mapKey");
         }
-        var srcUrl = "https://webapi.amap.com/maps?v=" + mapVersion + "&key=" + mapKey + "&plugin=AMap.Autocomplete";
+        let srcUrl = "https://webapi.amap.com/maps?v=" + mapVersion + "&key=" + mapKey + "&plugin=AMap.Autocomplete";
         addScript({src: srcUrl}, function () {
             initMap();
         });
@@ -134,12 +124,11 @@
         geolocation.getCityInfo(function (status, result) {
             if (status == "complete") {
                 window.parent.closeMapMask();
-                var position = new AMap.LngLat(result.center[0], result.center[1], true);
+                let position = new AMap.LngLat(result.center[0], result.center[1], true);
                 initMarker(position);
                 searchPosition(position);
                 map.setZoomAndCenter(14, position);
             } else {
-                console.log(result);
                 alert("定位失败！" + result.message);
             }
         });
@@ -155,9 +144,9 @@
         window.parent.setMarkCurrPos("", "检索位置中…");
         geocoder.getAddress(position, function (status, result) {
             if (status === 'complete' && result.info === 'OK') {
-                var province = result.regeocode.addressComponent.province;
-                var city = result.regeocode.addressComponent.city;
-                var district = result.regeocode.addressComponent.district;
+                let province = result.regeocode.addressComponent.province;
+                let city = result.regeocode.addressComponent.city;
+                let district = result.regeocode.addressComponent.district;
 
                 window.parent.setMarkCurrPos(position,
                     result.regeocode.formattedAddress, province, city, district);
@@ -177,12 +166,12 @@
         geocoder.getLocation(address, function (status, result) {
             window.parent.closeMapMask();
             if (status === 'complete' && result.info === 'OK') {
-                var province = result.geocodes[0].addressComponent.province;
-                var city = result.geocodes[0].addressComponent.city;
-                var district = result.geocodes[0].addressComponent.district;
+                let province = result.geocodes[0].addressComponent.province;
+                let city = result.geocodes[0].addressComponent.city;
+                let district = result.geocodes[0].addressComponent.district;
 
-                var position = result.geocodes[0].location;
-                var fAddress = result.geocodes[0].formattedAddress;
+                let position = result.geocodes[0].location;
+                let fAddress = result.geocodes[0].formattedAddress;
                 marker.setPosition(position);
                 map.setZoomAndCenter(14, position);
                 window.parent.setMarkCurrPos(position, fAddress,province,city,district);
@@ -195,7 +184,7 @@
 
     //设置默认的位置
     function setLngLatAddress(lnglat) {
-        var position = new AMap.LngLat(lnglat.split(",")[0], lnglat.split(",")[1]);
+        let position = new AMap.LngLat(lnglat.split(",")[0], lnglat.split(",")[1]);
         initMarker(position);
         map.setZoomAndCenter(14, position);
         searchPosition(position);

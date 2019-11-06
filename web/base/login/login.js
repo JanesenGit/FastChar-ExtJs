@@ -11,24 +11,34 @@ function showLogin(container) {
     let loginTitle = $("title").text();
     let loginBgUrl = getExt("login-background").href;
     let systemBgColor = toColor(getExt("theme-color").value);
-    let loginLogo =getExt("login-logo").value;
+    let loginLogo = getExt("login-logo").value;
     let loginNormal = getExt("login-type").value == "normal";
     let copyright = getExt("copyright").value;
     let copyrightUrl = getExt("copyright").href;
     let indexUrl = getExt("indexUrl").value;
-    
+    let version = getExt("version").desc;
+    let year = new Date().getFullYear();
 
+    if (loginBgUrl.indexOf("?") == -1) {
+        loginBgUrl = loginBgUrl + "?1=1";
+    }
+    if (loginBgUrl.indexOf("bg=")==-1) {
+        loginBgUrl = loginBgUrl + "&bg=" + systemBgColor;
+    }
+    if (loginBgUrl.indexOf("dot=")==-1) {
+        loginBgUrl = loginBgUrl + "&dot=" + systemBgColor;
+    }
     let panel = Ext.create('Ext.panel.Panel', {
         layout: 'fit',
         border: 0,
-        html: "<iframe name='loginFrame'  src='" + loginBgUrl + "?bg=" + systemBgColor + "' width='100%' height='100%' style='border: 0px; overflow-x: hidden;background-color: " + systemBgColor + "'/>",
+        html: "<iframe name='loginFrame'  src='" + loginBgUrl + "' width='100%' height='100%' style='border: 0px; overflow-x: hidden;background-color: " + systemBgColor + "'/>",
     });
 
 
-    let headHtml = "<div align='center' style='color:" + systemBgColor + ";'><img  width='50px' height='50px;' src='" + loginLogo + "' /><h2>" + loginTitle + "</h2></div>";
+    let headHtml = "<div align='center' class='headPanel' style='color:" + systemBgColor + ";'><img class='loginLogo'  width='50px' height='50px;' src='" + loginLogo + "' /><h2>" + loginTitle + "</h2></div>";
 
-    if (loginLogo.length == 0 || loginLogo == null) {
-        headHtml = "<div align='center' style='color:" + systemBgColor + ";'><h2>" + loginTitle + "</h2></div>";
+    if (loginLogo == null || loginLogo.length == 0) {
+        headHtml = "<div align='center' class='headPanel' style='color:" + systemBgColor + ";'><h2>" + loginTitle + "</h2></div>";
     }
 
     let headPanel = Ext.create('Ext.panel.Panel', {
@@ -36,7 +46,6 @@ function showLogin(container) {
         layout: 'fit',
         width: '100%',
         bodyStyle: {},
-        padding: '10 30 0 30',
         border: 0,
         height: 'auto',
         html: headHtml
@@ -77,7 +86,7 @@ function showLogin(container) {
                         allowBlank: false,
                         blankText: '请输入登录名',
                         emptyText: '请输入登录名',
-                        value:loginName,
+                        value: loginName,
                         anchor: "100%"
                     }, {
                         xtype: 'textfield',
@@ -90,7 +99,7 @@ function showLogin(container) {
                         blankText: '请输入登录密码',
                         emptyText: '请输入登录密码',
                         value: loginPassword,
-                        submitValue:false,
+                        submitValue: false,
                         name: 'loginPassword',
                         anchor: "100%"
                     },
@@ -134,7 +143,7 @@ function showLogin(container) {
                         editable: false,
                         anchor: "100%",
                         value: loginMember,
-                        submitValue:false,
+                        submitValue: false,
                         allowBlank: false,
                         store: Ext.create('Ext.data.Store', {
                             data: [
@@ -204,7 +213,7 @@ function showLogin(container) {
             $.cookie("loginMember", loginMember);
             if (parseInt(loginMember) == 1) {
                 $.cookie("loginPassword", loginPassword);
-            }else{
+            } else {
                 $.removeCookie("loginPassword");
             }
             form.submit({
@@ -216,11 +225,15 @@ function showLogin(container) {
                     addScript({src: indexUrl + '?v=' + getExt("version").value});
                 },
                 failure: function (form, action) {
-                    Ext.Msg.alert('登录失败', action.result.message);
                     refreshCode();
                     if (action.result.code == -2) {
                         loginPanel.form.findField("loginPassword").reset();
                     }
+                    Ext.Msg.alert('登录失败', action.result.message, function () {
+                        if (action.result.code == -3) {
+                            loginPanel.form.findField("validateCode").focus();
+                        }
+                    });
                 }
             });
         }
@@ -230,22 +243,30 @@ function showLogin(container) {
         region: 'south',
         layout: 'fit',
         width: '100%',
-        height: 30,
+        height: 50,
         border: 0,
-        html: "<div align='center'><a href='" + copyrightUrl + "' target='_blank' style='color:#aaa;text-decoration:none;'>" + copyright + "</a></div>"
+        html: "<div align='center'><a href='" + copyrightUrl + "' target='_blank' style='font-size: xx-small;color:#aaa;text-decoration:none;'>" + copyright + "</a>" +
+            "</div><div align='center' style='font-size: xx-small;color:#aaa;margin-top: 5px;'>Copyright © " + year + " " + version + "</div>"
     });
 
 
     let win = Ext.create('Ext.window.Window', {
         title: '管理员登录',
         iconCls: 'extIcon extLogin',
-        width: 350,
+        width: 380,
         resizable: false,
         layout: 'vbox',
         closable: false,
         toFrontOnShow: true,
+        // tools: [
+        //     {
+        //         type: 'help',
+        //         callback: function () {
+        //             setGrid(this, grid);
+        //         }
+        //     }
+        // ],
         constrain: true,
-        shadow: 'frame',
         items: [headPanel, loginPanel, bottomPanel]
     });
     win.show(null, function () {
@@ -259,7 +280,8 @@ function showLogin(container) {
                     }
                 });
             }
-        } catch (e) {}
+        } catch (e) {
+        }
     });
     panel.add(win);
     container.add(panel);
