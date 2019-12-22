@@ -86,6 +86,9 @@ function toBool(obj, defaultValue) {
             return true;
         }
     }
+    if (Ext.isBoolean(obj)) {
+        return obj;
+    }
     return Boolean(obj);
 }
 
@@ -300,12 +303,15 @@ function getProgressLine(toColor) {
  * 抖动控件
  * @param obj 待抖动的控件
  */
-function shakeComment(obj) {
+function shakeComment(obj,callBack) {
     try {
         let interval, t = 0, z = 3, del = function () {
             clearInterval(interval);
             obj.setX(currX);
             obj.setY(currY);
+            if (Ext.isFunction(callBack)) {
+                callBack();
+            }
         };
         let currX = obj.getX();
         let currY = obj.getY();

@@ -54,10 +54,12 @@
     <orderEntry type="library" name="Maven: com.github.virtuald:curvesapi:1.06" level="project" />
     <orderEntry type="library" name="Maven: net.coobird:thumbnailator:0.4.8" level="project" />
     <orderEntry type="library" name="Maven: com.yahoo.platform.yui:yuicompressor:2.4.8" level="project" />
-    <orderEntry type="library" name="Maven: rhino:js:1.7R2" level="project" />
     <orderEntry type="library" name="Maven: org.apache.velocity:velocity-engine-core:2.1" level="project" />
     <orderEntry type="library" name="Maven: org.apache.commons:commons-lang3:3.8.1" level="project" />
     <orderEntry type="library" name="Maven: org.slf4j:slf4j-api:1.7.26" level="project" />
     <orderEntry type="library" name="Maven: com.google.zxing:core:3.3.0" level="project" />
+    <orderEntry type="library" name="Maven: com.github.oshi:oshi-core:4.2.1" level="project" />
+    <orderEntry type="library" name="Maven: net.java.dev.jna:jna:5.5.0" level="project" />
+    <orderEntry type="library" name="Maven: net.java.dev.jna:jna-platform:5.5.0" level="project" />
   </component>
 </module>

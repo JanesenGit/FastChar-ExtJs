@@ -31,21 +31,13 @@
      background: linear-gradient(0deg, $[color], $[color7]) !important;
      /*background-image: linear-gradient(45deg, $[color] 80%, $[color5] 20%) !important;*/
 }
-.headButton{
-    background: $[frontColor] !important;
-    border: 0;
-    color: '#eeeee' !important;
-    box-shadow:0 0 4px #fefefe !important;
 
-     -moz-transition: background 300ms ,box-shadow 300ms  !important;
-     -webkit-transition: background 300ms,box-shadow 300ms !important;
-     -o-transition:background 300ms,box-shadow 300ms !important;
-     transition:background 300ms,box-shadow 300ms !important;
+.headButton{
+    box-shadow:0 0 4px #fefefe !important;
 }
 
 
 .headButton:hover{
-    background: $[frontColor3] !important;
     box-shadow:0 0 18px #fefefe !important;
 }
 
@@ -367,21 +359,24 @@ body>.x-mask {
 
 .x-window-header-default {
 	border-width:0 !important;
-    /*background-color: $[color] !important;*/
     background: linear-gradient(0deg, $[color], $[color7]) !important;
+   box-shadow: 0 0 8px #bbbbbb !important;
 }
 
 .x-panel-header-default {
 	border-width:0 !important;
     background: linear-gradient(0deg, $[color], $[color7]);
+    box-shadow: 0 0 8px #bbbbbb !important;
 }
 .x-accordion-item .x-accordion-hd{
-     border-width:0 !important;
-     background: linear-gradient(0deg, #dcdcdc, #f5f5f5);
+    border-width:0 !important;
+    background: linear-gradient(0deg, #dcdcdc, #f5f5f5);
+    box-shadow: 0 0 4px #bbbbbb !important;
 }
 .x-accordion-item .x-accordion-hd-over{
      border-width:0 !important;
      background: linear-gradient(0deg, #f5f5f5, #dcdcdc);
+      box-shadow: 0 0 0 #bbbbbb !important;
 }
 
 .x-window-default {
@@ -601,14 +596,14 @@ body>.x-mask {
     border-radius: 8px 8px 0 0;
 }
 .x-tab.x-tab-active.x-tab-default{
-     background: linear-gradient(0deg, #ffffff,#ffffff,$[color1],$[color6]);
-     box-shadow:0 0 12px $[color6] !important;
+     background: linear-gradient(0deg, #ffffff,#ffffff,$[frontColor1],$[frontColor]);
+     box-shadow:0 0 8px 4px $[frontColor] !important;
 }
 .x-tab-over.x-tab-default{
     background: linear-gradient(0deg, #ffffff, #ffffff,$[color3]);
 }
 .x-tab-over.x-tab-active.x-tab-default{
-    background: linear-gradient(0deg, #ffffff,#ffffff,$[color1],$[color8]);
+    background: linear-gradient(0deg, #ffffff,#ffffff,$[frontColor1],$[frontColor]);
 }
 .x-tab-focus.x-tab-default{
     background: linear-gradient(0deg, #ffffff,$[color2]);
@@ -617,7 +612,7 @@ body>.x-mask {
     background: linear-gradient(0deg, #ffffff,$[color2]);
 }
 .x-tab-over.x-tab-focus.x-tab-active.x-tab-default{
-    background: linear-gradient(0deg, #ffffff,#ffffff,$[color1],$[color8]);
+    background: linear-gradient(0deg, #ffffff,#ffffff,$[frontColor1],$[frontColor]);
 }
 
 .x-message-box .x-window-body{
@@ -626,4 +621,13 @@ body>.x-mask {
 
 .x-datepicker-month .x-btn-default-small{
     background:transparent !important;
+}
+
+.x-item-disabled-normal {
+    cursor: default;
+    pointer-events: none;
+}
+
+.x-grid-cell {
+   color:#000000;
 }

@@ -1,7 +1,19 @@
 const server = {
+    isSilenceRequest: function () {
+        return toBool(server.silence, false);
+    },
+    setSilence: function (value) {
+        server.silence = value;
+    },
+    loginUrl: function () {
+        return "controller/login";
+    },
+    showConfigUrl: function () {
+        return "showConfig";
+    },
     logout: function () {
         showWait("正在退出登录中……");
-        $.post("manager/logout", function () {
+        $.post("controller/logout", function () {
             location.reload();
         });
     },
@@ -56,6 +68,21 @@ const server = {
         });
 
     },
+    rebackEntity: function (params, callBack) {
+        if (isPower()) {
+            callBack(false, "当前正在进行界面权限配置，不可还原数据！");
+            return;
+        }
+        $.post("entity/reback", params, function (result) {
+            if (result.code == 203) {//会话失效
+                return;
+            }
+            if (Ext.isFunction(callBack)) {
+                callBack(result.success, result.message);
+            }
+        });
+
+    },
     copyEntity: function (params, callBack) {
         if (isPower()) {
             callBack(false, "当前正在进行界面权限配置，不可复制数据！");
@@ -67,13 +94,31 @@ const server = {
             }
             if (Ext.isFunction(callBack)) {
                 if (result.success) {
-                    callBack(true);
+                    callBack(true, result.message);
                 } else {
                     callBack(false, result.message);
                 }
             }
         });
 
+    },
+    clearEntity: function (params, callBack) {
+        if (isPower()) {
+            callBack(false, "当前正在进行界面权限配置，不可复制数据！");
+            return;
+        }
+        $.post("entity/clear", params, function (result) {
+            if (result.code == 203) {//会话失效
+                return;
+            }
+            if (Ext.isFunction(callBack)) {
+                if (result.success) {
+                    callBack(true, result.message);
+                } else {
+                    callBack(false, result.message);
+                }
+            }
+        });
     },
     showExtConfig: function (key, type, callBack) {
         if (isPower()) {
@@ -208,6 +253,36 @@ const server = {
         $.post("ext/config/deleteSystemConfig", function (result) {
             if (Ext.isFunction(callBack)) {
                 callBack(result.success, result.message);
+            }
+        });
+    },
+    loadMonitor: function (callBack) {
+        $.post("monitor", function (result) {
+            if (Ext.isFunction(callBack)) {
+                callBack(result.success, result.data);
+            }
+        });
+    },
+    countReport: function (callBack) {
+        $.post("countReport", function (result) {
+            if (Ext.isFunction(callBack)) {
+                callBack(result.success, result.data);
+            }
+        });
+    },
+    checkWaitNotice: function (params, callBack) {
+        server.setSilence(true);
+        $.post("controller/waitNotice", params, function (result) {
+            server.setSilence(false);
+            if (Ext.isFunction(callBack)) {
+                callBack(result.success, result.data);
+            }
+        });
+    },
+    doneWaitNotice: function (noticeId,callBack) {
+        $.post("controller/doneNotice", {"noticeId": noticeId}, function (result) {
+            if (Ext.isFunction(callBack)) {
+                callBack(result.success, result.message, result.data);
             }
         });
     }

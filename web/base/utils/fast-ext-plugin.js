@@ -8,8 +8,8 @@ Ext.define("Fast.ext.EnumComboBox", {
     enumValue: 'id',
     enumText: 'text',
     exclude: [],//排除id
-    firstData:null,//插入到头部的数据
-    lastData:null,//插入到尾部的数据
+    firstData: null,//插入到头部的数据
+    lastData: null,//插入到尾部的数据
     initComponent: function () {
         let me = this;
         me.displayField = me.enumText;
@@ -282,7 +282,6 @@ Ext.define("Fast.ext.HtmlContent", {
         afterrender: function (obj) {
             if (obj.autoShowEditor) {
                 obj.showEditor();
-                console.log(obj);
             }
         }
     },
@@ -349,6 +348,7 @@ Ext.define("Fast.ext.HtmlContent", {
                     return null;
                 },
                 setValue: function (val) {
+                    me.value = val;
                     if (me.editorFrameId) {
                         let iframe = document.getElementById(me.editorFrameId);
                         if (iframe && Ext.isFunction(iframe.contentWindow.setHtmlValue)) {
@@ -456,6 +456,7 @@ Ext.define("Fast.ext.Link", {
     editable: false,
     allowBlank: true,
     layout: 'fit',
+    multiSelect: false,
     submitValue: true,
     onBeforeSelect: null,
     onAfterSelect: null,
@@ -507,16 +508,30 @@ Ext.define("Fast.ext.Link", {
         }
         if (!val) {//清空数据
             me.setRawValue(-1);
+            let moreFieldContainer = me.down("[name=" + me.name + "MoreFields]");
+            moreFieldContainer.removeAll(true);
         }
     },
     setHtml: function (val) {
         this.setValue(val);
     },
-    setRawValue: function (val) {
+    setRawValue: function (val, moreValues) {
         let me = this;
         let value = me.down("[name=" + me.name + "]");
         if (value) {
             value.setValue(val);
+        }
+        let moreFieldContainer = me.down("[name=" + me.name + "MoreFields]");
+        moreFieldContainer.removeAll(true);
+        if (moreValues) {
+            for (let i = 0; i < moreValues.length; i++) {
+                let newField = Ext.create({
+                    xtype: 'hiddenfield',
+                    name: me.name
+                });
+                newField.setValue(moreValues[i]);
+                moreFieldContainer.add(newField);
+            }
         }
     },
     getRawValue: function () {
@@ -599,12 +614,28 @@ Ext.define("Fast.ext.Link", {
         if (me.labelTitle) {
             selectTitle = me.labelTitle;
         }
-        entityObj.showSelect(this, "选择" + selectTitle, me.linkValue.where).then(function (result) {
+        entityObj.showSelect(this, "选择" + selectTitle, me.linkValue.where, me.multiSelect).then(function (result) {
             if (result) {
-                let data = result[0];
-                me.setValue(data.get(me.entityText));
-                me.setRawValue(data.get(me.entityId));
-                me.record = data;
+                if (result.length == 1) {
+                    let data = result[0];
+                    me.setValue(data.get(me.entityText));
+                    me.setRawValue(data.get(me.entityId));
+                    me.record = data;
+                }else if (result.length > 1) {
+                    me.records = result;
+                    let newText = "";
+                    let moreValues = [];
+                    for (let i = 0; i < result.length; i++) {
+                        let textValue = result[i].get(me.entityText);
+                        if (Ext.isEmpty(textValue)) {
+                            textValue = "无";
+                        }
+                        newText += "#" + textValue;
+                        moreValues.push(result[i].get(me.entityId));
+                    }
+                    me.setRawValue(moreValues[0], moreValues.slice(1));
+                    me.setValue(newText.substring(1));
+                }
             }
             if (me.getMenu()) {
                 me.getMenu().holdShow = false;
@@ -618,6 +649,8 @@ Ext.define("Fast.ext.Link", {
         let me = this;
         me.setValue(null);
         me.setRawValue(-1);
+        let moreFieldContainer = me.down("[name=" + me.name + "MoreFields]");
+        moreFieldContainer.removeAll(true);
     },
     initComponent: function () {
         let me = this;
@@ -641,6 +674,12 @@ Ext.define("Fast.ext.Link", {
                 xtype: 'hiddenfield',
                 name: me.name,
                 value: me.linkValue[me.entityId]
+            },
+            {
+                xtype: 'fieldcontainer',
+                name: me.name + "MoreFields",
+                hidden:true,
+                items: []
             },
             {
                 xtype: 'textfield',

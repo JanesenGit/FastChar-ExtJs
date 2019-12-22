@@ -112,6 +112,14 @@ function ExtManagerEntity() {
                     }
                 },
                 {
+                    text: "管理员处理事项",
+                    dataIndex: "managerNoticeTitle",
+                    align: "center",
+                    width: 220,
+                    renderer: renders.normal(),
+                    field: "contentfield"
+                },
+                {
                     text: "管理员角色",
                     dataIndex: "a__roleName",
                     align: "center",
@@ -547,11 +555,16 @@ function ExtManagerEntity() {
                 }],
             listeners: {
                 'render': function (text) {
-                    new Ext.KeyMap(text.getEl(), [{
-                        key: 13,
-                        fn: doSubmit,
-                        scope: Ext.getBody()
-                    }]);
+                    try {
+                        new Ext.util.KeyMap({
+                            target: text.getEl(),
+                            key: 13,
+                            fn: doSubmit,
+                            scope: Ext.getBody()
+                        });
+                    } catch (e) {
+                        console.error(e);
+                    }
                 }
             }
         });

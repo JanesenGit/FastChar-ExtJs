@@ -4,6 +4,8 @@ import com.fastchar.core.FastChar;
 import com.fastchar.core.FastConstant;
 import com.fastchar.database.info.FastDatabaseInfo;
 import com.fastchar.extjs.core.heads.*;
+import com.fastchar.extjs.utils.ColorUtils;
+import com.fastchar.utils.FastNetworkUtils;
 import com.fastchar.utils.FastNumberUtils;
 import com.fastchar.utils.FastStringUtils;
 import org.jsoup.Jsoup;
@@ -109,6 +111,16 @@ public class FastHeadXmlObserver {
                 fastHeadInfo.setText(titleElement.toString());
                 fastHeadInfo.put("value", titleElement.text());
                 fastHeadInfo.fromProperty();
+
+                FastHeadExtInfo titleExtInfo = getHeadExtInfo(titleElement.tagName());
+                if (titleExtInfo == null) {
+                    titleExtInfo = new FastHeadExtInfo();
+                    heads.add(titleExtInfo);
+                }
+                titleExtInfo.setName("title");
+                titleExtInfo.setValue(titleElement.text());
+                titleExtInfo.fromProperty();
+
                 titleElement.remove();
             }
 
@@ -172,10 +184,33 @@ public class FastHeadXmlObserver {
             heads.add(otherHeadInfo);
         }
 
-        FastHeadExtInfo extInfo = new FastHeadExtInfo();
-        extInfo.setName("debug");
-        extInfo.setValue(String.valueOf(FastChar.getConstant().isDebug()));
-        extInfo.fromProperty();
+        List<FastHeadExtInfo> waitAdd = new ArrayList<>();
+        for (FastHeadInfo head : heads) {
+            if (head instanceof FastHeadExtInfo) {
+                FastHeadExtInfo headExtInfo = (FastHeadExtInfo) head;
+                if (headExtInfo.getName().equalsIgnoreCase("front-color")) {
+                    String value = headExtInfo.getColorValue();
+                    FastHeadExtInfo frontColorDarkExt = new FastHeadExtInfo();
+                    frontColorDarkExt.setName("front-color-dark");
+                    frontColorDarkExt.setValue(ColorUtils.getDarkColor(value, 0.1));
+                    frontColorDarkExt.fromProperty();
+                    waitAdd.add(frontColorDarkExt);
+                }else if (headExtInfo.getName().equalsIgnoreCase("theme-color")) {
+                    String value = headExtInfo.getColorValue();
+                    FastHeadExtInfo themeColorDarkExt = new FastHeadExtInfo();
+                    themeColorDarkExt.setName("theme-color-dark");
+                    themeColorDarkExt.setValue(ColorUtils.getDarkColor(value, 0.1));
+                    themeColorDarkExt.fromProperty();
+                    waitAdd.add(themeColorDarkExt);
+                }
+            }
+        }
+        heads.addAll(waitAdd);
+
+        FastHeadExtInfo debugExtInfo = new FastHeadExtInfo();
+        debugExtInfo.setName("debug");
+        debugExtInfo.setValue(String.valueOf(FastChar.getConstant().isDebug()));
+        debugExtInfo.fromProperty();
 
 
         FastHeadExtInfo osExtInfo = new FastHeadExtInfo();
@@ -188,19 +223,9 @@ public class FastHeadXmlObserver {
         javaExtInfo.setValue("Java " + System.getProperty("java.version") + " " + System.getProperty("sun.arch.data.model") + "位");
         javaExtInfo.fromProperty();
 
-        Runtime r = Runtime.getRuntime();
-        FastHeadExtInfo jvmExtInfo = new FastHeadExtInfo();
-        jvmExtInfo.setName("jvm");
-        float totalMemory = FastNumberUtils.formatToFloat(r.totalMemory() / 1024.0 / 1024.0, 2);
-        float freeMemory = FastNumberUtils.formatToFloat(r.freeMemory() / 1024.0 / 1024.0, 2);
-        float maxMemory = FastNumberUtils.formatToFloat(r.maxMemory() / 1024.0 / 1024.0, 2);
-        jvmExtInfo.setValue("可用内存：" + totalMemory + "M ，已用内存：" + FastNumberUtils.formatToFloat((totalMemory - freeMemory), 2) + "M ，最大允许内存：" + maxMemory + "M");
-        jvmExtInfo.fromProperty();
-
-        InetAddress addr = InetAddress.getLocalHost();
         FastHeadExtInfo hostExtInfo = new FastHeadExtInfo();
         hostExtInfo.setName("host");
-        hostExtInfo.setValue(addr.getHostAddress());
+        hostExtInfo.setValue(FastNetworkUtils.getLocalIP());
         hostExtInfo.fromProperty();
 
 
@@ -255,16 +280,27 @@ public class FastHeadXmlObserver {
         fastcharExtInfo.setValue("FastChar " + FastConstant.FastCharVersion);
         fastcharExtInfo.fromProperty();
 
+        FastHeadExtInfo catalinaInfo = new FastHeadExtInfo();
+        catalinaInfo.setName("catalina");
+        catalinaInfo.setValue(System.getProperty("catalina.home"));
+        catalinaInfo.fromProperty();
+
+        FastHeadExtInfo rootInfo = new FastHeadExtInfo();
+        rootInfo.setName("root");
+        rootInfo.setValue(FastChar.getPath().getWebRootPath());
+        rootInfo.fromProperty();
+
         heads.add(indexExtInfo);
         heads.add(loginExtInfo);
         heads.add(welcomeExtInfo);
-        heads.add(extInfo);
+        heads.add(debugExtInfo);
         heads.add(osExtInfo);
         heads.add(javaExtInfo);
-        heads.add(jvmExtInfo);
+        heads.add(catalinaInfo);
         heads.add(hostExtInfo);
         heads.add(dbExtInfo);
         heads.add(fastcharExtInfo);
+        heads.add(rootInfo);
     }
 
     private String replacePlaceholder(Map<String, Object> placeholders, String content) {

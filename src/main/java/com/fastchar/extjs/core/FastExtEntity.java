@@ -1,11 +1,14 @@
 package com.fastchar.extjs.core;
 
+import com.fastchar.core.FastAction;
 import com.fastchar.core.FastChar;
 import com.fastchar.core.FastEntities;
 import com.fastchar.core.FastEntity;
+import com.fastchar.database.FastData;
 import com.fastchar.database.FastPage;
 import com.fastchar.database.info.FastColumnInfo;
 import com.fastchar.database.info.FastDatabaseInfo;
+import com.fastchar.database.info.FastSqlInfo;
 import com.fastchar.database.info.FastTableInfo;
 import com.fastchar.extjs.FastExtConfig;
 import com.fastchar.extjs.core.database.FastExtColumnInfo;
@@ -13,14 +16,13 @@ import com.fastchar.extjs.core.database.FastExtData;
 import com.fastchar.extjs.core.database.FastExtTableInfo;
 import com.fastchar.extjs.entity.ExtManagerEntity;
 import com.fastchar.extjs.entity.ExtManagerRoleEntity;
-import com.fastchar.utils.FastClassUtils;
 import com.fastchar.utils.FastMD5Utils;
 import com.fastchar.utils.FastStringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract class FastExtEntity<E extends FastEntity> extends FastEntity<E> {
+public abstract class FastExtEntity<E extends FastEntity<?>> extends FastEntity<E> {
 
     private static final long serialVersionUID = 3922925004072340430L;
 
@@ -34,7 +36,6 @@ public abstract class FastExtEntity<E extends FastEntity> extends FastEntity<E> 
      * 获得数据列表
      */
     public abstract FastPage<E> showList(int page, int pageSize);
-
 
     /**
      * 获得权限数据列表
@@ -64,6 +65,13 @@ public abstract class FastExtEntity<E extends FastEntity> extends FastEntity<E> 
      */
     public abstract void setDefaultValue();
 
+    @Override
+    public FastSqlInfo toSelectSql(String sqlStr) {
+        if (getBoolean("^fromRecycle", false)) {
+            sqlStr = sqlStr.replace(getTableName(), getTableName() + "_recycle");
+        }
+        return super.toSelectSql(sqlStr);
+    }
 
     @Override
     public boolean update() {
@@ -78,12 +86,32 @@ public abstract class FastExtEntity<E extends FastEntity> extends FastEntity<E> 
     public boolean update(String... checks) {
         boolean update = super.update(checks);
         if (update) {
-            this.autoUpdateLayerCode();
+            this.autoUpdateLayerCode(checks);
         }
         return update;
     }
 
-    public void autoUpdateLayerCode() {
+
+    @Override
+    public boolean delete() {
+        if (isRecycle()) {
+            FastExtData<E> fastData = (FastExtData<E>) getFastData();
+            fastData.copyRecycle();
+        }
+        return super.delete();
+    }
+
+
+    @Override
+    public boolean delete(String... checks) {
+        if (isRecycle()) {
+            FastExtData<E> fastData = (FastExtData<E>) getFastData();
+            fastData.copyRecycle(checks);
+        }
+        return super.delete(checks);
+    }
+
+    public void autoUpdateLayerCode(String... checks) {
         try {
             FastExtColumnInfo layerLinkColumn = getLayerLinkColumn();
             if (layerLinkColumn != null) {
@@ -93,12 +121,12 @@ public abstract class FastExtEntity<E extends FastEntity> extends FastEntity<E> 
                     String tableName = layerLinkColumn.getLinkInfo().getTableName();
                     List<FastEntities.EntityInfo> entityInfo = FastChar.getEntities().getEntityInfo(tableName);
                     if (entityInfo.size() > 0) {
-                        FastEntity fastEntity = FastChar.getOverrides().newInstance(entityInfo.get(0).getTargetClass());
+                        FastEntity<?> fastEntity = FastChar.getOverrides().newInstance(entityInfo.get(0).getTargetClass());
                         if (fastEntity instanceof FastExtEntity) {
-                            FastExtEntity extEntity = (FastExtEntity) fastEntity;
+                            FastExtEntity<?> extEntity = (FastExtEntity<?>) fastEntity;
                             String parentLayerCode = extEntity.selectLayerValue(get(layerLinkColumn.getName()));
                             String buildLayerCode = buildLayerCode(parentLayerCode);
-                            updateLayerValue(buildLayerCode);
+                            updateLayerValue(selectLayerValue(checks), buildLayerCode);
                         }
                     }
                 }
@@ -120,15 +148,14 @@ public abstract class FastExtEntity<E extends FastEntity> extends FastEntity<E> 
      * @param layerValue 值
      * @return 当前对象
      */
-    public FastExtEntity setLayerValue(String layerValue) {
+    public FastExtEntity<?> setLayerValue(String layerValue) {
         set(getLayerColumn().getName(), layerValue);
         return this;
     }
 
     /**
      * 获得父类的权限编号
-     *
-     * @return
+     * @return 字符串
      */
     public String getParentLayerCode() {
         if (isNotEmpty("parentLayerCode")) {
@@ -140,11 +167,11 @@ public abstract class FastExtEntity<E extends FastEntity> extends FastEntity<E> 
 
     /**
      * 构建新的权限编号
-     * @param parentLayerCode
-     * @return
+     * @param parentLayerCode 父级编号
+     * @return 字符串
      */
     public String buildLayerCode(String parentLayerCode) {
-        String myLayerCode = FastMD5Utils.MD5(FastStringUtils.buildOnlyCode(getTableName()));
+        String myLayerCode = FastMD5Utils.MD5(System.currentTimeMillis() + getTableName());
         if (FastStringUtils.isNotEmpty(parentLayerCode)) {
             myLayerCode = parentLayerCode + "@" + myLayerCode;
         }
@@ -155,7 +182,7 @@ public abstract class FastExtEntity<E extends FastEntity> extends FastEntity<E> 
     /**
      * 设置父类的权限编号
      *
-     * @param layerCode
+     * @param layerCode 权限编号
      */
     public void setParentLayerCode(String layerCode) {
         put("parentLayerCode", layerCode);
@@ -164,8 +191,8 @@ public abstract class FastExtEntity<E extends FastEntity> extends FastEntity<E> 
     /**
      * 是否是关联字段
      *
-     * @param attr
-     * @return
+     * @param attr 属性名称
+     * @return 布尔值
      */
     public boolean isLink(String attr) {
         FastExtColumnInfo column = getColumn(attr);
@@ -184,15 +211,32 @@ public abstract class FastExtEntity<E extends FastEntity> extends FastEntity<E> 
     public String getLayerValue(int upLevel) {
         if (getLayerColumn() != null) {
             String value = getString(getLayerColumn().getName());
-            for (int i = 0; i < upLevel; i++) {
-                int endIndex = value.lastIndexOf("@");
-                if (endIndex > 0) {
-                    value = value.substring(0, endIndex);
+            if (FastStringUtils.isNotEmpty(value)) {
+                for (int i = 0; i < upLevel; i++) {
+                    int endIndex = value.lastIndexOf("@");
+                    if (endIndex > 0) {
+                        value = value.substring(0, endIndex);
+                    }
                 }
             }
             return value;
         }
         return null;
+    }
+
+    /**
+     * 是否有回收站表格
+     * @return 布尔值
+     */
+    public boolean isRecycle() {
+        FastExtTableInfo table = getTable();
+        if (table == null) {
+            return false;
+        }
+        if (table.isRecycle()) {
+            return true;
+        }
+        return false;
     }
 
 
@@ -216,14 +260,14 @@ public abstract class FastExtEntity<E extends FastEntity> extends FastEntity<E> 
     }
 
 
-    public String selectLayerValue() {
-        return ((FastExtData) getFastData()).selectLayerValue();
+    public String selectLayerValue(String... checks) {
+        return ((FastExtData) getFastData()).selectLayerValue(checks);
     }
 
     public String selectLayerValue(Object... idValues) {
-        List<FastColumnInfo> primaries = getPrimaries();
+        List<FastColumnInfo<?>> primaries = getPrimaries();
         for (int i = 0; i < primaries.size(); i++) {
-            FastColumnInfo fastColumnInfo = primaries.get(i);
+            FastColumnInfo<?> fastColumnInfo = primaries.get(i);
             if (i < idValues.length) {
                 set(fastColumnInfo.getName(), idValues[i]);
             }else{
@@ -254,8 +298,8 @@ public abstract class FastExtEntity<E extends FastEntity> extends FastEntity<E> 
 
         List<String> sqlList= new ArrayList<>();
         FastDatabaseInfo fastDatabaseInfo = FastChar.getDatabases().get(getDatabase());
-        List<FastTableInfo> tables = fastDatabaseInfo.getTables();
-        for (FastTableInfo table : tables) {
+        List<FastTableInfo<?>> tables = fastDatabaseInfo.getTables();
+        for (FastTableInfo<?> table : tables) {
             if (table instanceof FastExtTableInfo) {
                 FastExtTableInfo extTableInfo= (FastExtTableInfo) table;
                 FastExtColumnInfo layerColumn = extTableInfo.getLayerColumn();

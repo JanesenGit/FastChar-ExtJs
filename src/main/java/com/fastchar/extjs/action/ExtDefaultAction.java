@@ -2,10 +2,7 @@ package com.fastchar.extjs.action;
 
 import com.fastchar.annotation.AFastCache;
 import com.fastchar.annotation.AFastRoute;
-import com.fastchar.core.FastAction;
-import com.fastchar.core.FastChar;
-import com.fastchar.core.FastFile;
-import com.fastchar.core.FastHandler;
+import com.fastchar.core.*;
 import com.fastchar.extjs.FastExtConfig;
 import com.fastchar.extjs.annotation.AFastSession;
 import com.fastchar.extjs.core.heads.FastHeadExtInfo;
@@ -13,6 +10,7 @@ import com.fastchar.extjs.core.heads.FastHeadInfo;
 import com.fastchar.extjs.core.heads.FastHeadLinkInfo;
 import com.fastchar.extjs.core.heads.FastHeadScriptInfo;
 import com.fastchar.extjs.core.menus.FastMenuInfo;
+import com.fastchar.extjs.entity.ExtBugReportEntity;
 import com.fastchar.extjs.entity.ExtManagerEntity;
 import com.fastchar.extjs.entity.ExtManagerRoleEntity;
 import com.fastchar.extjs.entity.ExtSystemConfigEntity;
@@ -27,14 +25,24 @@ import net.coobird.thumbnailator.Thumbnails;
 import org.apache.commons.lang3.StringUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
-
+import oshi.SystemInfo;
+import oshi.hardware.CentralProcessor;
+import oshi.hardware.CentralProcessor.TickType;
+import oshi.hardware.GlobalMemory;
+import oshi.hardware.HardwareAbstractionLayer;
+import oshi.software.os.FileSystem;
+import oshi.software.os.OSFileStore;
+import oshi.util.Util;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class ExtDefaultAction extends FastAction {
     @Override
@@ -45,6 +53,17 @@ public class ExtDefaultAction extends FastAction {
 
     @AFastRoute({"/fast_index.html", "/index.html", "/index.jsp", "/index.vm"})
     public void index() throws Exception {
+
+        if (getUrlParams().size() > 0) {
+            String firstParams = getUrlParam(0);
+            if (FastStringUtils.isNotEmpty(firstParams)) {
+                //苹果Universal Links的验证文件
+                if (firstParams.equals("apple-app-site-association")) {
+                    responseJson(new File(FastChar.getPath().getWebRootPath(), "apple-app-site-association"));
+                }
+            }
+        }
+
 
         if (FastHeadXmlObserver.isModified()) {
             FastChar.getObservable().notifyObservers("refreshHeads");
@@ -133,8 +152,9 @@ public class ExtDefaultAction extends FastAction {
             }else{
                 responseJson(-1, "初始化失败！系统login.js文件异常，请及时告知开发人员！");
             }
-        }
 
+
+        }
         FastHeadScriptInfo headScriptInfo = new FastHeadScriptInfo();
         headScriptInfo.setSrc(baseJsUrl);
         headScriptInfo.fromProperty();
@@ -470,11 +490,26 @@ public class ExtDefaultAction extends FastAction {
         }
         List<String> paths = getParamToList("path", true);
         for (String path : paths) {
-            path = path.replace("attach/", "").split("\\?")[0];
-            File file = new File(FastChar.getConstant().getAttachDirectory(), path);
-            if (file.isDirectory()) continue;
-            if (file.exists()) {
-                FastFileUtils.copyFileToDirectory(file, folderFile);
+            if (path.startsWith("http://") || path.startsWith("https://")) {
+                URL url = new URL(path);
+                String fileName = path.substring(path.lastIndexOf("/") + 1);
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                String headerField = conn.getHeaderField("content-disposition");
+                if (FastStringUtils.isNotEmpty(headerField)) {
+                    String regStr = "filename=\"(.*)\"";
+                    Matcher matcher = Pattern.compile(regStr).matcher(headerField);
+                    if (matcher.find()) {
+                        fileName = matcher.group(1);
+                    }
+                }
+                FastFileUtils.copyURLToFile(url, new File(folderFile, fileName));
+            }else{
+                path = path.replace("attach/", "").split("\\?")[0];
+                File file = new File(FastChar.getConstant().getAttachDirectory(), path);
+                if (file.isDirectory()) continue;
+                if (file.exists()) {
+                    FastFileUtils.copyFileToDirectory(file, folderFile);
+                }
             }
         }
 
@@ -505,7 +540,7 @@ public class ExtDefaultAction extends FastAction {
             File html = files[i];
             Document parse = Jsoup.parse(html, "utf-8");
             Map<String, String> doc = new HashMap<>();
-            doc.put("id", String.valueOf(i + 1));
+            doc.put("id", FastMD5Utils.MD5(html.getName()));
             doc.put("name", parse.title());
             String docUrl = "documents/" + html.getName() + "?t=" + System.currentTimeMillis();
             doc.put("url", docUrl);
@@ -531,7 +566,19 @@ public class ExtDefaultAction extends FastAction {
             setRequestAttr("logo", projectIcon);
         }
         setRequestAttr("first", docs.get(0).get("id"));
+        setRequestAttr(getParamToMap());
         responseVelocity("fast-doc.html");
+    }
+
+    /**
+     * 检查文档是否已刷新
+     */
+    public void doc_check() {
+        setLog(false);
+        long time = getParamToLong("time", true);
+        String file = getParam("file", true);
+        File localFile = new File(FastChar.getPath().getWebRootPath(), "/documents/" + file);
+        responseJson(0, "获取成功！", time < localFile.lastModified());
     }
 
 
@@ -564,7 +611,9 @@ public class ExtDefaultAction extends FastAction {
         }
         try {
             if (StringUtils.isNotEmpty(logo)) {
-                BufferedImage bufferedImage = Thumbnails.of(new URL(logo)).size(58, 58).asBufferedImage();
+                BufferedImage bufferedImage = Thumbnails.of(new URL(logo))
+                        .forceSize(58, 58)
+                        .asBufferedImage();
                 ZXingUtils.insertImage(qrImage, bufferedImage, true);
             }
         } catch (Exception ignored) {
@@ -585,4 +634,136 @@ public class ExtDefaultAction extends FastAction {
     }
 
 
+    /**
+     * 系统的监控信息
+     */
+    @AFastSession
+    public void monitor() {
+
+        SystemInfo systemInfo = new SystemInfo();
+        HardwareAbstractionLayer hal = systemInfo.getHardware();
+        CentralProcessor processor = hal.getProcessor();
+        long[] prevTicks = processor.getSystemCpuLoadTicks();
+        Util.sleep(1000);
+        long[] ticks = processor.getSystemCpuLoadTicks();
+        long nice = ticks[TickType.NICE.getIndex()] - prevTicks[TickType.NICE.getIndex()];
+        long irq = ticks[TickType.IRQ.getIndex()] - prevTicks[TickType.IRQ.getIndex()];
+        long softirq = ticks[TickType.SOFTIRQ.getIndex()] - prevTicks[TickType.SOFTIRQ.getIndex()];
+        long steal = ticks[TickType.STEAL.getIndex()] - prevTicks[TickType.STEAL.getIndex()];
+        long cSys = ticks[TickType.SYSTEM.getIndex()] - prevTicks[TickType.SYSTEM.getIndex()];
+        long user = ticks[TickType.USER.getIndex()] - prevTicks[TickType.USER.getIndex()];
+        long iowait = ticks[TickType.IOWAIT.getIndex()] - prevTicks[TickType.IOWAIT.getIndex()];
+        long idle = ticks[TickType.IDLE.getIndex()] - prevTicks[TickType.IDLE.getIndex()];
+        long totalCpu = user + nice + cSys + idle + iowait + irq + softirq + steal;
+
+
+        List<Object> data = new ArrayList<>();
+        List<Object> desc = new ArrayList<>();
+
+        Map<String, Object> cpuInfo = new LinkedHashMap<>();
+        cpuInfo.put("cpuCount", processor.getLogicalProcessorCount());
+        cpuInfo.put("sys", FastNumberUtils.formatToDouble((cSys * 1.0 / totalCpu * 1.0) * 100, 2) + "%");
+        cpuInfo.put("used",  FastNumberUtils.formatToDouble((user * 1.0 / totalCpu * 1.0) * 100, 2) + "%");
+        double cpuTotal = FastNumberUtils.formatToDouble(((user + cSys) * 1.0 / totalCpu * 1.0) * 100, 2);
+        cpuInfo.put("total", cpuTotal + "%");
+        cpuInfo.put("alert", cpuTotal > 80);
+        Map<String, Object> cpuDesc = new LinkedHashMap<>();
+        cpuDesc.put("title", "CPU监控信息");
+        cpuDesc.put("cpuCount", "CPU核数");
+        cpuDesc.put("sys", "系统使用率");
+        cpuDesc.put("used",  "用户使用率");
+        cpuDesc.put("total", "总的使用率");
+
+
+        data.add(cpuInfo);
+        desc.add(cpuDesc);
+
+
+        GlobalMemory memory = hal.getMemory();
+        Map<String, Object> memInf = new LinkedHashMap<>();
+        memInf.put("total", FastNumberUtils.toByteUnit(memory.getTotal()));
+        long memUsed = memory.getTotal() - memory.getAvailable();
+        memInf.put("used", FastNumberUtils.toByteUnit(memUsed));
+        memInf.put("free", FastNumberUtils.toByteUnit(memory.getAvailable()));
+        double memberUsage = FastNumberUtils.formatToDouble((memUsed * 1.0 / memory.getTotal() * 1.0) * 100, 2);
+        memInf.put("usage", memberUsage + "%");
+        memInf.put("alert", memberUsage > 80);
+
+        Map<String, Object> memDesc = new LinkedHashMap<>();
+        memDesc.put("title", "内存监控信息");
+        memDesc.put("total", "内存大小");
+        memDesc.put("used", "已使用");
+        memDesc.put("free",  "剩余内存");
+        memDesc.put("usage", "已使用率");
+
+        data.add(memInf);
+        desc.add(memDesc);
+
+        Runtime r = Runtime.getRuntime();
+        Map<String, Object> jvmInfo = new LinkedHashMap<>();
+        jvmInfo.put("total", FastNumberUtils.toByteUnit(r.totalMemory()));
+        jvmInfo.put("free", FastNumberUtils.toByteUnit(r.freeMemory()));
+        jvmInfo.put("max", FastNumberUtils.toByteUnit(r.maxMemory()));
+        jvmInfo.put("used", FastNumberUtils.toByteUnit(r.totalMemory() - r.freeMemory()));
+        jvmInfo.put("path", System.getProperty("java.home"));
+
+        Map<String, Object> jvmDesc = new LinkedHashMap<>();
+        jvmDesc.put("title", "Java虚拟机信息");
+        jvmDesc.put("path", "所在位置");
+        jvmDesc.put("max", "最大内存");
+        jvmDesc.put("total", "可用内存");
+        jvmDesc.put("free",  "剩余内存");
+        jvmDesc.put("used", "已使用");
+
+        data.add(jvmInfo);
+        desc.add(jvmDesc);
+
+        FileSystem fileSystem = systemInfo.getOperatingSystem().getFileSystem();
+        OSFileStore[] fsArray = fileSystem.getFileStores();
+        for (OSFileStore osFileStore : fsArray)
+        {
+            if (osFileStore.getMount().startsWith("/private")) {
+                continue;
+            }
+            long diskTotal = osFileStore.getTotalSpace();
+            long diskFree = osFileStore.getUsableSpace();
+            long diskUsed = diskTotal - diskFree;
+            Map<String, Object> diskInfo = new LinkedHashMap<>();
+            diskInfo.put("dir", osFileStore.getMount());
+            diskInfo.put("name", osFileStore.getName());
+            diskInfo.put("total", FastNumberUtils.toByteUnit(diskTotal));
+            diskInfo.put("used", FastNumberUtils.toByteUnit(diskUsed));
+            diskInfo.put("free", FastNumberUtils.toByteUnit(diskFree));
+            double diskUsage = FastNumberUtils.formatToDouble((diskUsed * 1.0 / diskTotal * 1.0) * 100, 2);
+            diskInfo.put("usage", diskUsage + "%");
+            diskInfo.put("alert", diskUsage > 80);
+
+            Map<String, Object> diskDesc = new LinkedHashMap<>();
+            diskDesc.put("title", "磁盘信息（" + osFileStore.getName() + "）");
+            diskDesc.put("dir", "磁盘位置");
+            diskDesc.put("name", "磁盘名称");
+            diskDesc.put("total", "磁盘大小");
+            diskDesc.put("free",  "剩余大小");
+            diskDesc.put("used", "已使用");
+            diskDesc.put("usage", "已使用率");
+
+            data.add(diskInfo);
+            desc.add(diskDesc);
+        }
+        Map<String, Object> dataMap = new HashMap<>();
+        dataMap.put("data", data);
+        dataMap.put("desc", desc);
+        responseJson(0, "获取成功！", dataMap);
+    }
+
+
+    /**
+     * 统计待处理的问题
+     */
+    public void countReport() {
+        int reportCount = ExtBugReportEntity.newInstance()
+                .set("reportState", ExtBugReportEntity.ExtBugReportStateEnum.待处理.ordinal())
+                .count();
+        responseJson(0, "统计成功！", reportCount);
+    }
 }

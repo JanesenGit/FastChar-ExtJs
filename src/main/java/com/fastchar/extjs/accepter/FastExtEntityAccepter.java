@@ -12,7 +12,7 @@ public class FastExtEntityAccepter implements IFastScannerAccepter {
     @Override
     public boolean onScannerClass(FastEngine engine, Class<?> scannedClass) throws Exception {
         if (FastExtEntity.class.isAssignableFrom(scannedClass)) {
-            FastExtConfig.getInstance().getExtEntities().addEntity((Class<? extends FastExtEntity>) scannedClass);
+            FastExtConfig.getInstance().getExtEntities().addEntity((Class<? extends FastExtEntity<?>>) scannedClass);
             return true;
         }
         return false;

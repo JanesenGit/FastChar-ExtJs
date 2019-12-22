@@ -70,6 +70,10 @@ public class ExtManagerRoleEntity extends AbstractExtManagerRoleEntity {
             set("roleMenuPower", parentRole.getRoleMenuPower());
             set("roleExtPower", parentRole.getRoleExtPower());
         }
+        if (checkName(getParentRoleId(), getRoleName())) {
+            setError("同级别下的角色名称不能重复！");
+            return false;
+        }
         return super.save();
     }
 
@@ -83,6 +87,19 @@ public class ExtManagerRoleEntity extends AbstractExtManagerRoleEntity {
         return super.delete();
     }
 
+
+    @Override
+    public boolean update() {
+        if (isNotEmpty("roleName")) {
+            ExtManagerRoleEntity managerRoleEntity = selectById(getId());
+            if (checkName(managerRoleEntity.getParentRoleId(), getRoleName())) {
+                setError("同级别下的角色名称不得重复！");
+                return false;
+            }
+        }
+        return super.update();
+    }
+
     public enum RoleStateEnum {
         正常,
         禁用
@@ -91,5 +108,14 @@ public class ExtManagerRoleEntity extends AbstractExtManagerRoleEntity {
     public enum RoleTypeEnum{
         系统角色,
         普通角色
+    }
+
+    private boolean checkName(int parentId, String roleName) {
+        String sqlStr = "select count(1) as c from ext_manager_role where parentRoleId = ? and roleName = ? ";
+        ExtManagerRoleEntity result=selectFirstBySql(sqlStr,parentId,roleName);
+        if (result != null) {
+            return result.getInt("c") > 0;
+        }
+        return false;
     }
 }

@@ -15,6 +15,9 @@ Ext.override(Ext.tree.Panel, {
 function onGridInitComponent() {
     let grid = this;
     if (grid.entityList) {
+        if (grid.getStore() && grid.getStore().where) {
+            grid.fromRecycle = grid.getStore().where['^fromRecycle'];
+        }
         configGridContextMenu(grid);
         configDefaultToolBar(grid);
         configGridListeners(grid);
@@ -29,6 +32,12 @@ function onGridAfterRender() {
         if (tabContainer) {
             grid.tabPanelList = true;
         }
+        if (!grid.updateButtons || grid.updateButtons.length == 0) {
+            grid.updateEnable = false;
+        } else {
+            grid.updateEnable = true;
+        }
+
         configGridLayout(grid).then(function () {
             configGridTip(grid);
             grid.setLoading(false);
@@ -69,6 +78,40 @@ function addGridContextMenu(grid, target, index) {
  */
 function configGridContextMenu(grid) {
     let index = 0;
+    addGridContextMenu(grid, {
+        iconCls: 'extIcon extDetails editColor',
+        text: "查看详情",
+        handler: function (obj, event) {
+            let subtitle = "";
+            if (grid.getStore().entity.menu) {
+                subtitle = "【" + grid.getStore().entity.menu.text + "】";
+            }
+
+            let win = Ext.create('Ext.window.Window', {
+                title: "查看详情" + subtitle,
+                subtitle: subtitle,
+                height: 480,
+                width: 400,
+                iconCls: 'extIcon extDetails',
+                layout: 'border',
+                resizable: true,
+                collapsible: true,
+                constrain: true,
+                maximizable: true,
+                animateTarget: obj,
+                listeners: {
+                    close: function (obj, op) {
+                        obj.items.get(0).changeListener.destroy();
+                    },
+                    show: function (obj) {
+                        obj.focus();
+                    }
+                },
+                items: [getDetailsPanel(grid, true)]
+            });
+            win.show();
+        }
+    }, index++);
     addGridContextMenu(grid, {
         iconCls: 'extIcon extCopy2',
         text: "复制数据",
@@ -114,6 +157,10 @@ function configGridContextMenu(grid) {
         onBeforeShow: function () {
             let menu = this.ownerCt;
             if (Ext.isEmpty(menu.cellContext.column.dataIndex)) {
+                this.hide();
+                return;
+            }
+            if (!toBool(menu.cellContext.column.editable, true)) {
                 this.hide();
                 return;
             }
@@ -250,6 +297,10 @@ function configDefaultToolBar(grid) {
     }
     let toolbar = grid.down("toolbar[dock='top']");
     if (toolbar) {
+        if (toBool(grid.fromRecycle, false)) {
+            toolbar.setHidden(true);
+            return;
+        }
         let button = {
             xtype: 'button',
             text: '更多操作',
@@ -258,6 +309,7 @@ function configDefaultToolBar(grid) {
                 {
                     text: '导出Excel',
                     iconCls: 'extIcon extExcel',
+                    hidden: !toBool(grid.operate.excelOut, true),
                     handler: function () {
                         exportGrid(grid);
                     }
@@ -265,6 +317,7 @@ function configDefaultToolBar(grid) {
                 {
                     text: '导入Excel',
                     iconCls: 'extIcon extExcel',
+                    hidden: !toBool(grid.operate.excelIn, true),
                     menu: [
                         {
                             text: '下载模板',
@@ -443,6 +496,17 @@ function configGridListeners(grid) {
                 grid.contextMenu.cellTd = td;
                 grid.contextMenu.tr = tr;
                 grid.contextMenu.cellContext = e.position;
+                grid.contextMenu.on("show", function (currMenu, eOpts) {
+                    if (currMenu.cellTd) {
+                        let tdColor = toColor(getExt("front-color-dark").value);
+                        $(currMenu.cellTd).css("background", tdColor);
+                    }
+                });
+                grid.contextMenu.on("hide", function (currMenu, eOpts) {
+                    if (currMenu.cellTd) {
+                        $(currMenu.cellTd).css("background", "transparent");
+                    }
+                });
                 obj.getSelectionModel().select(record);
                 obj.fireEvent("selectionchange", obj, record, eOpts);
 
@@ -453,6 +517,9 @@ function configGridListeners(grid) {
     });
     grid.getStore().on('endupdate', function (eOpts) {
         try {
+            if (!grid.getStore()) {
+                return true;
+            }
             if (grid.getStore().holdUpdate) {
                 return true;
             }
@@ -471,6 +538,9 @@ function configGridListeners(grid) {
         grid.doEdit = true;
     });
     grid.on('beforeedit', function (editor, context, eOpts) {
+        if (!grid.updateEnable) {
+            return false;
+        }
         if (!grid.doEdit) {
             return false;
         }
@@ -527,18 +597,30 @@ function configGridListeners(grid) {
                     show: function (obj, epts) {
                         let fieldObj = obj.items.get(0).items.get(0);
                         fieldObj.focus();
-                        new Ext.KeyMap(obj.getEl(), [{
-                            key: 13,
-                            fn: function () {
-                                obj.hide();
-                            },
-                            scope: obj
-                        }]);
+                        try {
+                            new Ext.util.KeyMap({
+                                target: obj.getEl(),
+                                key: 13,
+                                fn: function (keyCode, e) {
+                                    obj.hide();
+                                },
+                                scope: this
+                            });
+                        } catch (e) {
+                            console.error(e);
+                        }
                     },
                     beforehide: function (obj, epts) {
                         let fieldObj = obj.items.get(0).items.get(0);
                         if (!fieldObj.isValid()) {
-                            shakeComment(obj);
+                            let currError = fieldObj.getErrors();
+                            if (currError) {
+                                toast(currError[0]);
+                            }
+                            shakeComment(obj, function () {
+                                obj.holdShow = false;
+                            });
+                            obj.holdShow = true;
                             return false;
                         }
                         return true;
@@ -621,6 +703,10 @@ function configGridHeadMenu(grid) {
             obj.activeHeader.batchUpdate = false;
             obj.activeHeader.operation = false;
             obj.activeHeader.searchLink = false;
+            obj.activeHeader.batchRandom = false;
+        }
+        if (isFileColumn(obj.activeHeader)) {
+            obj.activeHeader.batchUpdate = true;
         }
         if (isContentColumn(obj.activeHeader)) {
             obj.activeHeader.searchLink = false;
@@ -645,6 +731,50 @@ function configGridHeadMenu(grid) {
                     }
                 });
             }
+
+            menus.push({
+                text: '清除无效数据',
+                iconCls: 'extIcon extClear grayColor',
+                onBeforeShow: function () {
+                    if (toBool(menu.activeHeader.batchClear, true)) {
+                        this.show();
+                    } else {
+                        this.hide();
+                    }
+                },
+                handler: function () {
+                    let confirmConfig = {
+                        title: "清除无效数据",
+                        icon: Ext.Msg.QUESTION,
+                        message: "将清除属性【" + menu.activeHeader.text + "】为空的所有无效数据！请您确定操作！",
+                        buttons: Ext.Msg.YESNO,
+                        defaultFocus: "no",
+                        callback: function (button, text) {
+                            if (button == "yes") {
+                                showWait("正在清除数据中……");
+                                let columnGrid = getColumnGrid(menu.activeHeader);
+                                let storeParams = columnGrid.getStore().proxy.extraParams;
+                                let params = {
+                                    "entityCode": columnGrid.getStore().entity.entityCode,
+                                    "field": menu.activeHeader.dataIndex,
+                                    "menu": columnGrid.getStore().entity.menu.text
+                                };
+
+                                server.clearEntity(mergeJson(params, storeParams), function (success, message) {
+                                    hideWait();
+                                    if (success) {
+                                        getColumnGrid(menu.activeHeader).getStore().loadPage(1);
+                                    }
+                                    showAlert("清理结果", message);
+                                });
+                            }
+                        }
+                    };
+
+                    Ext.Msg.confirm(confirmConfig);
+                }
+            });
+
             if (grid.getStore().entity) {
                 if (toBool(grid.columnMenu.searchLink, true)) {
                     menus.push({
@@ -712,6 +842,10 @@ function configGridHeadMenu(grid) {
                     text: '批量修改值',
                     iconCls: 'extIcon extEdit',
                     onBeforeShow: function () {
+                        if (!toBool(menu.activeHeader.editable, true)) {
+                            this.hide();
+                            return;
+                        }
                         if (toBool(menu.activeHeader.batchUpdate, true)) {
                             this.show();
                         } else {
@@ -722,15 +856,22 @@ function configGridHeadMenu(grid) {
                         batchEditColumn(menu.activeHeader);
                     }
                 });
+            }
+
+            if (toBool(grid.columnMenu.batchRandom, true)) {
                 menus.push({
                     text: '批量随机值',
                     iconCls: 'extIcon extRandom',
                     onBeforeShow: function () {
+                        if (!toBool(menu.activeHeader.editable, true)) {
+                            this.hide();
+                            return;
+                        }
                         if (isLinkColumn(menu.activeHeader)) {
                             this.hide();
                             return;
                         }
-                        if (toBool(menu.activeHeader.batchUpdate, true)) {
+                        if (toBool(menu.activeHeader.batchRandom, true)) {
                             this.show();
                         } else {
                             this.hide();
@@ -796,6 +937,15 @@ function getGridSelModel() {
  * @param dataStore 数据源
  */
 function getPageToolBar(dataStore) {
+    let entityRecycle = false;
+    if (dataStore.entity && toBool(dataStore.entity.recycle, false)) {
+        entityRecycle = true;
+    }
+    let fromRecycle = false;
+    if (dataStore.where && toBool(dataStore.where['^fromRecycle'], false)) {
+        fromRecycle = true;
+    }
+
     let pagingtoolbar = Ext.create('Ext.toolbar.Paging', {
         store: dataStore,
         dock: 'bottom',
@@ -846,6 +996,7 @@ function getPageToolBar(dataStore) {
     let copyBtn = {
         xtype: 'button',
         tooltip: '拷贝数据',
+        checkSelect: 2,
         iconCls: 'extIcon extCopy2 grayColor',
         handler: function () {
             let selection = dataStore.grid.getSelection();
@@ -893,10 +1044,15 @@ function getPageToolBar(dataStore) {
                     });
                 }
             };
+
+            let message = "<b style='color: red;font-size: 16px;line-height: 18px;'>请您谨慎操作！</b><br/>您确定清空当前条件下的所有数据吗？！<br/>当前共" + dataStore.getTotalCount() + "条数据！";
+            if (entityRecycle) {
+                message += "<br/><b style='color: red;font-size: 14px;line-height: 18px;'>此操作将跳过回收站！</b>";
+            }
             let confirmConfig = {
                 title: "系统提醒",
                 icon: Ext.Msg.QUESTION,
-                message: "<b style='color: red;font-size: 16px;line-height: 18px;'>请您谨慎操作！</b><br/>您确定清空当前条件下的所有数据吗？！<br/>当前共" + dataStore.getTotalCount() + "条数据！",
+                message: message,
                 buttons: Ext.Msg.YESNO,
                 defaultFocus: "no",
                 callback: confirmFunction
@@ -930,6 +1086,19 @@ function getPageToolBar(dataStore) {
         }
     };
 
+    if (fromRecycle) {
+        deleteAllBtn.tooltip = "清空回收站";
+    }
+
+    let recycleBtn = {
+        xtype: 'button',
+        tooltip: '回收站',
+        iconCls: 'extIcon extRecycle grayColor',
+        handler: function () {
+            showRecycleGrid(dataStore);
+        }
+    };
+
 
     let searchBtn = {
         xtype: 'button',
@@ -954,17 +1123,36 @@ function getPageToolBar(dataStore) {
 
     pagingtoolbar.insert(0, control);
     let beginIndex = 2;
-    let iterateIndex = 1;
-    if (system.isSuperRole()) {
-        pagingtoolbar.insert(pagingtoolbar.items.getCount() - beginIndex * iterateIndex, "-");
-        pagingtoolbar.insert(pagingtoolbar.items.getCount() - beginIndex * iterateIndex++, deleteAllBtn);
-        pagingtoolbar.insert(pagingtoolbar.items.getCount() - beginIndex * iterateIndex, "-");
-        pagingtoolbar.insert(pagingtoolbar.items.getCount() - beginIndex * iterateIndex++, copyBtn);
+    pagingtoolbar.insert(pagingtoolbar.items.getCount() - beginIndex, "-");
+    pagingtoolbar.insert(pagingtoolbar.items.getCount() - beginIndex, searchBtn);
+    pagingtoolbar.insert(pagingtoolbar.items.getCount() - beginIndex, sortBtn);
+
+    if (fromRecycle) {
+        let rebackBtn = {
+            xtype: 'button',
+            tooltip: '还原数据',
+            checkSelect: 2,
+            iconCls: 'extIcon extReback grayColor',
+            handler: function () {
+                rebackGridData(dataStore.grid);
+            }
+        };
+        pagingtoolbar.insert(pagingtoolbar.items.getCount() - beginIndex, "-");
+        pagingtoolbar.insert(pagingtoolbar.items.getCount() - beginIndex, rebackBtn);
     }
-    pagingtoolbar.insert(pagingtoolbar.items.getCount() - beginIndex * iterateIndex, "-");
-    pagingtoolbar.insert(pagingtoolbar.items.getCount() - beginIndex * iterateIndex++, sortBtn);
-    pagingtoolbar.insert(pagingtoolbar.items.getCount() - beginIndex * iterateIndex, "-");
-    pagingtoolbar.insert(pagingtoolbar.items.getCount() - beginIndex * iterateIndex++, searchBtn);
+
+    if (system.isSuperRole()) {
+        pagingtoolbar.insert(pagingtoolbar.items.getCount() - beginIndex, "-");
+        if (!fromRecycle) {
+            pagingtoolbar.insert(pagingtoolbar.items.getCount() - beginIndex, copyBtn);
+        }
+        pagingtoolbar.insert(pagingtoolbar.items.getCount() - beginIndex, deleteAllBtn);
+    }
+    if (!fromRecycle && entityRecycle) {
+        pagingtoolbar.insert(pagingtoolbar.items.getCount() - beginIndex, "-");
+        pagingtoolbar.insert(pagingtoolbar.items.getCount() - beginIndex, recycleBtn);
+    }
+
     return pagingtoolbar;
 }
 
@@ -1014,6 +1202,52 @@ function deleteGridData(grid) {
         } else {
             doDelete();
         }
+    });
+}
+
+
+/**
+ * 还原回收站里的数据
+ */
+function rebackGridData(grid) {
+    return new Ext.Promise(function (resolve, reject) {
+        if (!grid.getStore().entity) {
+            Ext.Msg.alert('系统提醒', '还原失败！Grid的DataStore未绑定Entity!');
+            return;
+        }
+        if (grid.getSelection().length == 0) {
+            toast('请您先选择需要还原的数据！');
+            return;
+        }
+        let selectLength = grid.getSelection().length;
+        let doDelete = function () {
+            showWait("正在还原数据中……");
+            commitStoreReback(grid.getStore(), grid.getSelection()).then(function (success, message) {
+                if (success) {
+                    grid.getSelectionModel().deselectAll();
+                    let grouped = grid.getStore().isGrouped();
+                    if (grouped) {
+                        grid.getView().getFeature('group').collapseAll();
+                    }
+                    hideWait();
+                    Ext.Msg.alert('系统提醒', '还原成功！');
+                }
+                resolve(success);
+            });
+        };
+        let confirmConfig = {
+            title: "系统提醒",
+            icon: Ext.Msg.QUESTION,
+            message: "您确定还原选中的" + selectLength + "条数据吗？",
+            buttons: Ext.Msg.YESNO,
+            defaultFocus: "no",
+            callback: function (button, text) {
+                if (button == "yes") {
+                    doDelete();
+                }
+            }
+        };
+        Ext.Msg.show(confirmConfig);
     });
 }
 
@@ -1207,7 +1441,7 @@ function restoreGridColumn(grid) {
 /**
  * 创建详情grid
  */
-function createDetailsGrid() {
+function builderDetailsGrid() {
     let detailsStore = Ext.create('Ext.data.Store', {
         autoLoad: false,
         fields: []
@@ -1320,13 +1554,18 @@ function createDetailsGrid() {
             },
             listeners: {
                 render: function (obj, eOpts) {
-                    new Ext.KeyMap(obj.getEl(), [{
-                        key: 13,
-                        fn: function () {
-                            this.doSearch();
-                        },
-                        scope: this
-                    }]);
+                    try {
+                        new Ext.util.KeyMap({
+                            target: obj.getEl(),
+                            key: 13,
+                            fn: function (keyCode, e) {
+                                this.doSearch();
+                            },
+                            scope: this
+                        });
+                    } catch (e) {
+                        console.error(e);
+                    }
                 }
             }
         },
@@ -1358,36 +1597,30 @@ function createDetailsGrid() {
 
 /**
  * 获得详细的panel控件
- * @param grid
  */
-function getDetailsPanel(grid) {
+function getDetailsPanel(grid, fromWindow) {
     let timestamp = Ext.now();
     let subtitle = "";
     if (grid.getStore().entity.menu) {
         subtitle = grid.getStore().entity.menu.text;
     }
-    let detailsPanel = Ext.create('Ext.panel.Panel', {
-        title: '数据详情',
+    let detailsConfig = {
         subtitle: subtitle,
-        iconCls: 'extIcon extDetails',
         layout: 'border',
-        region: 'east',
         border: 0,
-        width: 258,
-        minWidth: 200,
-        collapsed: false,
-        maxWidth: 688,
-        split: true,
         autoScroll: false,
         scrollable: false,
         closeAction: 'hide',
         dataId: -1,
-        hidden: true,
         currIsClosed: false,
         closeTimer: null,
+        isWindow: fromWindow,
         setRecord: function (grid) {
             try {
                 let me = this;
+                if (!me.items) {
+                    return false;
+                }
                 window.clearTimeout(me.closeTimer);
                 if (grid != null) {
                     let data = grid.getSelectionModel().getSelection();
@@ -1395,7 +1628,7 @@ function getDetailsPanel(grid) {
                         me.items.get(0).setRecord(grid, data[0]);
                         me.show();
                     } else {
-                        if (me.isVisible()) {
+                        if (me.isVisible() && !this.isWindow) {
                             me.closeTimer = setTimeout(function () {
                                 me.close();
                                 setTimeout(function () {
@@ -1411,8 +1644,14 @@ function getDetailsPanel(grid) {
             } catch (e) {
                 showException(e);
             }
+            return true;
         },
         listeners: {
+            afterrender: function () {
+                if (this.isWindow) {
+                    this.setRecord(grid);
+                }
+            },
             collapse: function (p, eOpts) {
                 Ext.getCmp("close" + timestamp).setHidden(true);
             },
@@ -1420,35 +1659,57 @@ function getDetailsPanel(grid) {
                 Ext.getCmp("close" + timestamp).setHidden(false);
             }
         },
-        tools: [
-            {
-                type: 'gear',
-                callback: function () {
-                    setGrid(this, grid);
-                }
-            },
-            {
-                type: 'close',
-                id: 'close' + timestamp,
-                callback: function () {
-                    detailsPanel.collapse();
-                }
-            }],
-        items: [createDetailsGrid()]
-    });
-    grid.detailsPanel = detailsPanel;
-    grid.on('selectionchange', function (obj, selected, eOpts) {
-        try {
-            if (grid.operate && grid.operate.autoDetails) {
-                if (!Ext.isEmpty(grid.detailsPanel)) {
-                    grid.detailsPanel.setRecord(grid);
-                }
-            } else {
-                grid.detailsPanel.close();
+        items: [builderDetailsGrid()]
+    };
+    if (fromWindow) {
+        detailsConfig.region = "center";
+    } else {
+        detailsConfig.title = '数据详情';
+        detailsConfig.iconCls = 'extIcon extDetails';
+        detailsConfig.collapsed = false;
+        detailsConfig.split = true;
+        detailsConfig.hidden = true;
+        detailsConfig.region = "east";
+        detailsConfig.maxWidth = 688;
+        detailsConfig.width = 258;
+        detailsConfig.minWidth = 200;
+        detailsConfig.tools = [{
+            type: 'gear',
+            callback: function () {
+                setGrid(this, grid);
             }
-        } catch (e) {
-            showException(e);
-        }
+        }, {
+            type: 'close',
+            id: 'close' + timestamp,
+            callback: function () {
+                detailsPanel.collapse();
+            }
+        }];
+    }
+    let detailsPanel = Ext.create('Ext.panel.Panel', detailsConfig);
+    if (!fromWindow) {
+        grid.detailsPanel = detailsPanel;
+    }
+    detailsPanel.changeListener = grid.on({
+        scope: grid,
+        selectionchange: function (obj, selected, eOpts) {
+            try {
+                if (fromWindow) {
+                    detailsPanel.setRecord(grid);
+                } else {
+                    if (grid.operate && grid.operate.autoDetails) {
+                        if (!Ext.isEmpty(grid.detailsPanel)) {
+                            grid.detailsPanel.setRecord(grid);
+                        }
+                    } else {
+                        grid.detailsPanel.close();
+                    }
+                }
+            } catch (e) {
+                showException(e);
+            }
+        },
+        destroyable: true
     });
     return detailsPanel;
 }
@@ -1529,6 +1790,7 @@ function setGrid(obj, grid) {
                 columnWidth: 1,
                 name: 'alertUpdate',
                 bind: "{alertUpdate}",
+                hidden: !grid.updateEnable,
                 uncheckedValue: false,
                 boxLabel: '修改数据时，系统会弹出确认修改框，避免误操作修改！'
             },
@@ -1539,6 +1801,7 @@ function setGrid(obj, grid) {
                 columnWidth: 1,
                 name: 'autoUpdate',
                 bind: "{autoUpdate}",
+                hidden: !grid.updateEnable,
                 uncheckedValue: false,
                 boxLabel: '双击编辑修改数据后，系统自动提交被修改的数据！'
             },
@@ -1744,6 +2007,113 @@ function hasSearchColumn(grid) {
         }
     });
     return search;
+}
+
+
+function createDetailsGrid(data, configGrid, configName, configValue) {
+    let dataStore = Ext.create('Ext.data.Store', {
+        autoLoad: false,
+        fields: [],
+        data: data
+    });
+    let nameConfig = {
+        header: '名称',
+        dataIndex: 'name',
+        flex: 0.3,
+        align: 'right',
+        renderer: function (val, m, r) {
+            m.style = 'color:#000000;overflow:auto;padding: 3px 6px;text-overflow: ellipsis;white-space:normal !important;line-height:20px;word-break:break-word; ';
+            return "<b>" + val + "：</b>";
+        },
+        listeners: {
+            dblclick: function (grid, obj, celNo, obj1, obj2, rowNo, e) {
+                if (celNo == 0) {
+                }
+            }
+        }
+    };
+    let valueConfig = {
+        header: '值',
+        dataIndex: 'value',
+        flex: 0.7,
+        align: 'left',
+        renderer: function (val, m, r) {
+            try {
+                m.style = 'overflow:auto;padding: 3px 6px;text-overflow: ellipsis;white-space:normal !important;line-height:20px;word-break:break-word; ';
+                let fun = r.get("renderer");
+                if (Ext.isFunction(fun)) {
+                    let value = fun(val, m, r.get("record"), -1, -1, null, null, true);
+                    if (Ext.isEmpty(value)) {
+                        return "<font color='#ccc'>无</font>"
+                    }
+                    return value;
+                }
+                return val;
+            } catch (e) {
+                return val;
+            }
+        },
+        listeners: {
+            dblclick: function (grid, obj, celNo, obj1, obj2, rowNo, e) {
+                if (celNo == 0) {
+
+                }
+            }
+        }
+    };
+    let gridConfig = {
+        region: 'center',
+        border: 0,
+        columnLines: true,
+        store: dataStore,
+        viewConfig: {
+            enableTextSelection: true
+        },
+        updateData: function (newData) {
+            dataStore.setData(newData);
+        },
+        columns: [mergeJson(nameConfig, configName),
+            mergeJson(valueConfig, configValue)]
+    };
+    return Ext.create('Ext.grid.Panel', mergeJson(gridConfig, configGrid));
+}
+
+
+function showRecycleGrid(dataStore) {
+    if (!dataStore) {
+        return;
+    }
+    let title = "回收站";
+    if (dataStore.entity.menu) {
+        title = dataStore.entity.menu.text + "-回收站";
+    }
+
+    let entityObj = eval("new " + dataStore.entity.entityCode + "()");
+    entityObj.menu = {
+        id: $.md5(title),
+        text: title
+    };
+    console.log(entityObj);
+
+    let where = {"^fromRecycle": true};
+    let gridPanel = entityObj.getList(mergeJson(where, dataStore.where));
+
+    let entityOwner = gridPanel.down("[entityList=true]");
+    entityOwner.code = $.md5(dataStore.entity.entityCode + "回收站");
+
+    let win = Ext.create('Ext.window.Window', {
+        title: title,
+        iconCls: 'extIcon extRecycle',
+        layout: 'fit',
+        height: 500,
+        width: 600,
+        constrain: true,
+        resizable: true,
+        maximizable: true,
+        maximized: false,
+        items: [gridPanel]
+    });
+    win.show();
 }
 
 

@@ -7,6 +7,7 @@ import com.fastchar.extjs.entity.ExtManagerEntity;
 import com.fastchar.extjs.entity.ExtSystemLogEntity;
 import com.fastchar.interfaces.IFastInterceptor;
 import com.fastchar.interfaces.IFastJson;
+import com.fastchar.out.FastOutText;
 
 public class FastExtAfterInterceptor implements IFastInterceptor {
 
@@ -38,7 +39,11 @@ public class FastExtAfterInterceptor implements IFastInterceptor {
             if (fastAction.getFastOut().getStatus() == 404
                     || fastAction.getFastOut().getStatus() == 500
                     || fastAction.getFastOut().getStatus() == 502) {
-                fastAction.responseJson(-1, "操作失败！" + fastAction.getFastOut().getDescription());
+                if (fastAction.getFastOut() instanceof FastOutText) {
+                    fastAction.responseJson(-1, "操作失败！" + fastAction.getFastOut().getData());
+                }else{
+                    fastAction.responseJson(-1, "操作失败！" + fastAction.getFastOut().getDescription());
+                }
             } else {
                 fastAction.invoke();
             }

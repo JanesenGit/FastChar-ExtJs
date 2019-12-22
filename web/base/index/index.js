@@ -11,6 +11,7 @@ const system = {
     regByExcel: /\.(xls|xlsx)$/i,
     regByWord: /\.(doc)$/i,
     regByText: /\.(txt)$/i,
+    tabPanelContainer: null,
     formatUrl: function (url, params) {
         if (url.startWith("http://") || url.startWith("https://")) {
             return url;
@@ -53,7 +54,7 @@ const system = {
             }
         }
         Ext.Ajax.request({
-            url: 'showConfig',
+            url: server.showConfigUrl(),
             params: params,
             success: function (response, opts) {
                 let data = jsonToObject(response.responseText).data;
@@ -147,6 +148,9 @@ const system = {
 
         Ext.Ajax.on('beforerequest', function (conn, request, options) {
             try {
+                if (server.isSilenceRequest()) {
+                    return;
+                }
                 getProgressLine(toColor(getExt("front-color").value)).set(0);
                 getProgressLine(toColor(getExt("front-color").value)).animate(0.7);
             } catch (e) {
@@ -169,7 +173,6 @@ const system = {
                         } catch (e) {
                         }
                     }
-
                     getProgressLine(toColor(getExt("front-color").value)).animate(1);
                 } catch (e) {
                 }
@@ -177,14 +180,20 @@ const system = {
 
         Ext.Ajax.on('requestexception', function (conn, response, options, eOpts) {
             try {
-                showException(response.responseText, "ExtRequest请求异常！");
+                if (server.isSilenceRequest()) {
+                    return;
+                }
+                showException(response.responseText, "请求异常！");
             } catch (e) {
             }
         });
 
 
-        $(document).ajaxStart(function () {
+        $(document).ajaxStart(function (obj) {
             try {
+                if (server.isSilenceRequest()) {
+                    return;
+                }
                 getProgressLine(toColor(getExt("front-color").value)).set(0);
                 getProgressLine(toColor(getExt("front-color").value)).animate(0.7);
             } catch (e) {
@@ -211,7 +220,10 @@ const system = {
 
         $(document).ajaxError(function (event, xhr, settings) {
             try {
-                showException(xhr.responseText, "jquery请求异常");
+                if (server.isSilenceRequest()) {
+                    return;
+                }
+                showException(xhr.responseText, "请求异常");
             } catch (e) {
             }
         });
@@ -365,7 +377,7 @@ const system = {
             }
         });
 
-        let rightPanel = Ext.create('Ext.tab.Panel', {
+        me.tabPanelContainer = Ext.create('Ext.tab.Panel', {
             region: 'center',
             id: 'tabs',
             plain: true,
@@ -388,7 +400,7 @@ const system = {
             style: {
                 background: '#eeeeee'
             },
-            items: [rightPanel]
+            items: [me.tabPanelContainer]
         });
 
 
@@ -432,7 +444,7 @@ const system = {
                 }, leftTreePanel]
         });
 
-        rightPanel.add({
+        me.tabPanelContainer.add({
             title: '首页',
             xtype: 'panel',
             id: 'tabWelcome',
@@ -450,7 +462,7 @@ const system = {
                             me.currTab = null;
                         }
                     } catch (e) {
-                        rightPanel.setActiveTab(tab);
+                        me.tabPanelContainer.setActiveTab(tab);
                     }
                 }
             }
@@ -475,15 +487,15 @@ const system = {
                 if (Ext.MessageBox.isVisible()) {
                     Ext.MessageBox.hide();
                 }
-                if (tabs.length == 0) {
-                    rightPanel.setActiveTab(Ext.getCmp("tabWelcome"));
+                if (tabs.length == 0 || ! me.tabPanelContainer.getActiveTab()) {
+                    me.tabPanelContainer.setActiveTab(Ext.getCmp("tabWelcome"));
                 }
             });
         }else{
             if (Ext.MessageBox.isVisible()) {
                 Ext.MessageBox.hide();
             }
-            rightPanel.setActiveTab(Ext.getCmp("tabWelcome"));
+            me.tabPanelContainer.setActiveTab(Ext.getCmp("tabWelcome"));
         }
     },
     asyncMethod: function (method) {
@@ -578,17 +590,19 @@ const system = {
 
                         if (!tab.methodInvoked) {
                             me.asyncMethod(method).then(function (obj) {
-                                if (!obj) {
-                                    return;
-                                }
-                                tab.methodInvoked = true;
-                                let entityOwner = obj.down("[entityList=true]");
-                                if (entityOwner) {
-                                    entityOwner.where = mergeJson(tab.where, entityOwner.where);
-                                    entityOwner.code = $.md5(tabId);
-                                }
-                                tab.add(obj);
-                                me.recordTab();
+                                try {
+                                    if (!obj) {
+                                        return;
+                                    }
+                                    tab.methodInvoked = true;
+                                    let entityOwner = obj.down("[entityList=true]");
+                                    if (entityOwner) {
+                                        entityOwner.where = mergeJson(tab.where, entityOwner.where);
+                                        entityOwner.code = $.md5(tabId);
+                                    }
+                                    tab.add(obj);
+                                    me.recordTab();
+                                } catch (e) {}
                             });
                         }
                     },
@@ -682,6 +696,21 @@ const system = {
             } catch (e) {
                 reject(e);
             }
+        });
+    },
+    addTab: function (component, id, title, icon) {
+        me.tabPanelContainer.add({
+            title: title,
+            xtype: 'panel',
+            id: id,
+            code: id,
+            icon: icon,
+            border: 0,
+            tabContainer: true,
+            closable: true,
+            reorderable: true,
+            layout: 'fit',
+            items: [obj]
         });
     },
     selectMenu: function (menuId, justParent) {
@@ -781,7 +810,7 @@ const system = {
     modifyPassword: function (obj) {
         let me = this;
         let loginPanel = Ext.create('Ext.form.FormPanel', {
-            url: 'manager/modifyPassword',
+            url: 'controller/modifyPassword',
             method: 'POST',
             fileUpload: true,
             border: 0,
@@ -848,11 +877,16 @@ const system = {
                 }],
             listeners: {
                 'render': function (text) {
-                    new Ext.KeyMap(text.getEl(), [{
-                        key: 13,
-                        fn: doSubmit,
-                        scope: Ext.getBody()
-                    }]);
+                    try {
+                        new Ext.util.KeyMap({
+                            target: text.getEl(),
+                            key: 13,
+                            fn: doSubmit,
+                            scope: Ext.getBody()
+                        });
+                    } catch (e) {
+                        console.error(e);
+                    }
                 }
             }
         });

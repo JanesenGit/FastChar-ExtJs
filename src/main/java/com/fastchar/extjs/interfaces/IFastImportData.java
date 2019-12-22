@@ -7,6 +7,7 @@ import java.util.List;
 
 public interface IFastImportData {
 
-    void onImportData(List<? extends FastEntity> dataList, FastHandler handler) throws Exception;
+    void onBeforeImportData(List<? extends FastEntity> dataList, FastHandler handler) throws Exception;
+    void onAfterImportData(List<? extends FastEntity> dataList, FastHandler handler) throws Exception;
 
 }

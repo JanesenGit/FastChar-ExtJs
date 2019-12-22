@@ -95,6 +95,7 @@ function showHtml(obj, title, content) {
         layout: 'fit',
         height: 500,
         width: 600,
+        constrain: true,
         resizable: false,
         maximizable: true,
         modal: true,
@@ -121,6 +122,7 @@ function showLink(obj, title, url) {
         resizable: false,
         maximizable: true,
         modal: true,
+        constrain: true,
         maximized: false,
         iconCls: 'extIcon extSee',
         draggable: true,
@@ -152,6 +154,7 @@ function showEditorHtml(obj, title, content) {
         resizable: false,
         maximizable: true,
         modal: true,
+        constrain: true,
         maximized: false,
         iconCls: 'extIcon extSee',
         draggable: true,
@@ -177,6 +180,7 @@ function showText(obj, icon, title, text) {
     let win = Ext.create('Ext.window.Window', {
         title: title,
         icon: icon,
+        iconCls: icon,
         maximizable: true,
         height: 400,
         width: 600,
@@ -224,8 +228,10 @@ function showException(e, from) {
             layout: 'fit',
             resizable: false,
             maximizable: false,
+            constrain: true,
             fixed: true,
             modal: true,
+            draggable: false,
             iconCls: 'extIcon extError',
             html: "<div  style='padding:15px;background: #fff;' align='center'>系统发生异常，请及时告知系统管理员！</div>",
             buttons: [{
@@ -470,3 +476,117 @@ function showImage(obj, url, callBack, modal) {
     });
     newWin.show();
 }
+
+
+/**
+ * 播放视频
+ * @param obj
+ * @param videoUrl
+ */
+function showVideo(obj, videoUrl) {
+    let win = Ext.create('Ext.window.Window', {
+        title: '查看视频',
+        layout: 'fit',
+        height: 520,
+        width: 660,
+        resizable: false,
+        constrain: true,
+        maximizable: false,
+        modal: true,
+        maximized: false,
+        iconCls: 'extIcon extSee',
+        draggable: true,
+        scrollable: false,
+        alwaysOnTop: true,
+        toFrontOnShow: true,
+        listeners: {
+            show: function () {
+                let url = system.formatUrlVersion("base/video/player.html");
+                window["getVideoUrl"] = function () {
+                    return videoUrl;
+                };
+                let html = "<iframe name='showVideoFrame' src='" + url + "'  width='100%' height='100%' frameborder='0' scrolling='no' >";
+                this.update(html);
+            }
+        }
+    });
+    win.show();
+}
+
+/**
+ * 编辑大文本
+ */
+function editorText(obj, title, callBack) {
+    let time = new Date().getTime();
+    let areaId = "PublicTextArea" + time;
+
+    let editorWin = Ext.create('Ext.window.Window', {
+        title: title,
+        iconCls: 'extIcon extEdit',
+        resizable: true,
+        maximizable: true,
+        height: 400,
+        width: 600,
+        layout: 'fit',
+        animateTarget: obj,
+        items: [{
+            id: areaId,
+            emptyText: '请输入内容……',
+            xtype: 'textarea'
+        }],
+        modal: true,
+        constrain: true,
+        closeAction: 'hide',
+        listeners: {
+            show: function (obj) {
+                server.showExtConfig("PublicEditor", "TextEditorCache", function (success, value) {
+                    if (success) {
+                        Ext.getCmp(areaId).setValue(value);
+                    }
+                    Ext.getCmp(areaId).focus();
+                });
+            }
+        },
+        buttons: [
+            {
+                text: '暂存',
+                iconCls: 'extIcon extSave whiteColor',
+                handler: function () {
+                    showWait("暂存中，请稍后……");
+                    server.saveExtConfig("PublicEditor", "TextEditorCache", Ext.getCmp(areaId).getValue(), function (success, message) {
+                        hideWait();
+                        if (success) {
+                            toast("暂存成功！");
+                        } else {
+                            showAlert("系统提醒", message);
+                        }
+                    });
+                }
+            },
+            {
+                text: '重置',
+                iconCls: 'extIcon extReset',
+                handler: function () {
+                    Ext.getCmp(areaId).setValue(null);
+                    server.deleteExtConfig("PublicEditor", "TextEditorCache");
+                }
+            },
+            {
+                text: '确定',
+                iconCls: 'extIcon extOk',
+                handler: function () {
+                    showWait("请稍后……");
+                    server.deleteExtConfig("PublicEditor", "TextEditorCache", function (success) {
+                        hideWait();
+                        if (Ext.isFunction(callBack)) {
+                            callBack(Ext.getCmp(areaId).getValue());
+                        }
+                        editorWin.close();
+                    });
+                }
+            }]
+    });
+    editorWin.show();
+}
+
+

@@ -25,29 +25,50 @@ import java.util.List;
 @AFastOverride
 public class FastExtMySql extends FastMySql {
 
-    public FastSqlInfo toSelectLayerValueSql(FastEntity<?> entity) {
+    public FastSqlInfo toSelectLayerValueSql(FastEntity<?> entity, String... checks) {
         if (entity == null) {
             return null;
         }
         if (entity instanceof FastExtEntity) {
-            FastExtEntity extEntity = (FastExtEntity) entity;
+            FastExtEntity<?> extEntity = (FastExtEntity<?>) entity;
 
-            FastColumnInfo layerColumn = extEntity.getLayerColumn();
+            FastColumnInfo<?> layerColumn = extEntity.getLayerColumn();
             if (layerColumn == null) {
                 return null;
             }
 
             List<Object> values = new ArrayList<>();
-            StringBuilder sqlStr = new StringBuilder("select " + layerColumn.getName() + " as layer from " + entity.getTableName() + " where 1=1 ");
-            for (FastColumnInfo primary : entity.getPrimaries()) {
-                sqlStr.append(" and ").append(primary.getName()).append(" = ? ");
-                if (entity.isEmpty(primary.getName())) {
-                    throw new FastSqlException(FastChar.getLocal().getInfo("Db_Sql_Error4", "'" + primary.getName() + "'"));
+
+            List<String> checkColumns = new ArrayList<>();
+            for (String key : checks) {
+                FastColumnInfo<?> column = entity.getColumn(key);
+                if (column != null) {
+                    checkColumns.add(key);
                 }
-                values.add(getColumnValue(entity, primary));
             }
+
+            StringBuilder sqlBuilder = new StringBuilder("select " + layerColumn.getName() + " as layer from " + entity.getTableName() + " where 1=1 ");
+
+            if (checkColumns.size() == 0) {
+                for (FastColumnInfo<?> primary : entity.getPrimaries()) {
+                    if (entity.isEmpty(primary.getName())) {
+                        throw new FastSqlException(FastChar.getLocal().getInfo("Db_Sql_Error4", "'" + primary.getName() + "'"));
+                    }
+                    sqlBuilder.append(" and ").append(primary.getName()).append(" = ? ");
+                    values.add(getColumnValue(entity, primary));
+                }
+            } else {
+                for (String check : checkColumns) {
+                    FastColumnInfo<?> column = entity.getColumn(check);
+                    if (column != null) {
+                        sqlBuilder.append(" and ").append(check).append(" = ? ");
+                        values.add(getColumnValue(entity, column));
+                    }
+                }
+            }
+
             FastSqlInfo sqlInfo = newSqlInfo();
-            sqlInfo.setSql(sqlStr.toString());
+            sqlInfo.setSql(sqlBuilder.toString());
             sqlInfo.setParams(values);
             return sqlInfo;
         }
@@ -55,7 +76,157 @@ public class FastExtMySql extends FastMySql {
     }
 
 
-    public FastSqlInfo toUpdateLayerSql(FastTableInfo tableInfo, String oldLayerValue, String newLayerValue) {
+    public FastSqlInfo buildCopyRecycleSql(FastEntity<?> entity, String... checks) {
+        if (entity == null) {
+            return null;
+        }
+
+        List<String> columns = new ArrayList<>();
+        List<String> valueColumns = new ArrayList<>();
+        List<FastColumnInfo<?>> tableColumns = entity.getTable().getColumns();
+        for (FastColumnInfo<?> column : tableColumns) {
+            if (column.isPrimary()) {
+                continue;
+            }
+            columns.add(column.getName());
+            valueColumns.add(column.getName());
+        }
+        List<Object> values = new ArrayList<>();
+        StringBuilder sqlBuilder = new StringBuilder();
+        sqlBuilder.append("insert into ").append(entity.getTableName()).append("_recycle").append(" (").append(FastStringUtils.join(columns, ",")).append(") ").append(" select ").append(FastStringUtils.join(valueColumns, ",")).append(" from ").append(entity.getTableName()).append(" where ").append(" 1=1 ");
+
+
+        List<String> checkColumns = new ArrayList<>();
+        for (String key : checks) {
+            FastColumnInfo<?> column = entity.getColumn(key);
+            if (column != null) {
+                checkColumns.add(key);
+            }
+        }
+
+        if (checkColumns.size() == 0) {
+            for (FastColumnInfo<?> primary : entity.getPrimaries()) {
+                if (entity.isEmpty(primary.getName())) {
+                    throw new FastSqlException(FastChar.getLocal().getInfo("Db_Sql_Error4", "'" + primary.getName() + "'"));
+                }
+                sqlBuilder.append(" and ").append(primary.getName()).append(" = ? ");
+                values.add(getColumnValue(entity, primary));
+            }
+        } else {
+            for (String check : checkColumns) {
+                FastColumnInfo<?> column = entity.getColumn(check);
+                if (column != null) {
+                    sqlBuilder.append(" and ").append(check).append(" = ? ");
+                    values.add(getColumnValue(entity, column));
+                }
+            }
+        }
+
+        FastSqlInfo sqlInfo = newSqlInfo();
+        sqlInfo.setSql(sqlBuilder.toString());
+        sqlInfo.setLog(entity.getBoolean("log", true));
+        sqlInfo.setParams(values);
+        return sqlInfo;
+    }
+
+
+    public FastSqlInfo buildCopyFromRecycleSql(FastEntity<?> entity, String... checks) {
+        if (entity == null) {
+            return null;
+        }
+
+        List<String> columns = new ArrayList<>();
+        List<String> valueColumns = new ArrayList<>();
+        List<FastColumnInfo<?>> tableColumns = entity.getTable().getColumns();
+        for (FastColumnInfo<?> column : tableColumns) {
+            if (column.isPrimary()) {
+                continue;
+            }
+            columns.add(column.getName());
+            valueColumns.add(column.getName());
+        }
+        List<Object> values = new ArrayList<>();
+        StringBuilder sqlBuilder = new StringBuilder();
+        sqlBuilder.append("insert into ").append(entity.getTableName()).append(" (").append(FastStringUtils.join(columns, ",")).append(") ").append(" select ").append(FastStringUtils.join(valueColumns, ",")).append(" from ").append(entity.getTableName()).append("_recycle").append(" where ").append(" 1=1 ");
+
+
+        List<String> checkColumns = new ArrayList<>();
+        for (String key : checks) {
+            FastColumnInfo<?> column = entity.getColumn(key);
+            if (column != null) {
+                checkColumns.add(key);
+            }
+        }
+
+        if (checkColumns.size() == 0) {
+            for (FastColumnInfo<?> primary : entity.getPrimaries()) {
+                if (entity.isEmpty(primary.getName())) {
+                    throw new FastSqlException(FastChar.getLocal().getInfo("Db_Sql_Error4", "'" + primary.getName() + "'"));
+                }
+                sqlBuilder.append(" and ").append(primary.getName()).append(" = ? ");
+                values.add(getColumnValue(entity, primary));
+            }
+        } else {
+            for (String check : checkColumns) {
+                FastColumnInfo<?> column = entity.getColumn(check);
+                if (column != null) {
+                    sqlBuilder.append(" and ").append(check).append(" = ? ");
+                    values.add(getColumnValue(entity, column));
+                }
+            }
+        }
+
+        FastSqlInfo sqlInfo = newSqlInfo();
+        sqlInfo.setSql(sqlBuilder.toString());
+        sqlInfo.setLog(entity.getBoolean("log", true));
+        sqlInfo.setParams(values);
+        return sqlInfo;
+    }
+
+
+    public FastSqlInfo buildDeleteFromRecycleSql(FastEntity<?> entity, String... checks) {
+        if (entity == null) {
+            return null;
+        }
+
+        List<Object> values = new ArrayList<>();
+        StringBuilder sqlBuilder = new StringBuilder("delete from " + entity.getTableName() + "_recycle" + " where 1=1 ");
+
+        List<String> checkColumns = new ArrayList<>();
+        for (String key : checks) {
+            FastColumnInfo<?> column = entity.getColumn(key);
+            if (column != null) {
+                checkColumns.add(key);
+            }
+        }
+
+        if (checkColumns.size() == 0) {
+            for (FastColumnInfo<?> primary : entity.getPrimaries()) {
+                if (entity.isEmpty(primary.getName())) {
+                    throw new FastSqlException(FastChar.getLocal().getInfo("Db_Sql_Error4", "'" + primary.getName() + "'"));
+                }
+                sqlBuilder.append(" and ").append(primary.getName()).append(" = ? ");
+                values.add(getColumnValue(entity, primary));
+            }
+        } else {
+            for (String check : checkColumns) {
+                FastColumnInfo<?> column = entity.getColumn(check);
+                if (column != null) {
+                    sqlBuilder.append(" and ").append(check).append(" = ? ");
+                    values.add(getColumnValue(entity, column));
+                }
+            }
+        }
+
+        FastSqlInfo sqlInfo = newSqlInfo();
+        sqlInfo.setSql(sqlBuilder.toString());
+        sqlInfo.setLog(entity.getBoolean("log", true));
+        sqlInfo.setParams(values);
+        return sqlInfo;
+    }
+
+
+    public FastSqlInfo toUpdateLayerSql(FastTableInfo<?> tableInfo, String oldLayerValue, String newLayerValue) {
         if (tableInfo == null) {
             return null;
         }
@@ -85,7 +256,7 @@ public class FastExtMySql extends FastMySql {
      */
     private void setLayerValue(FastEntity<?> entity) {
         if (entity instanceof FastExtEntity) {
-            FastExtEntity extEntity = (FastExtEntity) entity;
+            FastExtEntity<?> extEntity = (FastExtEntity<?>) entity;
             //配置权限字段
             FastExtColumnInfo layerColumn = extEntity.getLayerColumn();
             if (layerColumn != null) {
@@ -96,11 +267,11 @@ public class FastExtMySql extends FastMySql {
                     if (layerLinkColumn != null && entity.isNotEmpty(layerLinkColumn.getName())
                             && layerLinkColumn.getLinkInfo() != null) {
                         List<FastEntities.EntityInfo> entityInfo = FastChar.getEntities().getEntityInfo(layerLinkColumn.getLinkInfo().getTableName());
-                        FastEntity fastEntity = FastClassUtils.newInstance(entityInfo.get(0).getTargetClass());
+                        FastEntity<?> fastEntity = FastClassUtils.newInstance(entityInfo.get(0).getTargetClass());
                         if (fastEntity instanceof FastExtEntity) {
-                            FastExtEntity linkExtEntity = (FastExtEntity) fastEntity;
+                            FastExtEntity<?> linkExtEntity = (FastExtEntity<?>) fastEntity;
                             fastEntity.set(layerLinkColumn.getLinkInfo().getKeyColumnName(), entity.get(layerLinkColumn.getName()));
-                            parentLayerCode = linkExtEntity.selectLayerValue();
+                            parentLayerCode = linkExtEntity.selectLayerValue(layerLinkColumn.getLinkInfo().getKeyColumnName());
                         }
                     }
                 }
@@ -117,11 +288,11 @@ public class FastExtMySql extends FastMySql {
             return null;
         }
         if (entity instanceof FastExtEntity) {
-            FastExtEntity extEntity = (FastExtEntity) entity;
+            FastExtEntity<?> extEntity = (FastExtEntity<?>) entity;
             List<String> columns = new ArrayList<>();
             List<String> valueColumns = new ArrayList<>();
-            List<FastColumnInfo> tableColumns = extEntity.getTable().getColumns();
-            for (FastColumnInfo column : tableColumns) {
+            List<FastColumnInfo<?>> tableColumns = extEntity.getTable().getColumns();
+            for (FastColumnInfo<?> column : tableColumns) {
                 FastExtColumnInfo extColumn = (FastExtColumnInfo) column;
                 if (extColumn.isPrimary()) {
                     continue;
@@ -140,7 +311,7 @@ public class FastExtMySql extends FastMySql {
             StringBuilder sqlBuilder = new StringBuilder();
             sqlBuilder.append("insert into ").append(entity.getTableName()).append(" (").append(FastStringUtils.join(columns, ",")).append(") ").append(" select ").append(FastStringUtils.join(valueColumns, ",")).append(" from ").append(entity.getTableName()).append(" where ").append(" 1=1 ");
 
-            for (FastColumnInfo primary : entity.getPrimaries()) {
+            for (FastColumnInfo<?> primary : entity.getPrimaries()) {
                 if (entity.isEmpty(primary.getName())) {
                     throw new FastSqlException(FastChar.getLocal().getInfo("Db_Sql_Error4", "'" + primary.getName() + "'"));
                 }

@@ -28,7 +28,9 @@ function ExtManagerRoleEntity() {
                 alertUpdate: true,
                 autoUpdate: false,
                 autoDetails: true,
-                hoverTip: false
+                hoverTip: false,
+                excelOut:false,
+                excelIn: false
             },
             bufferedRenderer: false,
             animate: true,
@@ -334,6 +336,10 @@ function ExtManagerRoleEntity() {
             if (system.manager.role.roleType == 0) {
                 parentIdValue = -1;
             }
+            if (!where) {
+                where = {};
+            }
+            where={"t.roleState": 0};
             let dataStore = getEntityDataStore(me, where, {
                 idName: 'roleId',
                 parentIdName: 'parentRoleId',

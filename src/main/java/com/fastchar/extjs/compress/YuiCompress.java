@@ -6,7 +6,10 @@ import org.mozilla.javascript.ErrorReporter;
 import org.mozilla.javascript.EvaluatorException;
 
 import java.io.*;
+import java.lang.reflect.Array;
+import java.lang.reflect.Field;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 
 public class YuiCompress {
 
@@ -60,8 +63,7 @@ public class YuiCompress {
 
 
     private static void compress(String code, Writer writer) {
-        try {
-            Reader in = new InputStreamReader(new ByteArrayInputStream(code.getBytes()));
+        try (Reader in = new InputStreamReader(new ByteArrayInputStream(code.getBytes()))) {
             if (in.ready()) {
                 JavaScriptCompressor compressor = new JavaScriptCompressor(in, new ErrorReporter() {
                     public void warning(String message, String sourceName,
@@ -78,15 +80,35 @@ public class YuiCompress {
                         return null;
                     }
                 });
-                in.close();
                 compressor.compress(writer, -1, true, false, false, false);
             }
         } catch (Exception e) {
             try {
                 writer.write(code);
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
         } finally {
             FastFileUtils.closeQuietly(writer);
         }
     }
+
+
+    /**
+     * 强制释放JavaScriptCompressor
+     */
+    public static void releaseYuiCompressor() {
+        for (Field field : JavaScriptCompressor.class.getDeclaredFields()) {
+            if (field.getName().equalsIgnoreCase("threes")) {
+                try {
+                    field.setAccessible(true);
+                    ArrayList array = (ArrayList) field.get(JavaScriptCompressor.class);
+                    array.clear();
+                    field.setAccessible(false);
+                } catch (Exception ignored) {}
+            }
+        }
+
+    }
+
+
 }

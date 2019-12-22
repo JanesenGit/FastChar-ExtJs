@@ -1,15 +1,19 @@
 Ext.override(Ext.grid.column.Column, {
     afterRender: Ext.Function.createSequence(Ext.grid.column.Column.prototype.afterRender, function () {
-        let me = this;
-        me.code = getPowerCode(me);
-        if (!me.renderer) {
-            me.renderer = renders.normal();
-        }
+        try {
+            let me = this;
+            me.code = getPowerCode(me);
+            if (!me.renderer) {
+                me.renderer = renders.normal();
+            }
 
-        if (me.rendererFunction) {
-            me.renderer = eval(me.rendererFunction);
+            if (me.rendererFunction) {
+                me.renderer = eval(me.rendererFunction);
+            }
+            configColumnProperty(me);
+        } catch (e) {
+            console.error(e);
         }
-        configColumnProperty(me);
     })
 });
 
@@ -40,61 +44,65 @@ function getColumnGrid(column) {
  * @param column
  */
 function configColumnProperty(column) {
-    column.configText = column.text;
-    column.toSearchKey = function (where, i) {
-        return "where['" + this.getIndex() + i + this.dataIndex + where.compare + "']";
-    };
-    column.searchValue = function (value) {
-        let me = this;
-        if (!me.where) {
-            me.where = [];
-        }
-        let where = {
-            compare: '=',
-            value: value
+    try {
+        column.configText = column.text;
+        column.toSearchKey = function (where, i) {
+            return "where['" + this.getIndex() + i + this.dataIndex + where.compare + "']";
         };
-        me.where.push(where);
-        me.doSearch();
-    };
-    column.clearSearch = function () {
-        let me = this;
-        let storeParams = getColumnGrid(me).getStore().proxy.extraParams;
-        if (me.where) {
-            for (let i = 0; i < me.where.length; i++) {
-                let key = me.toSearchKey(me.where[i], i);
-                if (storeParams.hasOwnProperty(key)) {
-                    delete storeParams[key];//删除搜索记录
+        column.searchValue = function (value) {
+            let me = this;
+            if (!me.where) {
+                me.where = [];
+            }
+            let where = {
+                compare: '=',
+                value: value
+            };
+            me.where.push(where);
+            me.doSearch();
+        };
+        column.clearSearch = function () {
+            let me = this;
+            let storeParams = getColumnGrid(me).getStore().proxy.extraParams;
+            if (me.where) {
+                for (let i = 0; i < me.where.length; i++) {
+                    let key = me.toSearchKey(me.where[i], i);
+                    if (storeParams.hasOwnProperty(key)) {
+                        delete storeParams[key];//删除搜索记录
+                    }
                 }
             }
-        }
-        me.where = [];
-        me.searchMenu = null;
-        me.setStyle('color', '#444444');
-    };
-    column.doSearch = function (requestServer) {
-        let me = this;
-        let storeParams = getColumnGrid(me).getStore().proxy.extraParams;
-        if (me.where) {
-            for (let i = 0; i < me.where.length; i++) {
-                let w = me.where[i];
-                let key = me.toSearchKey(w, i);
-                let value = w.value;
-                if (w.compare.indexOf('?') >= 0) {
-                    value = '%' + w.value + '%';
+            me.where = [];
+            me.searchMenu = null;
+            me.setStyle('color', '#444444');
+        };
+        column.doSearch = function (requestServer) {
+            let me = this;
+            let storeParams = getColumnGrid(me).getStore().proxy.extraParams;
+            if (me.where) {
+                for (let i = 0; i < me.where.length; i++) {
+                    let w = me.where[i];
+                    let key = me.toSearchKey(w, i);
+                    let value = w.value;
+                    if (w.compare.indexOf('?') >= 0) {
+                        value = '%' + w.value + '%';
+                    }
+                    storeParams[key] = value;
                 }
-                storeParams[key] = value;
+                if (toBool(requestServer, true)) {
+                    getColumnGrid(me).getStore().loadPage(1);
+                }
+                if (me.where.length == 0) {
+                    me.setStyle('color', '#444444');
+                } else {
+                    me.setStyle('color', 'red');
+                }
             }
-            if (toBool(requestServer, true)) {
-                getColumnGrid(me).getStore().loadPage(1);
-            }
-            if (me.where.length == 0) {
-                me.setStyle('color', '#444444');
-            } else {
-                me.setStyle('color', 'red');
-            }
-        }
-        checkColumnSearch(getColumnGrid(me));
-    };
+            checkColumnSearch(getColumnGrid(me));
+        };
+    } catch (e) {
+        console.error(e);
+    }
 }
 
 /**
@@ -102,54 +110,70 @@ function configColumnProperty(column) {
  * @param column
  */
 function refreshColumnStyle(column) {
-    if (!Ext.isEmpty(column.dataIndex)) {
-        let sortDirection = column.sortDirection;
-        if (Ext.isEmpty(sortDirection)) {
-            sortDirection = "<font size='1'></font>";
-        } else {
-            if (sortDirection == "ASC") {
-                sortDirection = "<font color='red' size='1'>&nbsp;&nbsp;[正序]</font>"
+    try {
+        if (!Ext.isEmpty(column.dataIndex)) {
+            let sortDirection = column.sortDirection;
+            if (Ext.isEmpty(sortDirection)) {
+                sortDirection = "<font size='1'></font>";
             } else {
-                sortDirection = "<font color='red' size='1'>&nbsp;&nbsp;[倒序]</font>"
+                if (sortDirection == "ASC") {
+                    sortDirection = "<font color='red' size='1'>&nbsp;&nbsp;[正序]</font>"
+                } else {
+                    sortDirection = "<font color='red' size='1'>&nbsp;&nbsp;[倒序]</font>"
+                }
             }
+            if (Ext.isEmpty(column.sumText)) {
+                column.sumText = "<font size='1'></font>";
+            }
+            column.setText("&nbsp;" + column.configText + column.sumText + sortDirection + "&nbsp;");
+            checkColumnSort(getColumnGrid(column));
         }
-        if (Ext.isEmpty(column.sumText)) {
-            column.sumText = "<font size='1'></font>";
-        }
-        column.setText("&nbsp;" + column.configText + column.sumText + sortDirection + "&nbsp;");
-        checkColumnSort(getColumnGrid(column));
+    } catch (e) {
+        console.error(e);
     }
 }
 
 
 function checkColumnSearch(grid) {
-    let hasSearch = false;
-    Ext.each(grid.getColumns(), function (item) {
-        if (item.where) {
-            if (item.where.length > 0) {
-                hasSearch = true;
-                return false;
+    try {
+        let hasSearch = false;
+        Ext.each(grid.getColumns(), function (item) {
+            if (item.where) {
+                if (item.where.length > 0) {
+                    hasSearch = true;
+                    return false;
+                }
+            }
+        });
+        let dockeds = grid.getDockedItems('toolbar[dock="bottom"]');
+        if (dockeds.length > 0) {
+            let searchBtn = dockeds[0].down("button[toolType=searchBtn]");
+            if (hasSearch) {
+                searchBtn.setIconCls("extIcon extSearch redColor");
+            } else {
+                searchBtn.setIconCls("extIcon extSearch grayColor");
             }
         }
-    });
-    let dockeds = grid.getDockedItems('toolbar[dock="bottom"]');
-    let searchBtn = dockeds[0].down("button[toolType=searchBtn]");
-    if (hasSearch) {
-        searchBtn.setIconCls("extIcon extSearch redColor");
-    } else {
-        searchBtn.setIconCls("extIcon extSearch grayColor");
+    } catch (e) {
+        console.error(e);
     }
 }
 
 
 function checkColumnSort(grid) {
-    let hasSort = grid.getStore().getSorters().length > 0;
-    let dockeds = grid.getDockedItems('toolbar[dock="bottom"]');
-    let sortBtn = dockeds[0].down("button[toolType=sortBtn]");
-    if (hasSort) {
-        sortBtn.setIconCls("extIcon extSort redColor");
-    } else {
-        sortBtn.setIconCls("extIcon extSort grayColor");
+    try {
+        let hasSort = grid.getStore().getSorters().length > 0;
+        let dockeds = grid.getDockedItems('toolbar[dock="bottom"]');
+        if (dockeds.length > 0) {
+            let sortBtn = dockeds[0].down("button[toolType=sortBtn]");
+            if (hasSort) {
+                sortBtn.setIconCls("extIcon extSort redColor");
+            } else {
+                sortBtn.setIconCls("extIcon extSort grayColor");
+            }
+        }
+    } catch (e) {
+        console.error(e);
     }
 }
 
@@ -159,319 +183,340 @@ function checkColumnSort(grid) {
  * @param column
  */
 function showColumnSearchMenu(column) {
-    if (!toBool(getColumnGrid(column).columnSearch, true)) {
-        return false;
-    }
-    if (isFilesColumn(column)
-        || isFileColumn(column)) {
-        return false;
-    }
-    if (!toBool(column.search, true)) {
-        return false;
-    }
-    if (toBool(column["encrypt"], false)) {
-        return false;
-    }
+    try {
+        if (!toBool(getColumnGrid(column).columnSearch, true)) {
+            return false;
+        }
+        if (isFilesColumn(column)
+            || isFileColumn(column)) {
+            return false;
+        }
+        if (!toBool(column.search, true)) {
+            return false;
+        }
+        if (toBool(column["encrypt"], false)) {
+            return false;
+        }
 
-    if (!column.searchMenu) {
-        column.searchMenu = new Ext.menu.Menu({
-            padding: '0 0 0 0',
-            power: false,
-            showSeparator: false,
-            style: {
-                background: "#ffffff"
-            },
-            addSearchItem: function (where) {
-                let index = this.items.length - 1;
-                if (index >= 5) {
-                    return;
-                }
-                this.insert(index, buildSearchItem(column, where));
-            },
-            doSearch: function () {
-                let me = this;
-                let where = [];
-                me.items.each(function (item, index) {
-                    if (item.searchItem) {
-                        let toParam = item.toParam();
-                        if (toParam == null) {
-                            where = null;
-                            return false;
-                        }
-                        if (Ext.isEmpty(toParam.value)) {
-                            return;
-                        }
-                        toParam.index = index;
-                        where.push(toParam)
+        if (!column.searchMenu) {
+            column.searchMenu = new Ext.menu.Menu({
+                padding: '0 0 0 0',
+                power: false,
+                showSeparator: false,
+                style: {
+                    background: "#ffffff"
+                },
+                addSearchItem: function (where) {
+                    let index = this.items.length - 1;
+                    if (index >= 5) {
+                        return;
                     }
-                });
-                if (where) {
-                    column.clearSearch();
-                    column.where = where;
-                    column.doSearch();
-                    me.hide();
-                }
-            },
-            items: [
-                {
-                    xtype: 'panel',
-                    layout: 'hbox',
-                    margin: '2',
-                    border: 0,
-                    items: [
-                        {
-                            xtype: 'button',
-                            text: '搜索',
-                            flex: 1,
-                            iconCls: 'extIcon extSearch',
-                            margin: '0 2 0 0',
-                            handler: function () {
-                                this.ownerCt.ownerCt.doSearch();
+                    this.insert(index, buildSearchItem(column, where));
+                },
+                doSearch: function () {
+                    let me = this;
+                    let where = [];
+                    me.items.each(function (item, index) {
+                        if (item.searchItem) {
+                            let toParam = item.toParam();
+                            if (toParam == null) {
+                                where = null;
+                                return false;
                             }
-                        },
-                        {
-                            xtype: 'button',
-                            iconCls: 'extIcon extPlus fontSize14',
-                            width: 35,
-                            handler: function () {
-                                this.ownerCt.ownerCt.addSearchItem();
+                            if (Ext.isEmpty(toParam.value)) {
+                                return;
                             }
-                        }]
-                }],
-            listeners: {
-                show: function (obj, epts) {
-                    if (obj.items.length == 1) {
-                        obj.addSearchItem();
+                            toParam.index = index;
+                            where.push(toParam)
+                        }
+                    });
+                    if (where) {
+                        column.clearSearch();
+                        column.where = where;
+                        column.doSearch();
+                        me.hide();
                     }
-                    // new Ext.KeyMap(obj.getEl(), [{
-                    //     key: 13,
-                    //     fn: function () {
-                    //         obj.doSearch();
-                    //     },
-                    //     scope: obj
-                    // }]);
+                },
+                items: [
+                    {
+                        xtype: 'panel',
+                        layout: 'hbox',
+                        margin: '2',
+                        border: 0,
+                        items: [
+                            {
+                                xtype: 'button',
+                                text: '搜索',
+                                flex: 1,
+                                iconCls: 'extIcon extSearch',
+                                margin: '0 2 0 0',
+                                handler: function () {
+                                    this.ownerCt.ownerCt.doSearch();
+                                }
+                            },
+                            {
+                                xtype: 'button',
+                                iconCls: 'extIcon extPlus fontSize14',
+                                width: 35,
+                                handler: function () {
+                                    this.ownerCt.ownerCt.addSearchItem();
+                                }
+                            }]
+                    }],
+                listeners: {
+                    show: function (obj, epts) {
+                        if (obj.items.length == 1) {
+                            obj.addSearchItem();
+                        }
+                        try {
+                            new Ext.util.KeyMap({
+                                target: obj.getEl(),
+                                key: 13,
+                                fn: function (keyCode, e) {
+                                    obj.doSearch();
+                                },
+                                scope: obj
+                            });
+                        } catch (e) {
+                            console.error(e);
+                        }
+                    }
                 }
-            }
-        });
-    }
+            });
+        }
 
-    if (column.where) {
-        for (let i = 0; i < column.where.length; i++) {
-            let where = column.where[i];
-            if (Ext.isEmpty(where.index)) {
-                where.index = i;
-            }
-            if (where.index < column.searchMenu.items.length - 1) {
-                column.searchMenu.items.getAt(where.index).setParam(where);
-            } else {
-                column.searchMenu.addSearchItem(where);
+        if (column.where) {
+            for (let i = 0; i < column.where.length; i++) {
+                let where = column.where[i];
+                if (Ext.isEmpty(where.index)) {
+                    where.index = i;
+                }
+                if (where.index < column.searchMenu.items.length - 1) {
+                    column.searchMenu.items.getAt(where.index).setParam(where);
+                } else {
+                    column.searchMenu.addSearchItem(where);
+                }
             }
         }
-    }
 
-    column.searchMenu.setWidth(Math.max(column.width, 200));
-    column.searchMenu.showBy(column, "tl-bl?");
-    return true;
+        column.searchMenu.setWidth(Math.max(column.width, 200));
+        column.searchMenu.showBy(column, "tl-bl?");
+        return true;
+    } catch (e) {
+        console.error(e);
+    }
+    return false;
 }
 
 
 function buildSearchItem(column, where) {
-    let editorField = getColumnSimpleEditor(column, true);
-
-    editorField.flex = 1;
-    editorField.margin = '2 2 0 0';
-    editorField.repeatTriggerClick = false;
-    editorField.onClearValue = function () {
-        if (Ext.isFunction(this.ownerCt.removeSearch)) {
-            this.ownerCt.removeSearch();
+    try {
+        let editorField = getColumnSimpleEditor(column, true);
+        if (!editorField) {
             return;
         }
-        this.ownerCt.destroy();
-    };
-    editorField.triggers = {
-        close: {
-            cls: 'text-clear',
-            handler: function () {
-                this.onClearValue();
+
+        editorField.flex = 1;
+        editorField.margin = '2 2 0 0';
+        editorField.repeatTriggerClick = false;
+        editorField.onClearValue = function () {
+            if (Ext.isFunction(this.ownerCt.removeSearch)) {
+                this.ownerCt.removeSearch();
+                return;
             }
-        }
-    };
-    editorField.editable = true;
-    editorField.emptyText = "请输入条件值";
-    editorField.listeners = {
-        afterrender: function (obj, eOpts) {
-            if (Ext.isFunction(obj.getTrigger)) {
-                if (obj.getTrigger('picker')) {
-                    obj.getTrigger('picker').hide();
-                }
-                if (obj.getTrigger('spinner')) {
-                    obj.getTrigger('spinner').hide();
-                }
-            }
-        }
-    };
-    if (isDateField(editorField)) {
-        editorField.editable = false;
-    }
-    if (!where) {
-        where = {
-            compare: '=',
-            value: ''
+            this.ownerCt.destroy();
         };
-        if (isTextField(editorField)) {
-            where.compare = '?';
-        } else if (isDateField(editorField)) {
-            where.compare = '>';
+        editorField.triggers = {
+            close: {
+                cls: 'text-clear',
+                handler: function () {
+                    this.onClearValue();
+                }
+            }
+        };
+        editorField.editable = true;
+        editorField.emptyText = "请输入条件值";
+        editorField.listeners = {
+            afterrender: function (obj, eOpts) {
+                if (Ext.isFunction(obj.getTrigger)) {
+                    if (obj.getTrigger('picker')) {
+                        obj.getTrigger('picker').hide();
+                    }
+                    if (obj.getTrigger('spinner')) {
+                        obj.getTrigger('spinner').hide();
+                    }
+                }
+            }
+        };
+        if (isDateField(editorField)) {
+            editorField.editable = false;
         }
-    }
-    editorField.value = where.value;
-    editorField.submitValue = false;
-    editorField.name = "value";
-    let panel = {
-        xtype: 'panel',
-        margin: '0',
-        searchItem: true,
-        border: 0,
-        flex: 1,
-        region: 'center',
-        layout: 'hbox',
-        toParam: function () {
-            let params = {};
-            this.items.each(function (item) {
-                if (Ext.isFunction(item.getValue)) {
-                    if (item.isValid()) {
-                        params[item.getName()] = item.getValue();
-                    } else {
-                        shakeComment(item);
-                        toast(item.getErrors()[0]);
-                        params = null;
-                        return false;
+        if (!where) {
+            where = {
+                compare: '=',
+                value: ''
+            };
+            if (isTextField(editorField)) {
+                where.compare = '?';
+            } else if (isDateField(editorField)) {
+                where.compare = '>';
+            }
+        }
+        editorField.value = where.value;
+        editorField.submitValue = false;
+        editorField.name = "value";
+        let panel = {
+            xtype: 'panel',
+            margin: '0',
+            searchItem: true,
+            border: 0,
+            flex: 1,
+            region: 'center',
+            layout: 'hbox',
+            toParam: function () {
+                let params = {};
+                this.items.each(function (item) {
+                    if (Ext.isFunction(item.getValue)) {
+                        if (item.isValid()) {
+                            params[item.getName()] = item.getValue();
+                        } else {
+                            shakeComment(item);
+                            toast(item.getErrors()[0]);
+                            params = null;
+                            return false;
+                        }
                     }
-                }
-            });
-            return params;
-        },
-        setParam: function (where) {
-            this.items.each(function (item) {
-                if (Ext.isFunction(item.getValue)) {
-                    if (item.getName() == 'compare') {
-                        item.setValue(where.compare);
-                    } else {
-                        item.setValue(where.value);
-                    }
-                }
-            });
-        },
-        items: [
-            {
-                xtype: 'combo',
-                name: 'compare',
-                value: where.compare,
-                margin: '2 2 0 2',
-                width: 35,
-                valueField: 'text',
-                editable: false,
-                hideTrigger: true,
-                tpl: Ext.create('Ext.XTemplate',
-                    '<ul class="x-list-plain"><tpl for=".">',
-                    '<li role="option" class="x-boundlist-item" style="font-size: 12px;">{desc}</li>',
-                    '</tpl></ul>'
-                ),
-                listeners: {
-                    afterrender: function (obj, eOpts) {
-                        obj.getPicker().setMinWidth(100);
-                    }
-                },
-                store: getCompareDataStore()
+                });
+                return params;
             },
-            editorField
-        ]
-    };
-    return panel;
+            setParam: function (where) {
+                this.items.each(function (item) {
+                    if (Ext.isFunction(item.getValue)) {
+                        if (item.getName() == 'compare') {
+                            item.setValue(where.compare);
+                        } else {
+                            item.setValue(where.value);
+                        }
+                    }
+                });
+            },
+            items: [
+                {
+                    xtype: 'combo',
+                    name: 'compare',
+                    value: where.compare,
+                    margin: '2 2 0 2',
+                    width: 35,
+                    valueField: 'text',
+                    editable: false,
+                    hideTrigger: true,
+                    tpl: Ext.create('Ext.XTemplate',
+                        '<ul class="x-list-plain"><tpl for=".">',
+                        '<li role="option" class="x-boundlist-item" style="font-size: 12px;">{desc}</li>',
+                        '</tpl></ul>'
+                    ),
+                    listeners: {
+                        afterrender: function (obj, eOpts) {
+                            obj.getPicker().setMinWidth(100);
+                        }
+                    },
+                    store: getCompareDataStore()
+                },
+                editorField
+            ]
+        };
+        return panel;
+    } catch (e) {
+        console.error(e);
+    }
+    return null;
 }
 
 /**
  * 计算数据
  */
 function showCompute(grid, column, type) {
-    if (!grid.getStore().entity) {
-        Ext.Msg.alert('系统提醒', '计算失败！Grid的DataStore未绑定Entity!');
-        return;
-    }
+    try {
+        if (!grid.getStore().entity) {
+            Ext.Msg.alert('系统提醒', '计算失败！Grid的DataStore未绑定Entity!');
+            return;
+        }
 
-    let selection = grid.getSelection();
-    if (selection.length > 0) {
-        let value = null;
-        let title = "";
-        for (let i = 0; i < selection.length; i++) {
-            let record = selection[i];
-            let columnValue = parseFloat(record.get(column.dataIndex));
-            if (type == 'sum') {
-                title = column.configText + "总和：";
-                if (!value) {
-                    value = 0;
+        let selection = grid.getSelection();
+        if (selection.length > 0) {
+            let value = null;
+            let title = "";
+            for (let i = 0; i < selection.length; i++) {
+                let record = selection[i];
+                let columnValue = parseFloat(record.get(column.dataIndex));
+                if (type == 'sum') {
+                    title = column.configText + "总和：";
+                    if (!value) {
+                        value = 0;
+                    }
+                    value += columnValue;
+                } else if (type == 'avg') {
+                    title = column.configText + "平均值：";
+                    if (!value) {
+                        value = 0;
+                    }
+                    value += columnValue;
+                } else if (type == 'min') {
+                    title = column.configText + "最小值：";
+                    if (!value) {
+                        value = columnValue;
+                    }
+                    value = Math.min(columnValue, value);
+                } else if (type == 'max') {
+                    title = column.configText + "最大值：";
+                    if (!value) {
+                        value = columnValue;
+                    }
+                    value = Math.max(columnValue, value);
                 }
-                value += columnValue;
-            } else if (type == 'avg') {
-                title = column.configText + "平均值：";
-                if (!value) {
-                    value = 0;
-                }
-                value += columnValue;
-            } else if (type == 'min') {
-                title = column.configText + "最小值：";
-                if (!value) {
-                    value = columnValue;
-                }
-                value = Math.min(columnValue, value);
-            } else if (type == 'max') {
-                title = column.configText + "最大值：";
-                if (!value) {
-                    value = columnValue;
-                }
-                value = Math.max(columnValue, value);
             }
+            if (type == 'avg') {
+                value = value / selection.length;
+            }
+            if (Ext.isFunction(column.renderer)) {
+                Ext.Msg.alert('系统提醒', "当前选中的数据，" + title + column.renderer(value));
+            } else {
+                Ext.Msg.alert('系统提醒', "当前选中的数据，" + title + value);
+            }
+            return;
         }
-        if (type == 'avg') {
-            value = value / selection.length;
-        }
-        if (Ext.isFunction(column.renderer)) {
-            Ext.Msg.alert('系统提醒', "当前选中的数据，" + title + column.renderer(value));
-        } else {
-            Ext.Msg.alert('系统提醒', "当前选中的数据，" + title + value);
-        }
-        return;
+
+
+        let storeParams = grid.getStore().proxy.extraParams;
+
+        let params = {
+            "entityCode": grid.getStore().entity.entityCode,
+            "field": column.dataIndex,
+            "type": type
+        };
+
+        showWait("正在计算中……");
+        $.post("entity/compute", mergeJson(params, storeParams), function (result) {
+            hideWait();
+            let msg = "";
+            if (type == 'sum') {
+                msg = column.configText + "总和：";
+            } else if (type == 'avg') {
+                msg = column.configText + "平均值：";
+            } else if (type == 'min') {
+                msg = column.configText + "最小值：";
+            } else if (type == 'max') {
+                msg = column.configText + "最大值：";
+            }
+            if (Ext.isFunction(column.renderer)) {
+                Ext.Msg.alert('系统提醒', msg + column.renderer(result.data));
+            } else {
+                Ext.Msg.alert('系统提醒', msg + result.data);
+            }
+        });
+    } catch (e) {
+        console.error(e);
     }
-
-
-    let storeParams = grid.getStore().proxy.extraParams;
-
-    let params = {
-        "entityCode": grid.getStore().entity.entityCode,
-        "field": column.dataIndex,
-        "type": type
-    };
-
-    showWait("正在计算中……");
-    $.post("entity/compute", mergeJson(params, storeParams), function (result) {
-        hideWait();
-        let msg = "";
-        if (type == 'sum') {
-            msg = column.configText + "总和：";
-        } else if (type == 'avg') {
-            msg = column.configText + "平均值：";
-        } else if (type == 'min') {
-            msg = column.configText + "最小值：";
-        } else if (type == 'max') {
-            msg = column.configText + "最大值：";
-        }
-        if (Ext.isFunction(column.renderer)) {
-            Ext.Msg.alert('系统提醒', msg + column.renderer(result.data));
-        } else {
-            Ext.Msg.alert('系统提醒', msg + result.data);
-        }
-    });
-
 }
 
 
@@ -479,43 +524,53 @@ function showCompute(grid, column, type) {
  * 获得列的编辑类型
  */
 function getColumnSimpleEditor(column, search) {
-    let editor = {};
-    if (Ext.isObject(column.field)) {
-        editor.xtype = column.field.xtype;
-    } else {
-        editor.xtype = column.field;
-    }
-    if (Ext.isObject(column.config.field)) {
-        if (search) {
-            editor = copy(column.config.field);
+    try {
+        let editor = {};
+        if (Ext.isObject(column.field)) {
+            editor.xtype = column.field.xtype;
         } else {
-            editor = column.config.field;
+            editor.xtype = column.field;
         }
-    }
-    if (search) {
-        if (isContentField(column.field)
-            || isHtmlContentField(column.field)
-            || isTargetField(column.field)
-            || isPCAField(column.field)) {
+        if (Ext.isObject(column.config.field)) {
+            if (search) {
+                editor = copy(column.config.field);
+            } else {
+                editor = column.config.field;
+            }
+        }
+        if (search) {
+            if (isContentField(column.field)
+                || isHtmlContentField(column.field)
+                || isTargetField(column.field)
+                || isPCAField(column.field)) {
+                editor.xtype = "textfield";
+            }
+        }
+        if (Ext.isEmpty(editor.xtype)) {
             editor.xtype = "textfield";
         }
+        editor.dataIndex = column.dataIndex;
+        return editor;
+    } catch (e) {
+        console.error(e);
     }
-    if (Ext.isEmpty(editor.xtype)) {
-        editor.xtype = "textfield";
-    }
-    editor.dataIndex = column.dataIndex;
-    return editor;
+    return null;
 }
 
 /**
  * 判断列是否有编辑字段
  */
 function hasColumnField(column) {
-    if (Ext.isObject(column.field)) {
-        return true;
-    }
-    if (!Ext.isEmpty(column.field)) {
-        return true;
+    try {
+        if (Ext.isObject(column.field)) {
+            return true;
+        }
+        if (!Ext.isEmpty(column.field)) {
+            return true;
+        }
+        return false;
+    } catch (e) {
+        console.error(e);
     }
     return false;
 }
@@ -668,12 +723,16 @@ function batchEditColumn(column) {
     let editorField = column.batchField;
     if (!editorField) {
         editorField = getColumnSimpleEditor(column);
+        if(!editorField) return;
         editorField.flex = 1;
         editorField.emptyText = "请输入";
         editorField = column.batchField = Ext.create(editorField);
     }
     let putRecord = function (fieldObj) {
         if (!Ext.isEmpty(fieldObj.getValue())) {
+            if (!getColumnGrid(column).getStore()) {
+                return;
+            }
             getColumnGrid(column).getStore().holdUpdate = true;
             let selectData = getColumnGrid(column).getSelectionModel().getSelection();
             if (selectData.length > 0) {
@@ -751,13 +810,6 @@ function batchEditColumn(column) {
                 show: function (obj, epts) {
                     let fieldObj = obj.items.get(0).items.get(0);
                     fieldObj.focus();
-                    new Ext.KeyMap(obj.getEl(), [{
-                        key: 13,
-                        fn: function () {
-                            editMenu.doUpdate();
-                        },
-                        scope: obj
-                    }]);
                 },
                 beforehide: function (obj, epts) {
                     let fieldObj = obj.items.get(0).items.get(0);
@@ -1167,7 +1219,7 @@ function batchEditColumnRandom(column) {
 
 
     let setColumnValue = function (valueArray) {
-        if (valueArray.length == 0) return;
+        if (valueArray.length == 0||!(getColumnGrid(column).getStore())) return;
         getColumnGrid(column).getStore().holdUpdate = true;
         let selectData = getColumnGrid(column).getSelectionModel().getSelection();
         if (selectData.length > 0) {

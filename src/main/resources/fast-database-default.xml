@@ -48,6 +48,9 @@
         <column name="managerExtPower" comment="管理员界面权限" type="text"
                 nullable="null"/>
 
+        <column name="managerNoticeTitle" comment="管理员待办事项" type="text"
+                nullable="null"/>
+
         <column name="roleId" comment="管理员角色" type="int"
                 nullable="null" length="11" bind="layer" link="ext_manager_role@roleId@roleName"/>
 
@@ -127,5 +130,68 @@
         <column name="configDateTime" comment="录入时间" type="datetime"
                 length="6" nullable="null" index="true"/>
     </table>
+
+
+    <table name="ext_bug_report" comment="问题反馈" layer="bugLayerCode">
+
+        <column name="reportId" comment="编号" type="int" length="11"
+                primary="true" autoincrement="true" nullable="not null"/>
+
+        <column name="managerId" comment="管理员" type="int"
+                length="11" nullable="null" bind="layer" link="ext_manager@managerId@managerLoginName"/>
+
+        <column name="funcType" comment="功能类型" type="int"
+                nullable="null" length="11" render="Enum"/>
+
+        <column name="funcName" comment="功能名称" type="varchar"
+                nullable="null" length="500"/>
+
+        <column name="bugContent" comment="问题描述" type="text"
+                nullable="null" render="HtmlContent"/>
+
+        <column name="bugFlow" comment="操作步骤" type="text"
+                nullable="null" render="Content"/>
+
+        <column name="bugImages" comment="问题截图" type="text"
+                nullable="null" render="Image,Image"/>
+
+        <column name="fixInfo" comment="修改意见" type="text"
+                nullable="null" render="Content"/>
+
+        <column name="reportState" comment="问题状态" type="int"
+                nullable="null" length="11" render="Enum"/>
+
+        <column name="reportDateTime" comment="录入时间" type="datetime"
+                nullable="null" length="6"/>
+    </table>
+
+
+    <table name="ext_system_notice" comment="系统待办" layer="noticeLayerCode">
+
+        <column name="noticeId" comment="编号" type="int" length="11"
+                primary="true" autoincrement="true" nullable="not null"/>
+
+        <column name="noticeCode" comment="唯一编号" type="varchar"
+                nullable="null" length="500" index="true"/>
+
+        <column name="managerId" comment="管理员" type="int"
+                length="11" nullable="null" bind="layer" link="ext_manager@managerId@managerLoginName"/>
+
+        <column name="noticeTitle" comment="待办标题" type="varchar"
+                nullable="null" length="500"/>
+
+        <column name="noticeContent" comment="待办内容" type="text"
+                nullable="null" render="Content"/>
+
+        <column name="noticeAction" comment="功能路径" type="varchar"
+                nullable="null" length="500"/>
+
+        <column name="noticeState" comment="待办状态" type="int"
+                nullable="null" length="11" render="Enum"/>
+
+        <column name="noticeDateTime" comment="录入时间" type="datetime"
+                nullable="null" length="6"/>
+    </table>
+
 
 </database>

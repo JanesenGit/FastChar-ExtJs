@@ -45,11 +45,16 @@ function showMap(obj, lng, lat, address) {
                 }],
             listeners: {
                 'render': function (text) {
-                    new Ext.KeyMap(text.getEl(), [{
-                        key: 13,
-                        fn: doSearch,
-                        scope: Ext.getBody()
-                    }]);
+                    try {
+                        new Ext.util.KeyMap({
+                            target: text.getEl(),
+                            key: 13,
+                            fn: doSearch,
+                            scope:  Ext.getBody()
+                        });
+                    } catch (e) {
+                        console.error(e);
+                    }
                 }
             }
         });

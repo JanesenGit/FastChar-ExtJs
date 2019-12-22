@@ -16,16 +16,16 @@ import java.util.List;
 import java.util.Map;
 
 public class FastExtEntities {
-    private Map<String, Class<? extends FastExtEntity>> entityMap = new HashMap<>();
+    private Map<String, Class<? extends FastExtEntity<?>>> entityMap = new HashMap<>();
 
-    public FastExtEntities addEntity(Class<? extends FastExtEntity> targetClass) throws Exception {
+    public FastExtEntities addEntity(Class<? extends FastExtEntity<?>> targetClass) throws Exception {
         if (!FastExtEntity.class.isAssignableFrom(targetClass)) {
             return this;
         }
         if (!FastClassUtils.checkNewInstance(targetClass)) {
             return this;
         }
-        FastExtEntity fastExtEntity = FastClassUtils.newInstance(targetClass);
+        FastExtEntity<?> fastExtEntity = FastClassUtils.newInstance(targetClass);
         if (fastExtEntity != null) {
             String entityCode = fastExtEntity.getEntityCode();
             if (entityMap.containsKey(entityCode)) {
@@ -35,7 +35,7 @@ public class FastExtEntities {
                 FastMethodRead fastMethodRead = new FastMethodRead();
 
 
-                Class<? extends FastExtEntity> existClass = entityMap.get(entityCode);
+                Class<? extends FastExtEntity<?>> existClass = entityMap.get(entityCode);
 
                 if (existClass.equals(targetClass)) {
                     return this;
@@ -74,7 +74,7 @@ public class FastExtEntities {
     }
 
 
-    public Class<? extends FastExtEntity> getExtEntity(String entityCode) {
+    public Class<? extends FastExtEntity<?>> getExtEntity(String entityCode) {
         return entityMap.get(entityCode);
     }
 
@@ -82,7 +82,7 @@ public class FastExtEntities {
     public List<Map<String, Object>> getEntityInfo() {
         List<Map<String, Object>> infos = new ArrayList<>();
         for (String entityCode : entityMap.keySet()) {
-            Class<? extends FastExtEntity> aClass = entityMap.get(entityCode);
+            Class<? extends FastExtEntity<?>> aClass = entityMap.get(entityCode);
 
             FastEntities.EntityInfo entityInfo = FastChar.getEntities().getEntityInfo(aClass);
             if (entityInfo != null) {
@@ -92,6 +92,7 @@ public class FastExtEntities {
                 if (tableInfo != null) {
                     info.put("tableName", tableInfo.getName());
                     info.put("entityCode", entityCode);
+                    info.put("recycle", tableInfo.getBoolean("recycle", false));
                     info.put("comment", tableInfo.getComment());
                     info.put("shortName", "数据");
                     if (tableInfo instanceof FastExtTableInfo) {

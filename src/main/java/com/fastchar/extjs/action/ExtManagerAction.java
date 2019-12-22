@@ -1,21 +1,23 @@
 package com.fastchar.extjs.action;
 
+import com.fastchar.annotation.AFastRoute;
 import com.fastchar.core.FastAction;
 import com.fastchar.core.FastChar;
+import com.fastchar.core.FastEntity;
 import com.fastchar.core.FastHandler;
 import com.fastchar.extjs.FastExtConfig;
 import com.fastchar.extjs.annotation.AFastLog;
 import com.fastchar.extjs.annotation.AFastSession;
 import com.fastchar.extjs.core.heads.FastHeadExtInfo;
-import com.fastchar.extjs.entity.ExtManagerEntity;
-import com.fastchar.extjs.entity.ExtManagerErrorEntity;
-import com.fastchar.extjs.entity.ExtManagerRoleEntity;
+import com.fastchar.extjs.entity.*;
 import com.fastchar.extjs.interfaces.IFastManager;
 import com.fastchar.utils.FastMD5Utils;
 
 import java.util.List;
 
+@AFastRoute({"/controller"})
 public class ExtManagerAction extends FastAction {
+
     @Override
     protected String getRoute() {
         return "/manager";
@@ -52,6 +54,10 @@ public class ExtManagerAction extends FastAction {
         ExtManagerErrorEntity payErrorEntity = new ExtManagerErrorEntity();
         payErrorEntity.set("managerLoginName", loginName);
         if (managerEntity != null) {
+            if (managerEntity.getInt("managerState") == ExtManagerEntity.ManagerStateEnum.禁用.ordinal()) {
+                responseJson(-1, "登录失败！您的账号已被禁用！");
+            }
+
             IFastManager iFastManager = FastChar.getOverrides().singleInstance(false, IFastManager.class);
             if (iFastManager != null) {
                 FastHandler handler = new FastHandler();
@@ -170,5 +176,29 @@ public class ExtManagerAction extends FastAction {
         responseJson(0, "同步成功！");
     }
 
+
+    /**
+     * 待办事项
+     */
+    public void waitNotice() throws Exception {
+        setLog(false);
+        List<Integer> noticeId = getParamToIntList("noticeId");
+        ExtManagerEntity sessionUser = getSession("manager");
+        List<FastEntity<?>> list = ExtSystemNoticeEntity.dao().getList(sessionUser.getLayerValue(), noticeId.toArray(new Integer[]{}));
+        responseJson(0, "获取成功！", list);
+    }
+
+
+    /**
+     * 更新待办事项
+     */
+    public void doneNotice() {
+        int noticeId = getParamToInt("noticeId", true);
+        ExtSystemNoticeEntity extSystemNoticeEntity = ExtSystemNoticeEntity.newInstance();
+        extSystemNoticeEntity.set("noticeId", noticeId);
+        extSystemNoticeEntity.set("noticeState", ExtSystemNoticeEntity.ExtSystemNoticeStateEnum.已处理.ordinal());
+        extSystemNoticeEntity.update();
+        responseJson(0, "标记成功！");
+    }
 
 }

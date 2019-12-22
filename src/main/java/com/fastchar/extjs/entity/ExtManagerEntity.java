@@ -65,13 +65,31 @@ public class ExtManagerEntity extends FastExtEntity<ExtManagerEntity> {
 
     @Override
     public boolean save() {
+        remove("managerId");
         int roleId = getInt("roleId");
         ExtManagerRoleEntity extManagerRoleEntity = ExtManagerRoleEntity.getInstance().selectById(roleId);
         if (extManagerRoleEntity != null) {
             set("managerMenuPower", extManagerRoleEntity.getRoleMenuPower());
             set("managerExtPower", extManagerRoleEntity.getRoleExtPower());
         }
+        String managerLoginName = getString("managerLoginName");
+        if (getByLoginName(managerLoginName) != null) {
+            setError("登录名已存在！请您更换！");
+            return false;
+        }
         return super.save();
+    }
+
+    @Override
+    public boolean update() {
+        if (isNotEmpty("managerLoginName")) {
+            String managerLoginName = getString("managerLoginName");
+            if (getByLoginName(managerLoginName) != null) {
+                setError("登录名已存在！请您更换！");
+                return false;
+            }
+        }
+        return super.update();
     }
 
     @Override
@@ -95,6 +113,12 @@ public class ExtManagerEntity extends FastExtEntity<ExtManagerEntity> {
         return extManagerEntity;
     }
 
+    public ExtManagerEntity getByLoginName(String loginName) {
+        String sqlStr = "select * from ext_manager as t " +
+                " where managerLoginName = ? ";
+        return selectFirstBySql(sqlStr, loginName);
+    }
+
     public ExtManagerEntity login(String loginName, String loginPassword) {
         String sqlStr = "select * from ext_manager as t " +
                 " left join ext_manager_role as a on a.roleId=t.roleId " +
@@ -111,5 +135,16 @@ public class ExtManagerEntity extends FastExtEntity<ExtManagerEntity> {
     public ExtManagerRoleEntity getManagerRole() {
         return (ExtManagerRoleEntity) get("role");
     }
+
+
+    public ExtManagerEntity getManagerByNoticeTitle(String noticeTitle) {
+        String sqlStr = "select * from ext_manager where managerNoticeTitle like '%" + noticeTitle + "%' ";
+        ExtManagerEntity result=selectFirstBySql(sqlStr);
+        if (result == null) {
+            return selectById(1);
+        }
+        return result;
+    }
+
 
 }

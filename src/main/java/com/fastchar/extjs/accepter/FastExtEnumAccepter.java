@@ -11,7 +11,7 @@ import java.util.Map;
 @SuppressWarnings("unchecked")
 public class FastExtEnumAccepter implements IFastScannerAccepter {
 
-    public static Map<String, Class<? extends Enum>> ENUM_MAP = new HashMap<>();
+    public static Map<String, Class<? extends Enum<?>>> ENUM_MAP = new HashMap<>();
 
     @Override
     public boolean onScannerClass(FastEngine engine, Class<?> scannedClass) throws Exception {
@@ -19,7 +19,7 @@ public class FastExtEnumAccepter implements IFastScannerAccepter {
             if (!FastClassUtils.checkNewInstance(scannedClass)) {
                 return false;
             }
-            ENUM_MAP.put(scannedClass.getSimpleName(), (Class<? extends Enum>) scannedClass);
+            ENUM_MAP.put(scannedClass.getSimpleName(), (Class<? extends Enum<?>>) scannedClass);
             return true;
         }
         return false;

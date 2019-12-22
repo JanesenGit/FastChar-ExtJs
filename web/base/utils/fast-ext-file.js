@@ -173,11 +173,16 @@ function uploadFile(obj, fileModules) {
             },
             listeners: {
                 'render': function (obj) {
-                    new Ext.KeyMap(obj.getEl(), [{
-                        key: 13,
-                        fn: formPanel.doSubmit,
-                        scope: Ext.getBody()
-                    }]);
+                    try {
+                        new Ext.util.KeyMap({
+                            target: obj.getEl(),
+                            key: 13,
+                            fn: formPanel.doSubmit,
+                            scope: Ext.getBody()
+                        });
+                    } catch (e) {
+                        console.error(e);
+                    }
                 }
             }
         });
@@ -446,11 +451,16 @@ function importExcel(obj, params, formItems, serverUrl) {
             },
             listeners: {
                 'render': function (obj) {
-                    new Ext.KeyMap(obj.getEl(), [{
-                        key: 13,
-                        fn: formPanel.doSubmit,
-                        scope: Ext.getBody()
-                    }]);
+                    try {
+                        new Ext.util.KeyMap({
+                            target: obj.getEl(),
+                            key: 13,
+                            fn: formPanel.doSubmit,
+                            scope: Ext.getBody()
+                        });
+                    } catch (e) {
+                        console.error(e);
+                    }
                 }
             }
         });

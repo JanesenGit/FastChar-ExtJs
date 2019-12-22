@@ -6,6 +6,7 @@
     <title>API接口文档-${projectName}</title>
     <link rel="icon" href="${logo}" type="image/png"/>
     <link rel="stylesheet" href="base/iconfont/iconfont.css"/>
+    <script src="js/jquery.js"></script>
     <style>
 
         blockquote {
@@ -92,11 +93,11 @@
             margin-top: 50px;
             margin-right: 90px;
             padding: 10px;
-            width: 300px;
+            width: 350px;
             display: none;
         }
 
-        .searchContainer > input {
+        .searchInput {
             border: 1px solid #cccccc;
             font-size: 14px;
             padding: 10px;
@@ -105,9 +106,19 @@
             box-shadow: inset 0 5px 5px rgba(0, 0, 0, .075), 0 0 18px ${themeColor};
         }
 
-        .searchContainer > input:focus {
+        .searchInput:focus {
             border-color: ${themeColor};
             outline: 0;
+        }
+
+        .searchTip {
+            display: block;
+            position: absolute;
+            top: 0;
+            right: 0;
+            font-size: smaller;
+            color:#1aa1c5;
+            margin-top: 20px;
         }
 
         .searchContent {
@@ -122,18 +133,18 @@
             overflow-y: auto;
         }
 
-        .searchContent>li {
+        .searchContent > li {
             list-style: none;
             margin-top: 10px;
             cursor: pointer;
         }
 
-        .searchContent>li:hover {
+        .searchContent > li:hover {
             color: ${themeColor};
             font-weight: bold;
         }
 
-        .searchContent>li:focus {
+        .searchContent > li:focus {
             color: ${themeColor};
             font-weight: bold;
         }
@@ -176,6 +187,7 @@
             -o-transition: background-color 500ms, box-shadow 500ms ease, color 500ms ease;; /* Opera */
             margin-top: 10px;
         }
+
         .allowChecked {
             opacity: 1;
             background: white;
@@ -200,6 +212,23 @@
     </style>
     <script>
         let selectedId = null;
+        let documents = {};
+
+        function copyToBoard(content) {
+            let oInput = document.createElement('input');
+            oInput.value = content;
+            document.body.appendChild(oInput);
+            oInput.select();
+            document.execCommand("Copy");
+            oInput.style.display = 'none';
+            oInput.remove();
+        }
+
+        function countChar(content, char) {
+            let re = new RegExp(char, 'g');
+            let match = content.match(re);
+            return match ? match.length : 0;
+        }
 
         function countFrameMenu(tagetWindow) {
             let liTags = tagetWindow.document.getElementById("menu").getElementsByTagName("li");
@@ -226,7 +255,7 @@
             return tips;
         }
 
-        function selectTab(id, select) {
+        function selectTab(id, select, callBack) {
             let tab = document.getElementById(id + "Tab");
             if (select) {
                 setCookie("selectedTab" + document.title, id);
@@ -237,16 +266,24 @@
                     selectTab(selectedId, false);
                 }
                 tab.classList.add("checked");
-                document.getElementById("contentFrame").src = tab.getAttribute("data-url") + "&t=" + new Date().getTime();
-                document.getElementById("contentFrame").setAttribute("data-url", tab.getAttribute("data-url"));
-                document.getElementById("contentFrame").onload = function () {
+                let contentFrame = document.getElementById("contentFrame");
+                contentFrame.tab = id;
+                contentFrame.src = tab.getAttribute("data-url") + "&t=" + new Date().getTime();
+                contentFrame.setAttribute("data-url", tab.getAttribute("data-url"));
+                contentFrame.onload = function () {
                     let countMenu = countFrameMenu(document.getElementById("contentFrame").contentWindow);
                     let tabTitle = tab.getAttribute("data-name") + "（" + countMenu + "）";
                     tab.innerHTML = tabTitle;
                     setFrameStyle();
                     try {
                         document.getElementById("contentFrame").contentWindow["onload"]();
-                    } catch (e) {
+                    } catch (e) {}
+                    let selectedId = "$!{id}";
+                    if (selectedId.length > 0) {
+                        docMenuClick(null, selectedId);
+                    }
+                    if (callBack) {
+                        callBack();
                     }
                 };
                 selectedId = id;
@@ -261,6 +298,10 @@
             let oHead = childDocument.getElementsByTagName('head').item(0);
             let oStyle = childDocument.createElement("style");
             oStyle.type = "text/css";
+            let scrollStyleText =
+                "    ::-webkit-scrollbar-thumb {\n" +
+                "        background: ${themeColor} !important;\n" +
+                "    }";
             let selectStyleText = "::selection {\n" +
                 "    background: ${themeColor};\n" +
                 "    color: #ffffff;\n" +
@@ -290,22 +331,23 @@
                 "}li:hover {\n" +
                 "  border-left: 5px solid ${themeColor} !important;" +
                 "  background: #eeeeee !important;" +
-                " } .menu::-webkit-scrollbar-thumb {\n" +
-                " background: ${themeColor} !important;\n" +
-                "}.address {" +
+                " } .address {" +
                 " line-height: 30px; " +
                 " background: #fefeff !important;" +
                 "}";
             if (oStyle.styleSheet) {
-                oStyle.styleSheet.cssText = selectStyleText + styleText;
+                oStyle.styleSheet.cssText = scrollStyleText+selectStyleText + styleText;
             } else {
-                oStyle.innerHTML = selectStyleText + styleText;
+                oStyle.innerHTML = scrollStyleText+selectStyleText + styleText;
             }
             oHead.appendChild(oStyle);
         }
 
         function onload() {
-            let selected = getCookie("selectedTab" + document.title);
+            let selected = "$!{tab}";
+            if (selected.length == 0) {
+                selected = getCookie("selectedTab" + document.title);
+            }
             let menu = document.getElementById(selected + "Tab");
             if (!menu) {
                 selected = "$first";
@@ -349,58 +391,112 @@
         function docSearch(obj) {
             let searchContent = obj.value;
             let searchContentObj = document.getElementById("searchContent");
+            setCookie("SearchContent", searchContent);
             if (searchContent.length == 0) {
                 searchContentObj.style.visibility = "hidden";
                 return;
             }
-            setCookie("SearchContent", searchContent);
-            let doc = document.getElementById("contentFrame").contentWindow.document;
-            let liTags = doc.getElementsByTagName("li");
-            let keys = searchContent.split("");
-            let searchResult = [];
-            for (let i = 0; i < liTags.length; i++) {
-                let liTag = liTags[i];
-                let liHas = 0;
-                let title = liTag.innerText;
-                for (let j = 0; j < keys.length; j++) {
-                    let key = keys[j];
-                    if(key.length==0) continue;
-                    if (title.indexOf(key) >= 0) {
-                        title= title.replace(key, "#" + key + "@");
-                        liHas++;
+            iterateSearch(0, searchContent, [], function (searchResult) {
+                let searchHtml = "";
+                for (let k = 0; k < searchResult.length; k++) {
+                    searchHtml += searchResult[k].content;
+                }
+
+                if (searchResult.length > 0) {
+                    searchContentObj.innerHTML = searchHtml;
+                    searchContentObj.style.visibility = "visible";
+                    searchContentObj.scrollTop = 0;
+                } else {
+                    searchContentObj.innerHTML = "";
+                    searchContentObj.style.visibility = "hidden";
+                }
+            });
+        }
+
+
+        function iterateSearch(index, searchContent, searchResult, callBack) {
+            let keys = Object.keys(documents);
+            if (index >= keys.length) {
+                searchResult.sort(function (a, b) {
+                    return b.count - a.count;
+                });
+                callBack(searchResult);
+                return;
+            }
+            let key = keys[index];
+            $.get(documents[key], function (result) {
+                let doc = new DOMParser().parseFromString(result, 'text/html');
+                let liTags = doc.getElementsByTagName("li");
+                let keys = searchContent.split("");
+                let searched = [];
+                for (let i = 0; i < liTags.length; i++) {
+                    let liTag = liTags[i];
+                    let liHas = 0;
+                    let liLastIndex = -1;
+                    let sourceTitlte = liTag.innerText + liTag.getAttribute("url");
+                    let title =  liTag.innerText + "~" + liTag.getAttribute("url");
+                    let coutedKey = "";
+                    for (let j = 0; j < keys.length; j++) {
+                        let key = keys[j].trim();
+                        if (key.length == 0) continue;
+                        if (sourceTitlte.indexOf(key) >= 0) {
+                            if (coutedKey.indexOf(key) < 0) {
+                                liHas = liHas + countChar(sourceTitlte, key);
+                            }
+                            coutedKey += key;
+                            let index = sourceTitlte.indexOf(key);
+                            title = title.replace(new RegExp(key, 'g'), "#" + key + "@");
+                            if (Math.abs(index - liLastIndex) == 1) {
+                                liHas += 99;
+                            }
+                            liLastIndex = index;
+                        }
+                    }
+                    if (liHas > 0) {
+                        title = title.replace(new RegExp("#", 'g'), "<b style=\"color: red;\">")
+                            .replace(new RegExp("@", 'g'), "</b>")
+                            .replace(new RegExp("~", 'g'), "<br/>");
+
+
+                        let content = "<li style='display: flex;' onclick=\"docMenuClick(this,'" + liTag.id + "','" + key + "')\">" +
+                            (i + 1) + "、" +
+                            "<span style='flex: 1'>" + title +
+                            "</span>" +
+                            "<span style='font-size: smaller;color: #cccccc'>" +
+                            "【" + doc.title + "】" +
+                            "</span>"
+                            + "</li><hr/>";
+                        searched.push({count: liHas, content: content});
                     }
                 }
-                if (liHas > 0) {
-                    title = title.replace(new RegExp("#",'g'), "<b style=\"color: red;\">")
-                        .replace(new RegExp("@",'g'), "</b>");
-                    let content = "<li onclick=\"docMenuClick(this,'" + liTag.id + "')\">" + title + "</li>";
-                    searchResult.push({count:liHas, content: content});
-                }
-            }
-            searchResult.sort(function (a, b) {
-                return b.count - a.count;
+                searchResult = searchResult.concat(searched);
+                iterateSearch(index + 1, searchContent, searchResult, callBack);
             });
-            let searchHtml = "";
-            for (let k = 0; k < searchResult.length; k++) {
-                searchHtml += searchResult[k].content;
-            }
+        }
 
 
-            if (searchResult.length > 0) {
-                searchContentObj.innerHTML = searchHtml;
-                searchContentObj.style.visibility = "visible";
-                searchContentObj.scrollTop = 0;
+        function docMenuClick(obj, id, tab) {
+            if (tab) {
+                let contentFrame = document.getElementById("contentFrame");
+                if (contentFrame.tab == tab) {
+                    docMenuClick(null, id, null);
+                    return;
+                }
+                selectTab(tab, true, function () {
+                    docMenuClick(null, id, null);
+                });
             } else {
-                searchContentObj.innerHTML = "";
-                searchContentObj.style.visibility = "hidden";
+                id = id.replace("Menu", "");
+                document.getElementById("contentFrame").contentWindow["selectMenu"](id, true, false);
             }
         }
 
-        function docMenuClick(obj,id) {
-            id = id.replace("Menu", "");
-            document.getElementById("contentFrame").contentWindow["selectMenu"](id, true, false);
+        function copyLink(id) {
+            let selected = getCookie("selectedTab" + document.title);
+            let url = location.href + "?id=" + id + "&tab=" + selected;
+            copyToBoard(url);
+            alert("复制成功！");
         }
-
 
 
     </script>
@@ -409,8 +505,11 @@
 
 <div class="head">
     #foreach ($d in $docs)
-    <div id="${d.id}Tab" onclick="selectTab($d.id,true);" data-url="$d.url" data-name="$d.name" class="tab">$d.name
+    <div id="${d.id}Tab" onclick="selectTab('$d.id',true);" data-url="$d.url" data-name="$d.name" class="tab">$d.name
     </div>
+    <script>
+        documents['$d.id'] = '$d.url';
+    </script>
     #end
 </div>
 
@@ -440,7 +539,10 @@
 </div>
 
 <div class="searchContainer" id="searchContainer">
-    <input oninput="docSearch(this);" id="searchInput" placeholder="输入关键字搜索"/>
+    <div>
+        <input class="searchInput" oninput="docSearch(this);" id="searchInput" placeholder="输入关键字搜索"/>
+        <span class="searchTip" id="searchTip"></span>
+    </div>
     <div class="searchContent" id="searchContent">
 
     </div>

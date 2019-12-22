@@ -8,6 +8,7 @@ import com.fastchar.database.info.FastTableInfo;
 import com.fastchar.exception.FastDatabaseException;
 
 import com.fastchar.utils.FastArrayUtils;
+import com.fastchar.utils.FastBooleanUtils;
 import com.fastchar.utils.FastStringUtils;
 
 import java.util.ArrayList;
@@ -24,7 +25,12 @@ public class FastExtTableInfo extends FastTableInfo<FastExtTableInfo> {
 
     private String layer;
     private String bind;
+    private String recycle;
 
+    private boolean checkLayer;
+    private boolean checkLayerLink;
+    private FastExtColumnInfo layerColumn;
+    private FastExtColumnInfo layerLinkColumn;
     public String getShortName() {
         if (containsKey("shortName")) {
             return getString("shortName");
@@ -39,29 +45,38 @@ public class FastExtTableInfo extends FastTableInfo<FastExtTableInfo> {
         return false;
     }
 
+    public boolean isRecycle() {
+        return FastBooleanUtils.formatToBoolean(recycle);
+    }
 
     public FastExtColumnInfo getLayerColumn() {
-        for (FastColumnInfo column : getColumns()) {
-            if (column instanceof FastExtColumnInfo) {
-                FastExtColumnInfo extColumnInfo = (FastExtColumnInfo) column;
-                if (extColumnInfo.isLayer()) {
-                    return extColumnInfo;
+        if (layerColumn == null && !checkLayer) {
+            checkLayer = true;
+            for (FastColumnInfo<?> column : getColumns()) {
+                if (column instanceof FastExtColumnInfo) {
+                    FastExtColumnInfo extColumnInfo = (FastExtColumnInfo) column;
+                    if (extColumnInfo.isLayer()) {
+                        layerColumn = extColumnInfo;
+                    }
                 }
             }
         }
-        return null;
+        return layerColumn;
     }
 
     public FastExtColumnInfo getLayerLinkColumn() {
-        for (FastColumnInfo column : getColumns()) {
-            if (column instanceof FastExtColumnInfo) {
-                FastExtColumnInfo extColumnInfo = (FastExtColumnInfo) column;
-                if (extColumnInfo.isBindLayer()) {
-                    return extColumnInfo;
+        if (layerLinkColumn == null && !checkLayerLink) {
+            checkLayerLink = true;
+            for (FastColumnInfo<?> column : getColumns()) {
+                if (column instanceof FastExtColumnInfo) {
+                    FastExtColumnInfo extColumnInfo = (FastExtColumnInfo) column;
+                    if (extColumnInfo.isBindLayer()) {
+                        layerLinkColumn = extColumnInfo;
+                    }
                 }
             }
         }
-        return null;
+        return layerLinkColumn;
     }
 
     @Override
@@ -73,8 +88,7 @@ public class FastExtTableInfo extends FastTableInfo<FastExtTableInfo> {
                 FastExtColumnInfo columnInfo = new FastExtColumnInfo();
                 columnInfo.setName(layer);
                 columnInfo.setLayer("true");
-                columnInfo.setType("varchar");
-                columnInfo.setLength("999");
+                columnInfo.setType("text");
                 columnInfo.setComment("层级权限");
                 columnInfo.setIndex("true");
                 columnInfo.setNullable("null");
@@ -110,6 +124,20 @@ public class FastExtTableInfo extends FastTableInfo<FastExtTableInfo> {
             throw new FastDatabaseException(FastChar.getLocal().getInfo("Db_Table_Error2", FastStringUtils.join(layers, ","))
                     + FastStringUtils.join(layerStackTraceElements, ""));
         }
+
+        if (isRecycle()) {
+            FastTableInfo<?> copyRecycle = copy();
+            copyRecycle.set("recycle", null);
+            copyRecycle.setName(copyRecycle.getName() + "_recycle");
+            copyRecycle.validate();
+            FastChar.getDatabases().get(getDatabaseName()).getTables().add(copyRecycle);
+        }
+
+    }
+
+    @Override
+    public void columnToMap() {
+        super.columnToMap();
     }
 
     public String getLayer() {
@@ -127,6 +155,15 @@ public class FastExtTableInfo extends FastTableInfo<FastExtTableInfo> {
 
     public FastExtTableInfo setBind(String bind) {
         this.bind = bind;
+        return this;
+    }
+
+    public String getRecycle() {
+        return recycle;
+    }
+
+    public FastExtTableInfo setRecycle(String recycle) {
+        this.recycle = recycle;
         return this;
     }
 }

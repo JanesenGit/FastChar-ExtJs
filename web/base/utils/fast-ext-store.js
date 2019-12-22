@@ -82,6 +82,40 @@ function commitStoreDelete(store, data) {
     });
 }
 
+/**
+ * 提交回收站还原entity store选择的数据
+ */
+function commitStoreReback(store, data) {
+    return new Ext.Promise(function (resolve, reject) {
+        if (!store.entity) {
+            return;
+        }
+        let params = {"entityCode": store.entity.entityCode};
+        if (store.entity.menu) {
+            params["menu"] = store.entity.menu.text;
+        }
+        for (let i = 0; i < data.length; i++) {
+            let record = data[i];
+            for (let j = 0; j < store.entity.idProperty.length; j++) {
+                let idName = store.entity.idProperty[j];
+                params['data[' + i + '].' + idName] = record.get(idName);
+            }
+        }
+        server.rebackEntity(params, function (success, message) {
+            resolve(success);
+            if (success) {
+                let reloadPage = store.currentPage;
+                if (store.count() - data.length <= 0) {
+                    reloadPage = reloadPage - 1;
+                }
+                store.loadPage(Math.max(reloadPage, 1));
+            } else {
+                Ext.Msg.alert('系统提醒', message);
+            }
+        });
+    });
+}
+
 
 /**
  * 提交复制entity store选择的数据

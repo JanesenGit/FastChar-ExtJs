@@ -1,19 +1,21 @@
 Ext.override(Ext.button.Button, {
     afterRender: Ext.Function.createSequence(Ext.button.Button.prototype.afterRender, function () {
-        let me = this;
-        if (me.tipText) {
-            me.tip = new Ext.ToolTip({
-                target: me.el,
-                trackMouse: true,
-                renderTo: Ext.getBody(),
-                html: me.tipText
-            });
-        }
-        if (!Ext.isEmpty(me.text)) {
+        try {
+            let me = this;
+            if (me.tipText) {
+                me.tip = new Ext.ToolTip({
+                    target: me.el,
+                    trackMouse: true,
+                    renderTo: Ext.getBody(),
+                    html: me.tipText
+                });
+            }
             let grid = me.up('grid,treepanel');
             if (grid) {
-                //需要配置右键菜单
-                addGridContextMenu(grid, buttonToMenuItem(me));
+                if (!Ext.isEmpty(me.text)) {
+                    //需要配置右键菜单
+                    addGridContextMenu(grid, buttonToMenuItem(me));
+                }
                 //需要检测grid选中项
                 if (me.checkSelect) {
                     if (!grid.selectButtons) {
@@ -30,6 +32,8 @@ Ext.override(Ext.button.Button, {
                     grid.updateButtons.push(me);
                 }
             }
+        } catch (e) {
+            console.error(e);
         }
     })
 });

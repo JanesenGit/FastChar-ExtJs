@@ -12,39 +12,10 @@
 .headContainer{
 }
 
-.headButton{
-    background: $[frontColor] !important;
-    border: 0;
-    color: '#eeeee' !important;
-    box-shadow:0 0 4px #fefefe !important;
-
-     -moz-transition: background 300ms ,box-shadow 300ms  !important;
-     -webkit-transition: background 300ms,box-shadow 300ms !important;
-     -o-transition:background 300ms,box-shadow 300ms !important;
-     transition:background 300ms,box-shadow 300ms !important;
-}
-
-
-.headButton:hover{
-    background: $[frontColor3] !important;
-    box-shadow:0 0 18px #fefefe !important;
-}
-
-.headLogo {
-    box-shadow:0 0 4px #fefefe !important;
-}
-
-.headLogo:hover{
-    box-shadow:0 0 18px #fefefe !important;
-}
-
 .headTitle{
     background-image:-webkit-linear-gradient(160deg, $[color1] 20%, $[frontColor] 80%);
    -webkit-background-clip:text;
    -webkit-text-fill-color:transparent;
-}
-.headTitle:hover{
-    text-shadow:0 0 18px #fefefe !important;
 }
 .leftBottom{
     background: #32404e !important;
@@ -566,4 +537,13 @@ body>.x-mask {
 }
 .x-datepicker-month .x-btn-default-small{
     background:transparent !important;
+}
+
+.x-item-disabled-normal {
+    cursor: default;
+    pointer-events: none;
+}
+
+.x-grid-cell{
+   color:#000000;
 }

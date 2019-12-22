@@ -53,16 +53,16 @@ final class JsBuilder {
         build("/Volumes/JanesenDisk_Work/WorkSpace/space_ij/CrosheWork/FastChar-ExtJs/web/base/utils",
                 "/Volumes/JanesenDisk_Work/WorkSpace/space_ij/CrosheWork/FastChar-ExtJs/web/base/utils");
 
-//        YuiCompress.compress("/Volumes/JanesenDisk_Work/WorkSpace/space_ij/CrosheWork/FastChar-ExtJs/web/base/login/login.js",
-//                "/Volumes/JanesenDisk_Work/WorkSpace/space_ij/CrosheWork/FastChar-ExtJs/web/base/login/login.min.js");
-////
+        YuiCompress.compress("/Volumes/JanesenDisk_Work/WorkSpace/space_ij/CrosheWork/FastChar-ExtJs/web/base/login/login.js",
+                "/Volumes/JanesenDisk_Work/WorkSpace/space_ij/CrosheWork/FastChar-ExtJs/web/base/login/login.min.js");
+//
 
-//        YuiCompress.compress("/Volumes/JanesenDisk_Work/WorkSpace/space_ij/CrosheWork/FastChar-ExtJs/web/base/index/index.js",
-//                "/Volumes/JanesenDisk_Work/WorkSpace/space_ij/CrosheWork/FastChar-ExtJs/web/base/index/index.min.js");
+        YuiCompress.compress("/Volumes/JanesenDisk_Work/WorkSpace/space_ij/CrosheWork/FastChar-ExtJs/web/base/index/index.js",
+                "/Volumes/JanesenDisk_Work/WorkSpace/space_ij/CrosheWork/FastChar-ExtJs/web/base/index/index.min.js");
 //
 //
-//        YuiCompress.compress("/Volumes/JanesenDisk_Work/WorkSpace/space_ij/CrosheWork/FastChar-ExtJs/web/base/welcome/welcome.js",
-//                "/Volumes/JanesenDisk_Work/WorkSpace/space_ij/CrosheWork/FastChar-ExtJs/web/base/welcome/welcome.min.js");
+        YuiCompress.compress("/Volumes/JanesenDisk_Work/WorkSpace/space_ij/CrosheWork/FastChar-ExtJs/web/base/welcome/welcome.js",
+                "/Volumes/JanesenDisk_Work/WorkSpace/space_ij/CrosheWork/FastChar-ExtJs/web/base/welcome/welcome.min.js");
 
 
 //        String regStr = "([^/]*.svg)";

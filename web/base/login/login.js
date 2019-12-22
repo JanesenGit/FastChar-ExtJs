@@ -60,7 +60,7 @@ function showLogin(container) {
     }
 
     let loginPanel = Ext.create('Ext.form.FormPanel', {
-        url: 'manager/login',
+        url: server.loginUrl(),
         method: 'POST',
         fileUpload: true,
         border: 0,
@@ -186,11 +186,17 @@ function showLogin(container) {
             }],
         listeners: {
             'render': function (text) {
-                new Ext.KeyMap(text.getEl(), [{
-                    key: 13,
-                    fn: doLogin,
-                    scope: Ext.getBody()
-                }]);
+                try {
+                    new Ext.util.KeyMap({
+                        target: text.getEl(),
+                        key: 13,
+                        fn: doLogin,
+                        scope: Ext.getBody()
+                    });
+                } catch (e) {
+                    console.error(e);
+                }
+
             }
         }
     });

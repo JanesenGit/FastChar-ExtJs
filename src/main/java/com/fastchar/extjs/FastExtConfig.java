@@ -35,69 +35,137 @@ public final class FastExtConfig implements IFastConfig {
     private FastLayerType layerType = FastLayerType.Layer_Role;//权限级别，默认以当前管理角色为最高级别
     private String menuPrefix = "fast-menus";
 
+    /**
+     * 获取系统默认的主题色
+     * @return 字符串
+     */
     public String getDefaultThemeColor() {
         return defaultThemeColor;
     }
 
+    /**
+     * 设置系统默认的主题色
+     * @param defaultThemeColor 颜色值以#开头
+     * @return 当前对象
+     */
     public FastExtConfig setDefaultThemeColor(String defaultThemeColor) {
         this.defaultThemeColor = defaultThemeColor;
         return this;
     }
 
+    /**
+     * 设置FastExtEntity实体集合
+     * @param extEntities 实体集合
+     * @return 当前对象
+     */
     public FastExtConfig setExtEntities(FastExtEntities extEntities) {
         this.extEntities = extEntities;
         return this;
     }
 
+    /**
+     * 是否压缩appjs文件夹的所有js文件
+     * @return 布尔值
+     */
     public boolean isCompressAppJs() {
         return compressAppJs;
     }
 
+    /**
+     * 设置是否压缩appjs文件夹的所有js文件
+     * @param compressAppJs 布尔值
+     * @return 当前对象
+     */
     public FastExtConfig setCompressAppJs(boolean compressAppJs) {
         this.compressAppJs = compressAppJs;
         return this;
     }
 
+    /**
+     * 是否打印附件日志
+     * @return 布尔值
+     */
     public boolean isAttachLog() {
         return attachLog;
     }
 
+    /**
+     * 设置是否打印附件日志
+     * @param attachLog 布尔值
+     * @return 当前对象
+     */
     public FastExtConfig setAttachLog(boolean attachLog) {
         this.attachLog = attachLog;
         return this;
     }
 
+    /**
+     * 是否合并appjs文件夹下的所有js文件，最终在webroot目录下生成一个app.js文件
+     * @return 布尔值
+     */
     public boolean isMergeAppJs() {
         return mergeAppJs;
     }
 
+    /**
+     * 设置是否合并appjs文件夹下的所有js文件，最终在webroot目录下生成一个app.js文件
+     * @param mergeAppJs 布尔值
+     * @return 当前对象
+     */
     public FastExtConfig setMergeAppJs(boolean mergeAppJs) {
         this.mergeAppJs = mergeAppJs;
         return this;
     }
 
+    /**
+     * 获取合并后生成的js文件
+     * @return 文件对象
+     */
     public File getMergeJs() {
         return new File(FastChar.getPath().getWebRootPath(), "app.js");
     }
 
+    /**
+     * 获取系统权限类型
+     * @return 权限类型@FastLayerType
+     */
     public FastLayerType getLayerType() {
         return layerType;
     }
 
+    /**
+     * 设置系统的权限的类型
+     * @param layerType 权限类型
+     * @return 当前对象
+     */
     public FastExtConfig setLayerType(FastLayerType layerType) {
         this.layerType = layerType;
         return this;
     }
 
+    /**
+     * 获取系统菜单的配置文件前缀，默认：fast-menus
+     * @return 字符串
+     */
     public String getMenuPrefix() {
         return menuPrefix;
     }
 
+    /**
+     * 设置系统菜单的配置文件前缀，默认：fast-menus
+     * @param menuPrefix 前缀，默认：fast-menus
+     * @return 当前对象
+     */
     public FastExtConfig setMenuPrefix(String menuPrefix) {
         this.menuPrefix = menuPrefix;
         return this;
     }
 
+    /**
+     * 获取配置的ext值，在fast-head-*.html配置的scheme="ext"值
+     * @param name ext名称
+     * @return FastHeadExtInfo对象值
+     */
     public FastHeadExtInfo getExtInfo(String name) {
         List<FastHeadInfo> heads = FastChar.getValues().get("heads");
         if (heads != null) {
@@ -113,6 +181,10 @@ public final class FastExtConfig implements IFastConfig {
         return null;
     }
 
+    /**
+     * 获取所有ext值，在fast-head-*.html配置的scheme="ext"值
+     * @return FastHeadExtInfo值集合
+     */
     public List<FastHeadExtInfo> getExtInfo() {
         List<FastHeadExtInfo> extInfos = new ArrayList<>();
         List<FastHeadInfo> heads = FastChar.getValues().get("heads");
@@ -127,6 +199,10 @@ public final class FastExtConfig implements IFastConfig {
         return extInfos;
     }
 
+    /**
+     * 获取配置的项目标题
+     * @return 字符串
+     */
     public String getProjectTitle() {
         List<FastHeadInfo> heads = FastChar.getValues().get("heads");
         for (FastHeadInfo head : heads) {
@@ -140,6 +216,10 @@ public final class FastExtConfig implements IFastConfig {
         return "后台管理";
     }
 
+    /**
+     * 获取配置的项目logo
+     * @return 字符串
+     */
     public String getProjectIcon() {
         List<FastHeadInfo> heads = FastChar.getValues().get("heads");
         for (FastHeadInfo head : heads) {
@@ -155,6 +235,10 @@ public final class FastExtConfig implements IFastConfig {
     }
 
 
+    /**
+     * 获取所有appjs文件夹下的所有js文件夹
+     * @return File对象集合
+     */
     public List<File> getAppJs() {
         File mergeFile = new File(FastChar.getPath().getWebRootPath(), "app.js");
         if (mergeFile.exists()) {
@@ -213,11 +297,19 @@ public final class FastExtConfig implements IFastConfig {
         return mapFiles;
     }
 
+    /**
+     * 获取所有FastExtEntity对象集合
+     * @return FastExtEntities
+     */
     public FastExtEntities getExtEntities() {
         return extEntities;
     }
 
 
+    /**
+     * 获取系统主题的css代码
+     * @return FastHeadStyleInfo
+     */
     public FastHeadStyleInfo getThemeInfo() {
         try {
             FastHeadExtInfo themeInfo = getExtInfo("theme");
@@ -261,6 +353,12 @@ public final class FastExtConfig implements IFastConfig {
         return null;
     }
 
+    /**
+     * 替换占位符 ${.*}
+     * @param placeholders 属性值
+     * @param content 需要替换的内容
+     * @return 替换后的内容
+     */
     public static String replacePlaceholder(Map<String, Object> placeholders, String content) {
         for (String key : placeholders.keySet()) {
             if (placeholders.get(key) != null) {
