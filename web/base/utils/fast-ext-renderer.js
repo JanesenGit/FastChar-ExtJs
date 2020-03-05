@@ -40,7 +40,7 @@ const renders = {
     },
     file: function () {
         return function (val, m, record) {
-            if (Ext.isEmpty(val) || val == "null") {
+            if (Ext.isEmpty(val) || val === "null") {
                 return "<span style='color: #ccc;'>暂无文件</span>";
             }
             return "&nbsp;<a href=\"" + system.formatUrlVersion(val) + "\" target='_blank' >" + val.substring(val.lastIndexOf("/") + 1) + "</a>&nbsp;";
@@ -49,7 +49,7 @@ const renders = {
     files: function () {
         return function (val, m, record, rowIndex, colIndex, store, view, details) {
             try {
-                if (Ext.isEmpty(val) || val == "null") {
+                if (Ext.isEmpty(val) || val === "null") {
                     return "<span style='color: #ccc;'>暂无文件</span>";
                 }
                 let data = [];
@@ -59,7 +59,7 @@ const renders = {
                     } catch (e) {
                     }
                 }
-                if (data.length == 0) {
+                if (data.length === 0) {
                     return "<span style='color: #ccc;'>暂无文件</span>";
                 }
                 let dataId = $.md5(val);
@@ -84,7 +84,7 @@ const renders = {
             try {
                 let imageHeight = "16px";
                 let imageWidth = "auto";
-                if (Ext.isEmpty(val) || val == "null") {
+                if (Ext.isEmpty(val) || val === "null") {
                     return "<img style='border:1px solid #cccccc;height:" + imageHeight + ";' src='images/default_img.png'   />";
                 }
                 if (val.startWith("//")) {
@@ -110,7 +110,7 @@ const renders = {
     images: function () {
         return function (val, m, record, rowIndex, colIndex, store, view, details) {
             try {
-                if (Ext.isEmpty(val) || val == "null") {
+                if (Ext.isEmpty(val) || val === "null") {
                     return "<span style='color: #ccc;'>暂无图片</span>";
                 }
                 let data = val;
@@ -122,16 +122,13 @@ const renders = {
                         }
                     }
                 }
-                if (data.length == 0) {
+                if (data.length === 0) {
                     return "<span style='color: #ccc;'>暂无图片</span>";
                 }
                 let dataId = $.md5(JSON.stringify(data));
                 let detailsList = "";
                 for (let i = 0; i < data.length; i++) {
                     detailsList += renders.image(24)(data[i]) + "&nbsp;&nbsp;";
-                    // if ((i + 1) % 3 == 0) {
-                    //     detailsList += "<br/>";
-                    // }
                 }
                 if (details) {
                     return detailsList;
@@ -146,7 +143,7 @@ const renders = {
     },
     mp4: function () {
         return function (val, m, record) {
-            if (Ext.isEmpty(val) || val == "null") {
+            if (Ext.isEmpty(val) || val === "null") {
                 return "<span style='color: #ccc;'>暂无文件</span>";
             }
             return "&nbsp;<a href=\"javascript:showVideo(this,'" + system.formatUrlVersion(val) + "');\" >" + val.substring(val.lastIndexOf("/") + 1) + "</a>&nbsp;";
@@ -154,7 +151,7 @@ const renders = {
     },
     html: function () {
         return function (val, m, record, rowIndex, colIndex, store, view, details) {
-            if (Ext.isEmpty(val) || val == "null") {
+            if (Ext.isEmpty(val) || val === "null") {
                 return "<span style='color: #ccc;'>无</span>";
             }
             let key = $.md5(val);
@@ -163,10 +160,22 @@ const renders = {
             return "&nbsp;<a href=\"javascript:" + functionStr + ";\">查看内容</a>&nbsp;";
         };
     },
+    html2: function () {
+        return function (val, m, record, rowIndex, colIndex, store, view, details) {
+            if (Ext.isEmpty(val) || val === "null") {
+                return "<span style='color: #ccc;'>无</span>";
+            }
+            if (details) {
+                return val;
+            }
+            val = val.replace(/<\/?.+?>/g, "");
+            return "<span style='white-space: pre;'>" + val + "</span>";
+        };
+    },
     link: function (name, entityCode, entityId) {
         return function (val, m, record) {
             try {
-                if (Ext.isEmpty(val) || val == "null") {
+                if (Ext.isEmpty(val) || val === "null") {
                     return "<span style='color: #ccc;'>无</span>";
                 }
                 let keyValue = record.get(name);
@@ -180,7 +189,7 @@ const renders = {
     target: function (targetId, targetType, targetFunction) {
         return function (val, m, record) {
             try {
-                if (Ext.isEmpty(val) || val == "null") {
+                if (Ext.isEmpty(val) || val === "null") {
                     return "<span style='color: #ccc;'>无</span>";
                 }
                 if (!targetFunction) {
@@ -205,7 +214,7 @@ const renders = {
     map: function (lngName, latName) {
         return function (val, m, record) {
             try {
-                if (Ext.isEmpty(val) || val == "null") {
+                if (Ext.isEmpty(val) || val === "null") {
                     return "<span style='color: #ccc;'>无</span>";
                 }
                 let lng = record.get(lngName);
@@ -232,7 +241,7 @@ const renders = {
     },
     href: function () {
         return function (val, m, record) {
-            if (Ext.isEmpty(val) || val == "null") {
+            if (Ext.isEmpty(val) || val === "null") {
                 return "<span style='color: #ccc;'>无</span>";
             }
             return "&nbsp;<a href='" + val + "' target='_blank'>" + val + "</a>&nbsp;";
@@ -241,7 +250,7 @@ const renders = {
     fileSize: function () {
         return function (val, m, record) {
             try {
-                if (Ext.isEmpty(val) || val == "null") {
+                if (Ext.isEmpty(val) || val === "null") {
                     return "<span style='color: #ccc;'>无</span>";
                 }
 
@@ -265,11 +274,14 @@ renders["enum"] = function (enumName) {
             if (Ext.isEmpty(val)) {
                 return "<span style='color: #ccc;'>无</span>";
             }
-            let enumText = getEnumText(enumName, val);
+            let enumRecord = getEnumRecord(enumName,val);
+            let enumText = enumRecord.get("text");
+            let enumColor = enumRecord.get("color");
             if (Ext.isEmpty(enumText)) {
                 return "<span style='color: #ccc;'>无</span>";
             }
-            return enumText;
+            let color = toColor(enumColor, "#000000");
+            return "<span style='color: " + color + ";'>" + enumText + "</span>";
         } catch (e) {
             return "<span style='color: #ccc;'>无</span>";
         }

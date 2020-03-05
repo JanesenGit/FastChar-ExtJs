@@ -40,10 +40,10 @@ function ExtBugReportEntity() {
 				dataIndex: "funcType",
 				align: "center",
 				width: 220,
-				rendererFunction: "renders.enum('FuncTypeEnum')",
+				rendererFunction: "renders.enum('ExtBugFuncTypeEnum')",
 				field: {
 					xtype: 'enumcombo',
-					enumName: 'FuncTypeEnum'
+					enumName: 'ExtBugFuncTypeEnum'
 				}
 			},
 			{
@@ -92,10 +92,10 @@ function ExtBugReportEntity() {
 				dataIndex: "reportState",
 				align: "center",
 				width: 220,
-				rendererFunction: "renders.enum('ReportStateEnum')",
+				rendererFunction: "renders.enum('ExtBugReportStateEnum')",
 				field: {
 					xtype: 'enumcombo',
-					enumName: 'ReportStateEnum'
+					enumName: 'ExtBugReportStateEnum'
 				}
 			},
 			{
@@ -209,7 +209,7 @@ function ExtBugReportEntity() {
 					columnWidth: 1,
 					value: 0,
 					allowBlank: false,
-					enumName: "FuncTypeEnum"
+					enumName: "ExtBugFuncTypeEnum"
 				},
 				{
 					name: "data.funcName",
@@ -360,10 +360,10 @@ function ExtBugReportEntity() {
 					dataIndex: "funcType",
 					align: "center",
 					width: 220,
-					rendererFunction: "renders.enum('FuncTypeEnum')",
+					rendererFunction: "renders.enum('ExtBugFuncTypeEnum')",
 					field: {
 						xtype: 'enumcombo',
-						enumName: 'FuncTypeEnum'
+						enumName: 'ExtBugFuncTypeEnum'
 					},
 					editable: false
 				},
@@ -389,10 +389,10 @@ function ExtBugReportEntity() {
 					dataIndex: "reportState",
 					align: "center",
 					width: 220,
-					rendererFunction: "renders.enum('ReportStateEnum')",
+					rendererFunction: "renders.enum('ExtBugReportStateEnum')",
 					field: {
 						xtype: 'enumcombo',
-						enumName: 'ReportStateEnum'
+						enumName: 'ExtBugReportStateEnum'
 					},
 					editable: false
 				},

@@ -18,7 +18,7 @@ Ext.override(Ext.grid.column.Column, {
 });
 
 function isColumnType(target) {
-    return target == "gridcolumn" || target.xtype == "gridcolumn";
+    return target === "gridcolumn" || target.xtype === "gridcolumn";
 }
 
 function getColumnFieldType(column) {
@@ -92,14 +92,17 @@ function configColumnProperty(column) {
                 if (toBool(requestServer, true)) {
                     getColumnGrid(me).getStore().loadPage(1);
                 }
-                if (me.where.length == 0) {
+                if (me.where.length === 0) {
                     me.setStyle('color', '#444444');
                 } else {
                     me.setStyle('color', 'red');
                 }
             }
-            checkColumnSearch(getColumnGrid(me));
         };
+
+        if (column.where && column.where.length > 0) {
+            column.doSearch(false);
+        }
     } catch (e) {
         console.error(e);
     }
@@ -116,7 +119,7 @@ function refreshColumnStyle(column) {
             if (Ext.isEmpty(sortDirection)) {
                 sortDirection = "<font size='1'></font>";
             } else {
-                if (sortDirection == "ASC") {
+                if (sortDirection === "ASC") {
                     sortDirection = "<font color='red' size='1'>&nbsp;&nbsp;[正序]</font>"
                 } else {
                     sortDirection = "<font color='red' size='1'>&nbsp;&nbsp;[倒序]</font>"
@@ -219,7 +222,7 @@ function showColumnSearchMenu(column) {
                     me.items.each(function (item, index) {
                         if (item.searchItem) {
                             let toParam = item.toParam();
-                            if (toParam == null) {
+                            if (!toParam) {
                                 where = null;
                                 return false;
                             }
@@ -265,7 +268,7 @@ function showColumnSearchMenu(column) {
                     }],
                 listeners: {
                     show: function (obj, epts) {
-                        if (obj.items.length == 1) {
+                        if (obj.items.length === 1) {
                             obj.addSearchItem();
                         }
                         try {
@@ -336,21 +339,24 @@ function buildSearchItem(column, where) {
         };
         editorField.editable = true;
         editorField.emptyText = "请输入条件值";
-        editorField.listeners = {
-            afterrender: function (obj, eOpts) {
-                if (Ext.isFunction(obj.getTrigger)) {
-                    if (obj.getTrigger('picker')) {
-                        obj.getTrigger('picker').hide();
-                    }
-                    if (obj.getTrigger('spinner')) {
-                        obj.getTrigger('spinner').hide();
-                    }
-                }
-            }
-        };
-        if (isDateField(editorField)) {
-            editorField.editable = false;
-        }
+
+        // 此处是移除默认的trigger
+        // editorField.listeners = {
+        //     afterrender: function (obj, eOpts) {
+        //         if (Ext.isFunction(obj.getTrigger)) {
+        //             if (obj.getTrigger('picker')) {
+        //                 obj.getTrigger('picker').hide();
+        //             }
+        //             if (obj.getTrigger('spinner')) {
+        //                 obj.getTrigger('spinner').hide();
+        //             }
+        //         }
+        //     }
+        // };
+        // if (isDateField(editorField)) {
+        //     editorField.editable = false;
+        // }
+
         if (!where) {
             where = {
                 compare: '=',
@@ -392,7 +398,7 @@ function buildSearchItem(column, where) {
             setParam: function (where) {
                 this.items.each(function (item) {
                     if (Ext.isFunction(item.getValue)) {
-                        if (item.getName() == 'compare') {
+                        if (item.getName() === 'compare') {
                             item.setValue(where.compare);
                         } else {
                             item.setValue(where.value);
@@ -449,25 +455,25 @@ function showCompute(grid, column, type) {
             for (let i = 0; i < selection.length; i++) {
                 let record = selection[i];
                 let columnValue = parseFloat(record.get(column.dataIndex));
-                if (type == 'sum') {
+                if (type === 'sum') {
                     title = column.configText + "总和：";
                     if (!value) {
                         value = 0;
                     }
                     value += columnValue;
-                } else if (type == 'avg') {
+                } else if (type === 'avg') {
                     title = column.configText + "平均值：";
                     if (!value) {
                         value = 0;
                     }
                     value += columnValue;
-                } else if (type == 'min') {
+                } else if (type === 'min') {
                     title = column.configText + "最小值：";
                     if (!value) {
                         value = columnValue;
                     }
                     value = Math.min(columnValue, value);
-                } else if (type == 'max') {
+                } else if (type === 'max') {
                     title = column.configText + "最大值：";
                     if (!value) {
                         value = columnValue;
@@ -475,7 +481,7 @@ function showCompute(grid, column, type) {
                     value = Math.max(columnValue, value);
                 }
             }
-            if (type == 'avg') {
+            if (type === 'avg') {
                 value = value / selection.length;
             }
             if (Ext.isFunction(column.renderer)) {
@@ -499,13 +505,13 @@ function showCompute(grid, column, type) {
         $.post("entity/compute", mergeJson(params, storeParams), function (result) {
             hideWait();
             let msg = "";
-            if (type == 'sum') {
+            if (type === 'sum') {
                 msg = column.configText + "总和：";
-            } else if (type == 'avg') {
+            } else if (type === 'avg') {
                 msg = column.configText + "平均值：";
-            } else if (type == 'min') {
+            } else if (type === 'min') {
                 msg = column.configText + "最小值：";
-            } else if (type == 'max') {
+            } else if (type === 'max') {
                 msg = column.configText + "最大值：";
             }
             if (Ext.isFunction(column.renderer)) {
@@ -668,8 +674,8 @@ function getColumn(grid, dataIndex, text) {
     let columns = grid.getColumns();
     for (let i = 0; i < columns.length; i++) {
         let column = columns[i];
-        if (column.dataIndex == dataIndex) {
-            if (text && column.text == text) {
+        if (column.dataIndex === dataIndex) {
+            if (text && column.text === text) {
                 return column;
             }
             return column;
@@ -906,6 +912,11 @@ function showColumnSearchWin(obj, grid) {
         };
     };
 
+    let defaultItems = grid.searchItems;
+    if (!defaultItems) {
+        defaultItems = [];
+    }
+
     let formPanel = Ext.create('Ext.form.FormPanel', {
         margin: '5',
         border: 0,
@@ -918,7 +929,7 @@ function showColumnSearchWin(obj, grid) {
             labelAlign: 'right',
             emptyText: '请填写'
         },
-        items: [],
+        items: defaultItems,
     });
 
     Ext.each(grid.getColumns(), function (item) {
@@ -929,7 +940,7 @@ function showColumnSearchWin(obj, grid) {
             }
         }
     });
-    if (formPanel.items.length == 0) {
+    if (formPanel.items.length === 0) {
         formPanel.add(buildItem(store.getAt(0)));
     }
 
@@ -970,7 +981,16 @@ function showColumnSearchWin(obj, grid) {
                         });
                         let searchColumns = [];
                         formPanel.items.each(function (item) {
+                            if (!item.toParam) {
+                                let params = {};
+                                params["where['" + item.name + "']"] = item.getValue();
+                                Ext.apply(grid.getStore().proxy.extraParams, params);
+                                return;
+                            }
                             let toParam = item.toParam();
+                            if (!toParam) {
+                                return;
+                            }
                             if (Ext.isEmpty(toParam.value)) {
                                 return;
                             }
@@ -990,7 +1010,6 @@ function showColumnSearchWin(obj, grid) {
                             item.doSearch(false);
                         });
                         grid.getStore().loadPage(1);
-                        checkColumnSearch(grid);
                     }
                 }]
         });
@@ -1219,7 +1238,7 @@ function batchEditColumnRandom(column) {
 
 
     let setColumnValue = function (valueArray) {
-        if (valueArray.length == 0||!(getColumnGrid(column).getStore())) return;
+        if (valueArray.length === 0||!(getColumnGrid(column).getStore())) return;
         getColumnGrid(column).getStore().holdUpdate = true;
         let selectData = getColumnGrid(column).getSelectionModel().getSelection();
         if (selectData.length > 0) {
@@ -1267,16 +1286,16 @@ function batchEditColumnRandom(column) {
                     if (form.isValid()) {
                         let valueArray = [];
                         let buildType = setPanel.getFieldValue("autoType");
-                        if (buildType == 1) {//文本
+                        if (buildType === 1) {//文本
                             let textPrefix = setPanel.getFieldValue("textPrefix");
                             let textStartNumber = setPanel.getFieldValue("textStartNumber");
                             for (let i = parseInt(textStartNumber); i < Number.MAX_VALUE; i++) {
                                 valueArray.push(textPrefix + i);
-                                if (valueArray.length == dataLength) {
+                                if (valueArray.length === dataLength) {
                                     break;
                                 }
                             }
-                        } else if (buildType == 2) {//数字
+                        } else if (buildType === 2) {//数字
                             let dotNumber = setPanel.getFieldValue("dotNumber");
                             let minNumber = setPanel.getFieldValue("minNumber");
                             let maxNumber = setPanel.getFieldValue("maxNumber");
@@ -1287,11 +1306,11 @@ function batchEditColumnRandom(column) {
                             for (let i = 0; i < Number.MAX_VALUE; i++) {
                                 let numberValue = Math.random() * (maxNumber - minNumber) + minNumber;
                                 valueArray.push(numberValue.toFixed(dotNumber));
-                                if (valueArray.length == dataLength) {
+                                if (valueArray.length === dataLength) {
                                     break;
                                 }
                             }
-                        } else if (buildType == 3) {//日期
+                        } else if (buildType === 3) {//日期
                             let minDate = setPanel.getFieldValue("minDate");
                             let maxDate = setPanel.getFieldValue("maxDate");
                             if (minDate.getTime() > maxDate.getTime()) {
@@ -1303,7 +1322,7 @@ function batchEditColumnRandom(column) {
                                 let numberValue = Math.random() * sub + minDate.getTime();
                                 let randDate = new Date(numberValue);
                                 valueArray.push(Ext.Date.format(randDate, setPanel.getField("minDate").format));
-                                if (valueArray.length == dataLength) {
+                                if (valueArray.length === dataLength) {
                                     break;
                                 }
                             }
@@ -1412,7 +1431,7 @@ function showColumnSortWin(obj, grid) {
         formPanel.add(buildItem(data, item.getDirection()));
     });
 
-    if (formPanel.items.length == 0) {
+    if (formPanel.items.length === 0) {
         formPanel.add(buildItem(store.getAt(0), "NONE"));
     }
 

@@ -4,6 +4,7 @@ import com.fastchar.core.FastChar;
 import com.fastchar.core.FastEngine;
 import com.fastchar.extjs.FastExtConfig;
 import com.fastchar.extjs.compress.YuiCompress;
+import com.fastchar.extjs.utils.ExtFileUtils;
 import com.fastchar.interfaces.IFastScannerAccepter;
 import com.fastchar.utils.FastStringUtils;
 

@@ -57,7 +57,6 @@
         <column name="managerState" comment="管理员状态" type="int"
                 nullable="null" length="11" render="Enum"/>
 
-
         <column name="managerDateTime" comment="录入时间" type="datetime"
                 length="6" nullable="null"/>
     </table>
@@ -95,6 +94,12 @@
 
         <column name="systemLogClient" comment="客户端信息" type="text"
                 nullable="null" charset="utf8mb4"/>
+
+        <column name="systemSendData" comment="提交的数据" type="longtext"
+                nullable="null" charset="utf8mb4" index="true"/>
+
+        <column name="systemResultData" comment="返回的数据" type="longtext"
+                nullable="null" charset="utf8mb4" index="true"/>
 
         <column name="systemLogData" comment="被操作的数据" type="longtext"
                 nullable="null" charset="utf8mb4" index="true"/>

@@ -20,16 +20,16 @@ public class FastExtEnum extends FastExtBaseEnum {
     }
 
 
-    private Class<? extends Enum> enumClass;
+    private Class<? extends Enum<?>> enumClass;
     public FastExtEnum(String enumName) {
         enumClass = FastExtEnumAccepter.ENUM_MAP.get(enumName);
     }
 
-    public Class<? extends Enum> getEnumClass() {
+    public Class<? extends Enum<?>> getEnumClass() {
         return enumClass;
     }
 
-    public FastExtEnum setEnumClass(Class<? extends Enum> enumClass) {
+    public FastExtEnum setEnumClass(Class<? extends Enum<?>> enumClass) {
         this.enumClass = enumClass;
         return this;
     }

@@ -5,8 +5,8 @@ import com.fastchar.core.FastConstant;
 import com.fastchar.database.info.FastDatabaseInfo;
 import com.fastchar.extjs.core.heads.*;
 import com.fastchar.extjs.utils.ColorUtils;
+import com.fastchar.extjs.utils.ExtFileUtils;
 import com.fastchar.utils.FastNetworkUtils;
-import com.fastchar.utils.FastNumberUtils;
 import com.fastchar.utils.FastStringUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Attribute;
@@ -16,7 +16,6 @@ import org.jsoup.select.Elements;
 
 import java.io.File;
 import java.io.FilenameFilter;
-import java.net.InetAddress;
 import java.util.*;
 
 public class FastHeadXmlObserver {
@@ -242,8 +241,10 @@ public class FastHeadXmlObserver {
         FastHeadExtInfo indexExtInfo = new FastHeadExtInfo();
         indexExtInfo.setName("indexUrl");
         indexExtInfo.setValue("base/index/index.js");
-        if (new File(FastChar.getPath().getWebRootPath(), "base/index/index.min.js").exists()) {
-            indexExtInfo.setValue("base/index/index.min.js");
+        File minIndexJsFile = ExtFileUtils.searchFirstFile(new File(FastChar.getPath().getWebRootPath(), "base/index"), "min",".js");
+        if (minIndexJsFile != null) {
+            String replace = minIndexJsFile.getAbsolutePath().replace(FastChar.getPath().getWebRootPath(), "");
+            indexExtInfo.setValue(FastStringUtils.strip(replace, File.separator));
         }
         indexExtInfo.fromProperty();
 
@@ -251,16 +252,23 @@ public class FastHeadXmlObserver {
         FastHeadExtInfo loginExtInfo = new FastHeadExtInfo();
         loginExtInfo.setName("loginUrl");
         loginExtInfo.setValue("base/login/login.js");
-        if (new File(FastChar.getPath().getWebRootPath(), "base/login/login.min.js").exists()) {
-            loginExtInfo.setValue("base/login/login.min.js");
+
+        File minLoginJsFile = ExtFileUtils.searchFirstFile(new File(FastChar.getPath().getWebRootPath(), "base/login"), "min",".js");
+        if (minLoginJsFile != null) {
+            String replace = minLoginJsFile.getAbsolutePath().replace(FastChar.getPath().getWebRootPath(), "");
+            loginExtInfo.setValue(FastStringUtils.strip(replace, File.separator));
         }
+
         loginExtInfo.fromProperty();
 
         FastHeadExtInfo welcomeExtInfo = new FastHeadExtInfo();
         welcomeExtInfo.setName("welcomeUrl");
         welcomeExtInfo.setValue("base/welcome/welcome.js");
-        if (new File(FastChar.getPath().getWebRootPath(), "base/welcome/welcome.min.js").exists()) {
-            welcomeExtInfo.setValue("base/welcome/welcome.min.js");
+
+        File minWelcomeJsFile = ExtFileUtils.searchFirstFile(new File(FastChar.getPath().getWebRootPath(), "base/welcome"), "min",".js");
+        if (minWelcomeJsFile != null) {
+            String replace = minWelcomeJsFile.getAbsolutePath().replace(FastChar.getPath().getWebRootPath(), "");
+            welcomeExtInfo.setValue(FastStringUtils.strip(replace, File.separator));
         }
         welcomeExtInfo.fromProperty();
 

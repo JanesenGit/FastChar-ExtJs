@@ -180,6 +180,7 @@ public class ExtManagerAction extends FastAction {
     /**
      * 待办事项
      */
+    @AFastSession
     public void waitNotice() throws Exception {
         setLog(false);
         List<Integer> noticeId = getParamToIntList("noticeId");
@@ -192,6 +193,7 @@ public class ExtManagerAction extends FastAction {
     /**
      * 更新待办事项
      */
+    @AFastSession
     public void doneNotice() {
         int noticeId = getParamToInt("noticeId", true);
         ExtSystemNoticeEntity extSystemNoticeEntity = ExtSystemNoticeEntity.newInstance();

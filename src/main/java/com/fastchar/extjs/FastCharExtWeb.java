@@ -17,6 +17,7 @@ import com.fastchar.extjs.observer.FastHeadXmlObserver;
 import com.fastchar.extjs.observer.FastMenuXmlObserver;
 import com.fastchar.extjs.out.FastExtParamError;
 import com.fastchar.extjs.provider.FastExtEnum;
+import com.fastchar.extjs.utils.ExtFileUtils;
 import com.fastchar.extjs.validators.FastEnumValidator;
 import com.fastchar.interfaces.IFastWeb;
 import com.fastchar.interfaces.IFastWebRun;
@@ -28,8 +29,10 @@ import java.io.File;
 @AFastPriority(-1)
 public final class FastCharExtWeb implements IFastWebRun {
 
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     @Override
     public void onInit(FastEngine engine) throws Exception {
+
         if (!engine.isMain()) {
             engine.getFindClass()
                     .find("com.google.gson.Gson", "https://mvnrepository.com/artifact/com.google.code.gson/gson")
@@ -68,7 +71,6 @@ public final class FastCharExtWeb implements IFastWebRun {
 
         engine.getValidators()
                 .add(FastEnumValidator.class);
-
 
         engine.getInterceptors()
                 .addRoot(FastExtRootAttachInterceptor.class, "/attach/*")

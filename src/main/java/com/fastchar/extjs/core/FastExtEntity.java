@@ -261,7 +261,7 @@ public abstract class FastExtEntity<E extends FastEntity<?>> extends FastEntity<
 
 
     public String selectLayerValue(String... checks) {
-        return ((FastExtData) getFastData()).selectLayerValue(checks);
+        return ((FastExtData<?>) getFastData()).selectLayerValue(checks);
     }
 
     public String selectLayerValue(Object... idValues) {

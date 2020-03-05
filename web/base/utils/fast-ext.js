@@ -1,3 +1,20 @@
+let globalConfig = function () {
+    $.ajaxSetup({
+        data: {
+            "fromOS": getOS()
+        }
+    });
+    Ext.Ajax.on('beforerequest', function (conn, options, eOpts ) {
+        try {
+            conn.setExtraParams({
+                "fromOS": getOS()
+            });
+        } catch (e) {
+        }
+    });
+};
+globalConfig();
+
 /**
  * 系统内存缓存
  */
@@ -11,8 +28,8 @@ let MemoryCache = {}, progressLine;
  * 'user.js'.endWidth('.js');
  */
 String.prototype.endWith = function (suffix) {
-    if (suffix == null || suffix == "" || this.length == 0 || suffix.length > this.length) return false;
-    return this.substring(this.length - suffix.length) == suffix;
+    if (!suffix|| suffix === "" || this.length === 0 || suffix.length > this.length) return false;
+    return this.substring(this.length - suffix.length) === suffix;
 };
 
 /**
@@ -23,8 +40,8 @@ String.prototype.endWith = function (suffix) {
  * 'test.js'.startWith('test')
  */
 String.prototype.startWith = function (prefix) {
-    if (prefix == null || prefix == "" || this.length == 0 || prefix.length > this.length) return false;
-    return this.substr(0, prefix.length) == prefix;
+    if (!prefix|| prefix === "" || this.length === 0 || prefix.length > this.length) return false;
+    return this.substr(0, prefix.length) === prefix;
 };
 
 /**
@@ -47,7 +64,7 @@ String.prototype.firstUpperCase = function () {
  */
 Array.prototype.exists = function (val) {
     for (let i = 0; i < this.length; i++) {
-        if (this[i] == val) {
+        if (this[i] === val) {
             return true;
         }
     }
@@ -71,18 +88,18 @@ function toBool(obj, defaultValue) {
         return defaultValue;
     }
     if (Ext.isString(obj)) {
-        if (obj == "0") {
+        if (obj === "0") {
             return false;
         }
-        if (obj == "1") {
+        if (obj === "1") {
             return true;
         }
     }
     if (Ext.isNumber(obj)) {
-        if (obj == 0) {
+        if (obj === 0) {
             return false;
         }
-        if (obj == 1) {
+        if (obj === 1) {
             return true;
         }
     }
@@ -137,7 +154,8 @@ function jsonToObject(jsonStr) {
 function objectToJson(obj) {
     try {
         return Ext.encode(obj);
-    } catch (e) {}
+    } catch (e) {
+    }
     return null;
 }
 
@@ -219,7 +237,7 @@ function checkBrowserVersion() {
  */
 function getBodyContainer() {
     let container = Ext.getCmp("bodyContainer");
-    if (container == null) {
+    if (!container) {
         Ext.getDoc().on("contextmenu",
             function (e) {
                 e.stopEvent(); //禁用右键菜单
@@ -279,7 +297,7 @@ function getProgressLine(toColor) {
     if (Ext.isEmpty(toColor)) {
         toColor = "#f8c633";
     }
-    if (progressLine == null) {
+    if (!progressLine) {
         progressLine = new ProgressBar.Line('#progress', {
             color: toColor,
             duration: 1000,
@@ -303,7 +321,7 @@ function getProgressLine(toColor) {
  * 抖动控件
  * @param obj 待抖动的控件
  */
-function shakeComment(obj,callBack) {
+function shakeComment(obj, callBack) {
     try {
         let interval, t = 0, z = 3, del = function () {
             clearInterval(interval);
@@ -464,4 +482,39 @@ function setRecordValue(record, dataIndex, field) {
 function buildOnlyCode(prefix) {
     let key = prefix + Ext.now();
     return $.md5(key);
+}
+
+/**
+ * 获取系统类型
+ * @returns {string}
+ */
+function getOS() {
+    try {
+        let sUserAgent = navigator.userAgent;
+        let isWin = (navigator.platform === "Win32") || (navigator.platform === "Windows");
+        let isMac = (navigator.platform === "Mac68K") || (navigator.platform === "MacPPC") || (navigator.platform === "Macintosh") || (navigator.platform === "MacIntel");
+        if (isMac) return "Mac";
+        let isUnix = (navigator.platform === "X11") && !isWin && !isMac;
+        if (isUnix) return "Unix";
+        let isLinux = (String(navigator.platform).indexOf("Linux") > -1);
+        if (isLinux) return "Linux";
+        if (isWin) {
+            let isWin2K = sUserAgent.indexOf("Windows NT 5.0") > -1 || sUserAgent.indexOf("Windows 2000") > -1;
+            if (isWin2K) return "Windows 2000";
+            let isWinXP = sUserAgent.indexOf("Windows NT 5.1") > -1 || sUserAgent.indexOf("Windows XP") > -1;
+            if (isWinXP) return "Windows XP";
+            let isWin2003 = sUserAgent.indexOf("Windows NT 5.2") > -1 || sUserAgent.indexOf("Windows 2003") > -1;
+            if (isWin2003) return "Windows 2003";
+            let isWinVista = sUserAgent.indexOf("Windows NT 6.0") > -1 || sUserAgent.indexOf("Windows Vista") > -1;
+            if (isWinVista) return "Windows Vista";
+            let isWin7 = sUserAgent.indexOf("Windows NT 6.1") > -1 || sUserAgent.indexOf("Windows 7") > -1;
+            if (isWin7) return "Windows 7";
+            let isWin8 = sUserAgent.indexOf("Windows NT 8.0") > -1 || sUserAgent.indexOf("Windows 8") > -1;
+            if (isWin8) return "Windows 8";
+            let isWin10 = sUserAgent.indexOf("Windows NT 10.0") > -1 || sUserAgent.indexOf("Windows 10") > -1;
+            if (isWin10) return "Windows 10";
+            return "Windows";
+        }
+    } catch (e) {}
+    return "Other";
 }

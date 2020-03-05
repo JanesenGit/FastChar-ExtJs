@@ -8,6 +8,6 @@ public interface IFastExtEnum {
 
     List<FastEnumInfo> getEnums() throws Exception;
 
-    FastEnumInfo getEnum(int id) throws Exception;
+    FastEnumInfo getEnum(Object id) throws Exception;
 
 }

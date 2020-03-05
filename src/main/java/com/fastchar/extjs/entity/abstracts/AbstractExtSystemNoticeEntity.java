@@ -7,6 +7,8 @@ import com.fastchar.extjs.entity.ExtSystemNoticeEntity.*;
 import java.util.Date;
 
 public abstract class AbstractExtSystemNoticeEntity extends FastExtEntity<ExtSystemNoticeEntity> {
+    private static final long serialVersionUID = 6852747901671331197L;
+
     public String getNoticeLayerCode() {
         return getString("noticeLayerCode");
     }

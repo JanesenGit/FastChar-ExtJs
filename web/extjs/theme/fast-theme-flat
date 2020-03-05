@@ -1,3 +1,19 @@
+li.L0, li.L1, li.L2, li.L3,
+li.L5, li.L6, li.L7, li.L8 {
+  list-style-type: decimal !important;
+}
+
+pre.prettyprint {
+    word-break: break-word;
+}
+.windowpre{
+   width: 100% !important;
+   margin: 0 !important;
+   border: 0 !important;
+   border-radius: 0 !important;
+}
+
+
 *{
      -moz-transition: opacity 300ms ,border-color 500ms ,box-shadow 300ms ,text-shadow 300ms  !important;
      -webkit-transition: opacity 300ms,border-color 500ms ,box-shadow 300ms,text-shadow 300ms !important;

@@ -4,10 +4,12 @@ import com.fastchar.core.FastChar;
 import com.fastchar.database.FastPage;
 import com.fastchar.database.info.FastSqlInfo;
 import com.fastchar.extjs.core.FastExtEntity;
+import com.fastchar.extjs.entity.abstracts.AbstractExtManagerEntity;
 import com.fastchar.utils.FastDateUtils;
 
-public class ExtManagerEntity extends FastExtEntity<ExtManagerEntity> {
+public class ExtManagerEntity extends AbstractExtManagerEntity {
     private static final long serialVersionUID = 1L;
+
     public static ExtManagerEntity getInstance() {
         return FastChar.getOverrides().singleInstance(ExtManagerEntity.class);
     }
@@ -82,7 +84,7 @@ public class ExtManagerEntity extends FastExtEntity<ExtManagerEntity> {
 
     @Override
     public boolean update() {
-        if (isNotEmpty("managerLoginName")) {
+        if (isModified("managerLoginName")) {
             String managerLoginName = getString("managerLoginName");
             if (getByLoginName(managerLoginName) != null) {
                 setError("登录名已存在！请您更换！");
@@ -139,7 +141,7 @@ public class ExtManagerEntity extends FastExtEntity<ExtManagerEntity> {
 
     public ExtManagerEntity getManagerByNoticeTitle(String noticeTitle) {
         String sqlStr = "select * from ext_manager where managerNoticeTitle like '%" + noticeTitle + "%' ";
-        ExtManagerEntity result=selectFirstBySql(sqlStr);
+        ExtManagerEntity result = selectFirstBySql(sqlStr);
         if (result == null) {
             return selectById(1);
         }

@@ -12,14 +12,14 @@ function showLogin(container) {
     let loginBgUrl = getExt("login-background").href;
     let systemBgColor = toColor(getExt("theme-color").value);
     let loginLogo = getExt("login-logo").value;
-    let loginNormal = getExt("login-type").value == "normal";
+    let loginNormal = getExt("login-type").value === "normal";
     let copyright = getExt("copyright").value;
     let copyrightUrl = getExt("copyright").href;
     let indexUrl = getExt("indexUrl").value;
     let version = getExt("version").desc;
     let year = new Date().getFullYear();
 
-    if (loginBgUrl.indexOf("?") == -1) {
+    if (loginBgUrl.indexOf("?") === -1) {
         loginBgUrl = loginBgUrl + "?1=1";
     }
     if (loginBgUrl.indexOf("bg=")==-1) {
@@ -37,7 +37,7 @@ function showLogin(container) {
 
     let headHtml = "<div align='center' class='headPanel' style='color:" + systemBgColor + ";'><img class='loginLogo'  width='50px' height='50px;' src='" + loginLogo + "' /><h2>" + loginTitle + "</h2></div>";
 
-    if (loginLogo == null || loginLogo.length == 0) {
+    if (!loginLogo || loginLogo.length === 0) {
         headHtml = "<div align='center' class='headPanel' style='color:" + systemBgColor + ";'><h2>" + loginTitle + "</h2></div>";
     }
 
@@ -55,7 +55,7 @@ function showLogin(container) {
     let loginName = $.cookie("loginName");
     let loginPassword = $.cookie("loginPassword");
     let loginMember = $.cookie("loginMember");
-    if (loginMember == null) {
+    if (!loginMember) {
         loginMember = 0;
     }
 
@@ -211,13 +211,27 @@ function showLogin(container) {
     let doLogin = function () {
         let form = loginPanel.form;
         if (form.isValid()) {
+            let onBeforeLogin = window["onBeforeLogin"];
+            if (onBeforeLogin) {
+                onBeforeLogin(form.getValues(), function () {
+                    toLogin();
+                });
+            }else{
+                toLogin();
+            }
+        }
+    };
+
+    let toLogin = function () {
+        let form = loginPanel.form;
+        if (form.isValid()) {
             let loginPassword = loginPanel.form.findField("loginPassword").getValue();
             let loginName = loginPanel.form.findField("loginName").getValue();
             let loginMember = loginPanel.form.findField("loginMember").getValue();
 
             $.cookie("loginName", loginName);
             $.cookie("loginMember", loginMember);
-            if (parseInt(loginMember) == 1) {
+            if (parseInt(loginMember) === 1) {
                 $.cookie("loginPassword", loginPassword);
             } else {
                 $.removeCookie("loginPassword");
@@ -232,11 +246,11 @@ function showLogin(container) {
                 },
                 failure: function (form, action) {
                     refreshCode();
-                    if (action.result.code == -2) {
+                    if (action.result.code === -2) {
                         loginPanel.form.findField("loginPassword").reset();
                     }
                     Ext.Msg.alert('登录失败', action.result.message, function () {
-                        if (action.result.code == -3) {
+                        if (action.result.code === -3) {
                             loginPanel.form.findField("validateCode").focus();
                         }
                     });

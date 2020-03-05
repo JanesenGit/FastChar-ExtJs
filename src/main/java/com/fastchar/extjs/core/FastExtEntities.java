@@ -9,6 +9,7 @@ import com.fastchar.database.info.FastTableInfo;
 import com.fastchar.extjs.core.database.FastExtTableInfo;
 import com.fastchar.extjs.exception.FastExtEntityException;
 import com.fastchar.utils.FastClassUtils;
+import org.apache.poi.xddf.usermodel.text.TabAlignment;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -28,7 +29,8 @@ public class FastExtEntities {
         FastExtEntity<?> fastExtEntity = FastClassUtils.newInstance(targetClass);
         if (fastExtEntity != null) {
             String entityCode = fastExtEntity.getEntityCode();
-            if (entityMap.containsKey(entityCode)) {
+            if (entityMap.containsKey(entityCode) && !FastClassUtils.isSameRefined(targetClass, entityMap.get(entityCode))) {
+
                 int existPriority = 0;
                 int currPriority = 0;
 
@@ -64,7 +66,7 @@ public class FastExtEntities {
                     throw new FastExtEntityException("the entity code '" + entityCode + "' already exists！" +
                             "\n\tat " + existStack +
                             "\n\tat " + currStack);
-                }else if (currPriority < existPriority) {
+                } else if (currPriority < existPriority) {
                     return this;
                 }
             }

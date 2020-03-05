@@ -24,11 +24,9 @@ public class FastExtAfterInterceptor implements IFastInterceptor {
                 }
                 extSystemLogEntity.set("systemLogType", extSystemLogEntity.replaceHolder(fastLog.type(), fastAction.getRequest()));
                 extSystemLogEntity.set("systemLogContent", extSystemLogEntity.replaceHolder(fastLog.value(), fastAction.getRequest()));
-                String stringBuilder = "提交数据：" + fastAction.getParamToMap() +
-                        "<br/><br/>操作结果：" + FastChar.getJson().toJson(fastAction.getFastOut().getData());
-                extSystemLogEntity.set("systemLogData", stringBuilder);
-
-                extSystemLogEntity.set("systemLogIp", fastAction.getRemoveIp());
+                extSystemLogEntity.set("systemSendData", FastChar.getJson().toJson(fastAction.getParamToMap()));
+                extSystemLogEntity.set("systemResultData", FastChar.getJson().toJson(fastAction.getFastOut().getData()));
+                extSystemLogEntity.set("systemLogIp", fastAction.getRemoteIp());
                 extSystemLogEntity.set("systemLogClient", fastAction.getUserAgent());
                 extSystemLogEntity.put("log", false);
                 extSystemLogEntity.save();

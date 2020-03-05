@@ -110,13 +110,19 @@ public class FastExtTableInfo extends FastTableInfo<FastExtTableInfo> {
 
 
         List<String> layers = new ArrayList<>();
+        List<String> bindLayers = new ArrayList<>();
         List<String> layerStackTraceElements = new ArrayList<>();
+        List<String> bindLayerStackTraceElements = new ArrayList<>();
         for (FastColumnInfo<?> column : getColumns()) {
             if (column instanceof FastExtColumnInfo) {
                 FastExtColumnInfo extColumnInfo = (FastExtColumnInfo) column;
                 if (extColumnInfo.isLayer()) {
                     layers.add(column.getName());
                     layerStackTraceElements.add("\n\tat " + extColumnInfo.getStackTrace("layer"));
+                }
+                if (extColumnInfo.isBindLayer()) {
+                    bindLayers.add(column.getName());
+                    bindLayerStackTraceElements.add("\n\tat " + extColumnInfo.getStackTrace("bind"));
                 }
             }
         }
@@ -125,12 +131,18 @@ public class FastExtTableInfo extends FastTableInfo<FastExtTableInfo> {
                     + FastStringUtils.join(layerStackTraceElements, ""));
         }
 
+        if (bindLayers.size() > 1) {
+            throw new FastDatabaseException(FastChar.getLocal().getInfo("Db_Table_Error3", FastStringUtils.join(bindLayers, ","))
+                    + FastStringUtils.join(bindLayerStackTraceElements, ""));
+        }
+
         if (isRecycle()) {
             FastTableInfo<?> copyRecycle = copy();
             copyRecycle.set("recycle", null);
             copyRecycle.setName(copyRecycle.getName() + "_recycle");
+            copyRecycle.fromProperty();
             copyRecycle.validate();
-            FastChar.getDatabases().get(getDatabaseName()).getTables().add(copyRecycle);
+            FastChar.getDatabases().get(getDatabaseName()).addTable(copyRecycle);
         }
 
     }

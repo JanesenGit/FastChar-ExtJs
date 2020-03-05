@@ -3,6 +3,7 @@ package com.fastchar.extjs.provider;
 import com.fastchar.extjs.core.enums.FastEnumInfo;
 import com.fastchar.extjs.interfaces.IFastExtEnum;
 import com.fastchar.utils.FastEnumUtils;
+import com.fastchar.utils.FastNumberUtils;
 import com.fastchar.utils.FastStringUtils;
 
 import java.lang.reflect.Field;
@@ -12,7 +13,7 @@ import java.util.List;
 
 public abstract class FastExtBaseEnum implements IFastExtEnum {
 
-    public abstract Class<? extends Enum> getEnumClass();
+    public abstract Class<? extends Enum<?>> getEnumClass();
 
 
     private List<FastEnumInfo> enumInfos;
@@ -21,9 +22,9 @@ public abstract class FastExtBaseEnum implements IFastExtEnum {
         if (enumInfos == null) {
             enumInfos = new ArrayList<>();
             Field[] declaredFields = getEnumClass().getDeclaredFields();
-            Enum[] enumValues = FastEnumUtils.getEnumValues(getEnumClass());
+            Enum<?>[] enumValues = FastEnumUtils.getEnumValues(getEnumClass());
 
-            for (Enum enumValue : enumValues) {
+            for (Enum<?> enumValue : enumValues) {
                 FastEnumInfo info = new FastEnumInfo();
                 info.setId(enumValue.ordinal());
                 info.setText(enumValue.name());
@@ -45,13 +46,13 @@ public abstract class FastExtBaseEnum implements IFastExtEnum {
     }
 
     @Override
-    public final FastEnumInfo getEnum(int id) throws Exception {
+    public final FastEnumInfo getEnum(Object id) throws Exception {
         if (getEnumClass() == null) {
             return null;
         }
         FastEnumInfo enumInfo = new FastEnumInfo();
         enumInfo.setId(id);
-        Enum anEnum = FastEnumUtils.formatToEnum(getEnumClass(), id);
+        Enum<?> anEnum = FastEnumUtils.formatToEnum(getEnumClass(), FastNumberUtils.formatToInt(id));
         if (anEnum == null) {
             return null;
         }

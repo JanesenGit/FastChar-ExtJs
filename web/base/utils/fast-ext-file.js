@@ -9,7 +9,7 @@ const files = {
             showAlert("系统提醒", "参数" + name + "必需Array格式！");
             return false;
         }
-        if (modules == 0) {
+        if (modules === 0) {
             showAlert("系统提醒", "参数" + name + "集合不可为空！");
             return false;
         }
@@ -88,7 +88,7 @@ function uploadFile(obj, fileModules) {
         if (!files.validate(fileModules, "fileModules")) {
             return;
         }
-        if (fileModules.length == 1) {
+        if (fileModules.length === 1) {
             title = "上传" + fileModules[0].tipMsg;
             type = fileModules[0].type;
             width = fileModules[0].width;
@@ -259,7 +259,7 @@ function showFiles(obj, callBack, fileModules, defaultFiles) {
             datas.push({url: fileArray[i]});
         }
     }
-    if (fileModules.length == 1) {
+    if (fileModules.length === 1) {
         renderer = fileModules[0].renderer;
         title = fileModules[0].tipMsg + "管理";
     }
@@ -296,11 +296,11 @@ function showFiles(obj, callBack, fileModules, defaultFiles) {
                 disabled: true,
                 handler: function () {
                     let data = dataGridFiles.getSelectionModel().getSelection();
-                    if (data.length == 0) {
+                    if (data.length === 0) {
                         toast("请您选择需要删除的文件！");
                     } else {
                         Ext.Msg.confirm("系统提醒", "您确定立即删除选中的附件吗？", function (button, text) {
-                            if (button == "yes") {
+                            if (button === "yes") {
                                 let params = {};
                                 Ext.Array.each(data, function (record,index) {
                                     params["path[" + index + "]"] = record.get("url");
@@ -495,7 +495,7 @@ function importExcel(obj, params, formItems, serverUrl) {
                 }],
             listeners: {
                 show: function (winObj, eOpts) {
-                    if (formItems.length == 1) {
+                    if (formItems.length === 1) {
                         formPanel.getForm().findField('file').fileInputEl.dom.click();
                         Ext.getCmp(btnSubmitId).focus();
                     }

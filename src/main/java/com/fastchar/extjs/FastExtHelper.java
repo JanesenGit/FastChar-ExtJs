@@ -4,6 +4,7 @@ import com.fastchar.core.FastChar;
 import com.fastchar.extjs.core.menus.FastMenuInfo;
 import com.fastchar.extjs.entity.ExtManagerEntity;
 import com.fastchar.extjs.entity.ExtSystemNoticeEntity;
+import com.fastchar.utils.FastDateUtils;
 import com.fastchar.utils.FastStringUtils;
 
 public class FastExtHelper {
@@ -70,10 +71,12 @@ public class FastExtHelper {
             String content,
             String actionMenu) {
 
-        String[] menuArray = actionMenu.split("@");
-        FastMenuInfo menus = FastChar.getValues().get("menus");
-
-        FastMenuInfo menuInfo = getMenu(menuArray, 0, menus);
+        FastMenuInfo menuInfo = null;
+        if (FastStringUtils.isNotEmpty(actionMenu)) {
+            String[] menuArray = actionMenu.split("@");
+            FastMenuInfo menus = FastChar.getValues().get("menus");
+            menuInfo = getMenu(menuArray, 0, menus);
+        }
 
         ExtSystemNoticeEntity noticeEntity = ExtSystemNoticeEntity.newInstance();
         noticeEntity.setParentLayerCode(parentLayerCode);
@@ -83,12 +86,16 @@ public class FastExtHelper {
         noticeEntity.set("noticeCode", code);
         noticeEntity.set("noticeTitle", title);
         noticeEntity.set("noticeContent", content);
+        noticeEntity.set("noticeState", ExtSystemNoticeEntity.ExtSystemNoticeStateEnum.待处理.ordinal());
         if (menuInfo != null) {
             noticeEntity.set("noticeAction", "system.selectMenu('" + menuInfo.getId() + "')");
         }
         ExtManagerEntity managerByNoticeTitle = ExtManagerEntity.getInstance().getManagerByNoticeTitle(title);
-        noticeEntity.set("managerId", managerByNoticeTitle.getId());
-        noticeEntity.save();
+        if (managerByNoticeTitle != null) {
+            noticeEntity.set("managerId", managerByNoticeTitle.getId());
+        }
+        noticeEntity.set("noticeDateTime", FastDateUtils.getDateString());
+        noticeEntity.push("noticeCode");
         return noticeEntity;
     }
 

@@ -15,7 +15,6 @@ public class ExtConfigAction extends FastAction {
     /**
      * 获得路由地址
      * Get routing address
-     * @return
      */
     @Override
     protected String getRoute() {

@@ -19,6 +19,7 @@ public class FastMenuInfo extends FastBaseInfo {
     private String iconCls;
     private String color;
     private String parentId;
+    private String index = "0";
     private Boolean checked;
     private Boolean leaf;
     private Integer depth;
@@ -129,6 +130,15 @@ public class FastMenuInfo extends FastBaseInfo {
 
     public FastMenuInfo setIconName(String iconName) {
         this.iconName = iconName;
+        return this;
+    }
+
+    public String getIndex() {
+        return index;
+    }
+
+    public FastMenuInfo setIndex(String index) {
+        this.index = index;
         return this;
     }
 

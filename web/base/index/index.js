@@ -39,7 +39,7 @@ const system = {
     isSuperRole: function () {
         let me = this;
         if (me.manager && me.manager.role) {
-            if (me.manager.role.roleType == 0) {//拥有最大权限
+            if (me.manager.role.roleType === 0) {//拥有最大权限
                 return true;
             }
         }
@@ -77,7 +77,7 @@ const system = {
     },
     loadAppJs: function (index) {
         let me = this;
-        if (index == null) {
+        if (!index) {
             index = 0;
         }
         if (index >= me.app.length) {
@@ -146,7 +146,7 @@ const system = {
             }
         }
 
-        Ext.Ajax.on('beforerequest', function (conn, request, options) {
+        Ext.Ajax.on('beforerequest', function (conn, options, eObj) {
             try {
                 if (server.isSilenceRequest()) {
                     return;
@@ -160,14 +160,14 @@ const system = {
         Ext.Ajax.on('requestcomplete',
             function (conn, response, options) {
                 try {
-                    if (response.status == 203) {
+                    if (response.status === 203) {
                         me.sessionOut();
                         me.callback = null;
                         me.success = null;
                     } else {
                         try {
                             let jsonData = eval("(" + response.responseText + ")");
-                            if (jsonData.code == 203) {
+                            if (jsonData.code === 203) {
                                 me.sessionOut();
                             }
                         } catch (e) {
@@ -202,12 +202,12 @@ const system = {
 
         $(document).ajaxComplete(function (event, xhr, options) {
             try {
-                if (xhr.status == 203) {
+                if (xhr.status === 203) {
                     me.sessionOut();
                 } else {
                     try {
                         let jsonData = eval("(" + xhr.responseText + ")");
-                        if (jsonData.code == 203) {
+                        if (jsonData.code === 203) {
                             me.sessionOut();
                         }
                     } catch (e) {
@@ -487,7 +487,7 @@ const system = {
                 if (Ext.MessageBox.isVisible()) {
                     Ext.MessageBox.hide();
                 }
-                if (tabs.length == 0 || ! me.tabPanelContainer.getActiveTab()) {
+                if (tabs.length === 0 || ! me.tabPanelContainer.getActiveTab()) {
                     me.tabPanelContainer.setActiveTab(Ext.getCmp("tabWelcome"));
                 }
             });
@@ -511,8 +511,8 @@ const system = {
     },
     showTab: function (method, tabId, title, icon, activate, moveFirst, where, closable, reorderable) {
         let me = this;
-        if (me.currTab && tabId == me.currTab.getId()) return;
-        if (icon == null || icon.length == 0) icon = server.getIcon("icon_function.svg");
+        if (me.currTab && tabId === me.currTab.getId()) return;
+        if (!icon|| icon.length === 0) icon = server.getIcon("icon_function.svg");
         if (Ext.isEmpty(moveFirst)) {
             moveFirst = true;
         }
@@ -538,7 +538,7 @@ const system = {
 
         let tabs = Ext.getCmp("tabs");
         me.currTab = Ext.getCmp(tabId);
-        if (me.currTab == null) {
+        if (!me.currTab) {
             me.currTab = tabs.add({
                 xtype: 'panel',
                 id: tabId,
@@ -602,7 +602,8 @@ const system = {
                                     }
                                     tab.add(obj);
                                     me.recordTab();
-                                } catch (e) {}
+                                } catch (e) {
+                                }
                             });
                         }
                     },
@@ -611,14 +612,14 @@ const system = {
                             Ext.get(this.tabBtnId).dom.ondblclick = function () {
                                 let currShowTabId = me.currTab.getId();
                                 tabs.items.each(function (obj, index) {
-                                    if (index != 0 && obj.id == currShowTabId) {
+                                    if (index != 0 && obj.id === currShowTabId) {
                                         if (obj.closable) {
                                             obj.close();
                                         }
                                     }
                                 });
                             };
-                            if (tabs.getActiveTab() == me.currTab) {
+                            if (tabs.getActiveTab() === me.currTab) {
                                 changeIcon(me.currTab, true);
                             }
                         } catch (e) {
@@ -675,7 +676,7 @@ const system = {
                     tab.id = item.id;
                     tab.closable = item.closable;
                     tab.reorderable = item.reorderable;
-                    tab.active = item == tabs.getActiveTab();
+                    tab.active = item === tabs.getActiveTab();
                     tabArray.push(tab);
                 });
 
@@ -699,19 +700,24 @@ const system = {
         });
     },
     addTab: function (component, id, title, icon) {
-        me.tabPanelContainer.add({
-            title: title,
-            xtype: 'panel',
-            id: id,
-            code: id,
-            icon: icon,
-            border: 0,
-            tabContainer: true,
-            closable: true,
-            reorderable: true,
-            layout: 'fit',
-            items: [obj]
-        });
+        let me = this;
+        me.currTab = Ext.getCmp(id);
+        if (!me.currTab) {
+            me.currTab = me.tabPanelContainer.add({
+                title: title,
+                xtype: 'panel',
+                id: id,
+                code: id,
+                icon: icon,
+                border: 0,
+                tabContainer: true,
+                closable: true,
+                reorderable: true,
+                layout: 'fit',
+                items: [component]
+            });
+        }
+        me.tabPanelContainer.setActiveTab(me.currTab);
     },
     selectMenu: function (menuId, justParent) {
         try {
@@ -721,7 +727,7 @@ const system = {
             }
             let treelist = Ext.getCmp("leftTreeList");
             let record = treelist.getStore().getNodeById(menuId);
-            if (record == null) return;
+            if (!record) return;
             let parentId = record.get("parentId");
 
             if (!Ext.isEmpty(parentId)) {
@@ -760,7 +766,7 @@ const system = {
     },
     logout: function () {
         Ext.Msg.confirm("系统提示", "<br/>您是否确定退出登录吗？", function (btn) {
-            if (btn == "yes") {
+            if (btn === "yes") {
                 server.logout();
             }
         });
@@ -934,7 +940,7 @@ const system = {
         let entities = me.entities;
         for (let i = 0; i < entities.length; i++) {
             let entity = entities[i];
-            if (entity.entityCode == entityCode) {
+            if (entity.entityCode === entityCode) {
                 return entity;
             }
         }
@@ -1223,7 +1229,7 @@ const system = {
 
 function showList(menuId, entityCode, where) {
     let entity = system.getEntity(entityCode);
-    if (entity == null) {
+    if (!entity) {
         throw "操作失败！未获取到 '" + entityCode + "' 实体类！";
     }
     if (!entity.js) {

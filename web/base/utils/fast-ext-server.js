@@ -23,7 +23,7 @@ const server = {
             return;
         }
         $.post("entity/update", params, function (result) {
-            if (result.code == 203) {//会话失效
+            if (result.code === 203) {//会话失效
                 return;
             }
             if (Ext.isFunction(callBack)) {
@@ -41,7 +41,7 @@ const server = {
             return;
         }
         $.post("deleteAttach", params, function (result) {
-            if (result.code == 203) {//会话失效
+            if (result.code === 203) {//会话失效
                 return;
             }
             if (Ext.isFunction(callBack)) {
@@ -59,7 +59,7 @@ const server = {
             return;
         }
         $.post("entity/delete", params, function (result) {
-            if (result.code == 203) {//会话失效
+            if (result.code === 203) {//会话失效
                 return;
             }
             if (Ext.isFunction(callBack)) {
@@ -74,7 +74,7 @@ const server = {
             return;
         }
         $.post("entity/reback", params, function (result) {
-            if (result.code == 203) {//会话失效
+            if (result.code === 203) {//会话失效
                 return;
             }
             if (Ext.isFunction(callBack)) {
@@ -89,7 +89,7 @@ const server = {
             return;
         }
         $.post("entity/copy", params, function (result) {
-            if (result.code == 203) {//会话失效
+            if (result.code === 203) {//会话失效
                 return;
             }
             if (Ext.isFunction(callBack)) {
@@ -108,7 +108,7 @@ const server = {
             return;
         }
         $.post("entity/clear", params, function (result) {
-            if (result.code == 203) {//会话失效
+            if (result.code === 203) {//会话失效
                 return;
             }
             if (Ext.isFunction(callBack)) {
@@ -187,7 +187,7 @@ const server = {
             return;
         }
         $.post("entity/export", params, function (result) {
-            if (result.code == 203) {//会话失效
+            if (result.code === 203) {//会话失效
                 return;
             }
             if (Ext.isFunction(callBack)) {
@@ -205,7 +205,7 @@ const server = {
             return;
         }
         $.post("entity/module", params, function (result) {
-            if (result.code == 203) {//会话失效
+            if (result.code === 203) {//会话失效
                 return;
             }
             if (Ext.isFunction(callBack)) {

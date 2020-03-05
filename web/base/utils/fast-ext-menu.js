@@ -1,3 +1,4 @@
+
 Ext.override(Ext.menu.Menu, {
     hide: function () {
         if(Ext.isEmpty(system)) return;

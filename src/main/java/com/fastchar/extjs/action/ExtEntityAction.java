@@ -112,14 +112,18 @@ public class ExtEntityAction extends FastAction {
 
         List<FastHandler> saveResult = new ArrayList<>();
         for (FastEntity<?> saveEntity : saveEntities) {
-            if (saveEntity.getTable() instanceof FastExtTableInfo) {
-                FastExtTableInfo extTableInfo = saveEntity.getTable();
-                if (extTableInfo.isBindSessionLayer()) {
-                    saveEntity.put("parentLayerCode", managerEntity.getLayerValue());
+            if (saveEntity.getTable() != null) {
+                if (saveEntity.getTable() instanceof FastExtTableInfo) {
+                    FastExtTableInfo extTableInfo = saveEntity.getTable();
+                    if (extTableInfo.isBindSessionLayer()) {
+                        saveEntity.put("parentLayerCode", managerEntity.getLayerValue());
+                    }
                 }
             }
+
             saveEntity.put("fromWeb", true);
-            saveEntity.put("managerId", managerEntity.getId());
+            saveEntity.put("session", managerEntity);
+
             String[] checks = getParamToArray("check");
             String method = getParam("method", "save");
             if (checks.length == 0) {
@@ -538,7 +542,7 @@ public class ExtEntityAction extends FastAction {
                 if (column.get("enum") != null && FastStringUtils.isNotEmpty(column.get("enum").toString())) {
                     IFastExtEnum enumClass = FastChar.getOverrides().singleInstance(IFastExtEnum.class, column.get("enum").toString());
                     if (enumClass != null) {
-                        FastEnumInfo anEnum = enumClass.getEnum(FastNumberUtils.formatToInt(value));
+                        FastEnumInfo anEnum = enumClass.getEnum(value);
                         if (anEnum != null) {
                             value = anEnum.getText();
                         }

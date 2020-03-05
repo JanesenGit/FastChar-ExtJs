@@ -40,7 +40,7 @@ const power = {
             return null;
         }
         if (!system.managerPowers) {
-            if (Ext.isEmpty(system.manager.managerExtPower) || system.manager.role.roleType == 0) {
+            if (Ext.isEmpty(system.manager.managerExtPower) || system.manager.role.roleType === 0) {
                 return null;
             }
         }

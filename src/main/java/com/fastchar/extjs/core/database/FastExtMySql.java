@@ -248,7 +248,7 @@ public class FastExtMySql extends FastMySql {
     @Override
     public FastSqlInfo buildInsertSql(FastEntity<?> entity, String... checks) {
         setLayerValue(entity);
-        return super.buildInsertSql(entity,checks);
+        return super.buildInsertSql(entity, checks);
     }
 
     /**
@@ -259,7 +259,7 @@ public class FastExtMySql extends FastMySql {
             FastExtEntity<?> extEntity = (FastExtEntity<?>) entity;
             //配置权限字段
             FastExtColumnInfo layerColumn = extEntity.getLayerColumn();
-            if (layerColumn != null) {
+            if (layerColumn != null && entity.isEmpty(layerColumn.getName())) {
                 String parentLayerCode = extEntity.getString("parentLayerCode");
 
                 if (FastStringUtils.isEmpty(parentLayerCode)) {

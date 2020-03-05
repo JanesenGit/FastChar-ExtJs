@@ -5,12 +5,14 @@ Ext.override(Ext.Component, {
             me.closeToolText = "关闭";
             me.collapseToolText = "关闭";
             me.expandToolText = "展开";
-            if ((me.getXType() == "window" || me.getXType() == "panel")
-                && (!Ext.isEmpty(me.getTitle())||!Ext.isEmpty(me.subtitle)) && (me.resizable||me.split)) {
-                let fastOnlyCode = $.md5(me.getTitle() + me.subtitle+$("title").text());
+            if ((me.getXType() === "window" || me.getXType() === "panel")
+                && (!Ext.isEmpty(me.getTitle()) || !Ext.isEmpty(me.subtitle))
+                && (me.resizable || me.split)) {
+                let fastOnlyCode = $.md5(me.getTitle() + me.subtitle + $("title").text());
                 try {
                     fastOnlyCode = $.md5(fastOnlyCode + me.width + me.height);
-                } catch (e) {}
+                } catch (e) {
+                }
 
                 let width = getCache(fastOnlyCode + "Width");
                 let height = getCache(fastOnlyCode + "Height");
@@ -41,10 +43,13 @@ Ext.override(Ext.Component, {
                 });
             }
 
-            if (me.getXType() == "menuitem") {
+            if (me.getXType() === "menuitem") {
                 me.on('focus', function (obj, event, eOpts) {
+                    if (obj.isDisabled()) {
+                        return;
+                    }
                     let icon = obj.icon;
-                    let regStr=/([^/]*.svg)/;
+                    let regStr = /([^/]*.svg)/;
                     if (icon && regStr.test(icon)) {
                         let newIcon = server.getIcon(regStr.exec(icon)[1].trim(), "#ffffff");
                         let iconEl = Ext.get(obj.getId() + "-iconEl");
@@ -54,8 +59,11 @@ Ext.override(Ext.Component, {
                     }
                 });
                 me.on('blur', function (obj, event, eOpts) {
+                    if (obj.isDisabled()) {
+                        return;
+                    }
                     let icon = obj.icon;
-                    let regStr=/([^/]*.svg)/;
+                    let regStr = /([^/]*.svg)/;
                     if (icon && regStr.test(icon)) {
                         let iconEl = Ext.get(obj.getId() + "-iconEl");
                         if (iconEl) {
@@ -74,8 +82,8 @@ Ext.override(Ext.Component, {
     show: function () {
         try {
             if (isSystem()) {
-                if (this.getXType() == "window"
-                    || this.getXType() == "messagebox") {
+                if (this.getXType() === "window"
+                    || this.getXType() === "messagebox") {
                     if (!toBool(this.sessionWin, false)) {
                         //处理session弹窗
                         if (system.sessionOutAlert) {
@@ -131,7 +139,6 @@ Ext.override(Ext.Component, {
         return this;
     }
 });
-
 
 
 Ext.override(Ext.grid.CellContext, {
@@ -202,12 +209,11 @@ Ext.override(Ext.layout.container.Accordion, {
                     return;
                 }
                 if (me.multi) {
-                    expanded = me.getExpanded();
-                    if (expanded.length === 1) {
-                        toExpand.expand();
-                    }
-
-                } else if (toExpand) {
+                    owner.deferLayouts = previousValue;
+                    me.processing = false;
+                    return;
+                }
+                if (toExpand) {
                     toExpand.expand();
                 }
                 owner.deferLayouts = previousValue;
@@ -220,7 +226,7 @@ Ext.override(Ext.layout.container.Accordion, {
 });
 
 Ext.override(Ext.dom.Element, {
-    syncContent: function(source) {
+    syncContent: function (source) {
         try {
             source = Ext.getDom(source);
             let sourceNodes = source.childNodes,
@@ -299,3 +305,79 @@ Ext.override(Ext.dom.Element, {
         }
     }
 });
+
+
+Ext.override(Ext.Component, {
+    onRender: Ext.Function.createSequence(Ext.Component.prototype.onRender, function () {
+        let me = this;
+        try {
+            if (isPower()) {
+                return;
+            }
+            if (me.help) {
+                let targetEl = me.bodyEl;
+                if (!targetEl) {
+                    targetEl = me.el;
+                }
+
+                targetEl.on("mouseleave", function () {
+                    if (me.helpTip) {
+                        me.helpTip.close();
+                    }
+                });
+
+                targetEl.on("contextmenu", function () {
+                    try {
+                        if (!window["getHelpContent"]) {
+                            return;
+                        }
+
+                        if (me.helpTip) {
+                            me.helpTip.close();
+                            return
+                        }
+                        let anchor = me.helpAnchor;
+                        if (!anchor) {
+                            anchor = "left"
+                        }
+                        let anchorOffset = (me.getWidth() - 20) / 2;
+                        if (anchor === "left" || anchor === "right") {
+                            anchorOffset = (me.getHeight() - 20) / 2;
+                        }
+                        if (anchorOffset >= 280) {
+                            anchorOffset = 0;
+                        }
+
+                        me.helpTip = Ext.create('Ext.tip.ToolTip', {
+                            target: targetEl,
+                            resizable: true,
+                            anchor: anchor,
+                            anchorOffset: anchorOffset,
+                            autoHide: false,
+                            maxWidth: 400,
+                            closeAction: 'destroy',
+                            html: window["getHelpContent"](me.help),
+                            showDelay: 0,
+                            autoShow: true,
+                            listeners: {
+                                beforedestroy: function () {
+                                    me.helpTip = null;
+                                },
+                                hide: function () {
+                                    this.close();
+                                }
+                            }
+                        });
+                    } catch (e) {
+                        console.error(e);
+                    }
+                });
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    })
+});
+
+
+

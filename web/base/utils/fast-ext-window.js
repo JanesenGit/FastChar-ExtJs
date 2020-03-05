@@ -49,7 +49,7 @@ function showWait(message) {
     let fn = function () {
         if (Ext.MessageBox.isHidden()) return;
         i = i + 0.5;
-        if (i == max + 30) {
+        if (i === max + 30) {
             i = 0;
         }
         let val = i / max;
@@ -96,7 +96,7 @@ function showHtml(obj, title, content) {
         height: 500,
         width: 600,
         constrain: true,
-        resizable: false,
+        resizable: true,
         maximizable: true,
         modal: true,
         maximized: false,
@@ -119,7 +119,7 @@ function showLink(obj, title, url) {
         layout: 'fit',
         height: 500,
         width: 600,
-        resizable: false,
+        resizable: true,
         maximizable: true,
         modal: true,
         constrain: true,
@@ -151,7 +151,7 @@ function showEditorHtml(obj, title, content) {
         layout: 'fit',
         height: 500,
         width: 600,
-        resizable: false,
+        resizable: true,
         maximizable: true,
         modal: true,
         constrain: true,
@@ -183,6 +183,7 @@ function showText(obj, icon, title, text) {
         iconCls: icon,
         maximizable: true,
         height: 400,
+        resizable: true,
         width: 600,
         layout: 'fit',
         animateTarget: obj,
@@ -204,7 +205,7 @@ function showText(obj, icon, title, text) {
  * 弹出异常信息窗体
  */
 function showException(e, from) {
-    if (e == null) return;
+    if (!e) return;
     hideWait();
     console.error(e);
     let message = e;
@@ -277,7 +278,7 @@ function showImage(obj, url, callBack, modal) {
         let currStore = Ext.getStore("ImageViewStore");
 
         currStore.each(function (record, index) {
-            if (record.get("url").split("?")[0] == url.split("?")[0]) {
+            if (record.get("url").split("?")[0] === url.split("?")[0]) {
                 hasValue = true;
                 Ext.getCmp("ImageViewGrid").getSelectionModel().select(index);
                 return false;
@@ -285,14 +286,14 @@ function showImage(obj, url, callBack, modal) {
         });
         if (!hasValue) {
             currStore.add(jsonData);
-            if (selectIndex == -1) {
+            if (selectIndex === -1) {
                 selectIndex = currStore.count() - 1;
             }
             Ext.getCmp("ImageViewGrid").getSelectionModel().select(selectIndex);
         }
         return;
     } else {
-        if (selectIndex == -1) {
+        if (selectIndex === -1) {
             selectIndex = 0;
         }
     }
@@ -589,4 +590,95 @@ function editorText(obj, title, callBack) {
     editorWin.show();
 }
 
+
+/**
+ * 格式化显示json字符串
+ * @param obj
+ */
+function showJson(obj,title, value) {
+    try {
+        let win = Ext.create('Ext.window.Window', {
+            title: title,
+            height: 400,
+            width: 600,
+            animateTarget: obj,
+            resizable: true,
+            layout: 'fit',
+            maximizable: true,
+            iconCls: 'extIcon extSee',
+            autoScroll: true,
+            modal: true,
+            constrain: true
+        });
+        let result = new JSONFormat(value, 4).toString();
+        win.update("<div style='padding: 20px;'>" + result + "</div>");
+        win.show();
+    } catch (e) {
+        showText(obj, null, title, value);
+    }
+}
+
+/**
+ * 格式化显示json字符串
+ * @param obj
+ */
+function showFormatJson(obj, value) {
+    try {
+        let win = Ext.create('Ext.window.Window', {
+            title: "查看数据",
+            height: 400,
+            width: 600,
+            animateTarget: obj,
+            layout: 'fit',
+            resizable: true,
+            maximizable: true,
+            iconCls: 'extIcon extSee',
+            autoScroll: true,
+            modal: true,
+            constrain: true
+        });
+        let result = new JSONFormat(value, 4).toString();
+        win.update("<div style='padding: 20px;'>" + result + "</div>");
+        win.show();
+    } catch (e) {
+        showText(obj, null, "查看数据", value);
+    }
+}
+
+/**
+ * 显示代码内容
+ */
+function showCode(obj, value,linenumber) {
+    try {
+        let win = Ext.create('Ext.window.Window', {
+            title: "查看内容",
+            height: 400,
+            width: 600,
+            animateTarget: obj,
+            resizable: true,
+            layout: 'fit',
+            maximizable: true,
+            iconCls: 'extIcon extSee',
+            autoScroll: true,
+            modal: true,
+            constrain: true,
+            bodyStyle: {
+                background: "#000000"
+            },
+            listeners: {
+                show: function (obj) {
+                    PR.prettyPrint();
+                }
+            },
+        });
+        if (linenumber) {
+            win.update("<pre class='prettyprint linenums windowpre'>" + value + "</pre>");
+        }else{
+            win.update("<pre class='prettyprint windowpre'>" + value + "</pre>");
+        }
+        win.show();
+    } catch (e) {
+        showText(obj, null, "查看内容", value);
+    }
+}
 

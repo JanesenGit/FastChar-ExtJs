@@ -136,7 +136,7 @@ public class FastExtColumnInfo extends FastColumnInfo<FastExtColumnInfo> {
                 linkInfo.addTextColumnName(split.get(i));
             }
 
-            FastColumnInfo linkColumnInfo = tableInfo.getColumnInfo(linkInfo.getKeyColumnName());
+            FastColumnInfo<?> linkColumnInfo = tableInfo.getColumnInfo(linkInfo.getKeyColumnName());
             if (linkColumnInfo == null) {
                 throw new FastDatabaseException(FastChar.getLocal().getInfo("Db_Column_Error5", "'" + linkInfo.getTableName() + "'", "'" + linkInfo.getKeyColumnName() + "'")
                         + "\n\tat " + getStackTrace("link"));
@@ -149,7 +149,7 @@ public class FastExtColumnInfo extends FastColumnInfo<FastExtColumnInfo> {
                         + "\n\tat " + getStackTrace("link"));
             }
             for (String textColumnName : linkInfo.getTextColumnNames()) {
-                FastColumnInfo textColumnInfo = tableInfo.getColumnInfo(textColumnName);
+                FastColumnInfo<?> textColumnInfo = tableInfo.getColumnInfo(textColumnName);
                 if (textColumnInfo == null) {
                     throw new FastDatabaseException(FastChar.getLocal().getInfo("Db_Column_Error7", "'" + linkInfo.getTableName() + "'", "'" + textColumnName + "'")
                             + "\n\tat " + getStackTrace("link"));
@@ -163,6 +163,7 @@ public class FastExtColumnInfo extends FastColumnInfo<FastExtColumnInfo> {
             setLinkInfo(linkInfo);
             if (FastStringUtils.isEmpty(getIndex())) {
                 setIndex("true");
+                fromProperty();
             }
         }
     }

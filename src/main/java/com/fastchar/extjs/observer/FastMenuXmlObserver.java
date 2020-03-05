@@ -1,6 +1,7 @@
 package com.fastchar.extjs.observer;
 
 import com.fastchar.core.FastChar;
+import com.fastchar.core.FastInterceptors;
 import com.fastchar.extjs.FastExtConfig;
 import com.fastchar.extjs.core.menus.FastMenuInfo;
 import com.fastchar.utils.FastMD5Utils;
@@ -50,7 +51,6 @@ public class FastMenuXmlObserver {
 
     private FastMenuInfo menus = new FastMenuInfo();
 
-
     public void onScannerFinish() throws Exception {
         FastChar.getValues().put("menus", menus);
         initMenuXml();
@@ -82,6 +82,7 @@ public class FastMenuXmlObserver {
         }
 
         pullDefault(menus);
+        sortMenus(menus);
     }
 
 
@@ -101,6 +102,21 @@ public class FastMenuXmlObserver {
             pullDefault(child);
         }
     }
+
+
+    private void sortMenus(FastMenuInfo menuInfo) {
+        for (FastMenuInfo child : menuInfo.getChildren()) {
+            Comparator<FastMenuInfo> comparator = new Comparator<FastMenuInfo>() {
+                @Override
+                public int compare(FastMenuInfo o1, FastMenuInfo o2) {
+                    return o1.getIndex().compareTo(o2.getIndex());
+                }
+            };
+            sortMenus(child);
+            Collections.sort(child.getChildren(), comparator);
+        }
+    }
+
 
 
     public class MenuInfoHandler extends DefaultHandler {

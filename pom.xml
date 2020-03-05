@@ -6,7 +6,7 @@
 
     <groupId>com.fastchar</groupId>
     <artifactId>fastchar-extjs</artifactId>
-    <version>1.1.4</version>
+    <version>1.2.0</version>
     <build>
         <plugins>
             <plugin>
@@ -16,6 +16,9 @@
                     <source>7</source>
                     <target>7</target>
                     <encoding>UTF-8</encoding>
+                    <compilerArgs>
+                        <arg>-parameters</arg>
+                    </compilerArgs>
                     <compilerArguments>
                         <bootclasspath>${java.home}/lib/rt.jar:${java.home}/lib/jce.jar</bootclasspath>
                     </compilerArguments>
@@ -201,7 +204,7 @@
         <dependency>
             <groupId>com.fastchar</groupId>
             <artifactId>fastchar</artifactId>
-            <version>1.1.6</version>
+            <version>[1.0,)</version>
             <scope>compile</scope>
         </dependency>
 

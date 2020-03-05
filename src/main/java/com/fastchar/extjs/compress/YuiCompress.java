@@ -101,7 +101,7 @@ public class YuiCompress {
             if (field.getName().equalsIgnoreCase("threes")) {
                 try {
                     field.setAccessible(true);
-                    ArrayList array = (ArrayList) field.get(JavaScriptCompressor.class);
+                    ArrayList<?> array = (ArrayList<?>) field.get(JavaScriptCompressor.class);
                     array.clear();
                     field.setAccessible(false);
                 } catch (Exception ignored) {}

@@ -8,6 +8,7 @@ import com.fastchar.extjs.core.heads.FastHeadExtInfo;
 import com.fastchar.extjs.core.heads.FastHeadInfo;
 import com.fastchar.extjs.core.heads.FastHeadStyleInfo;
 import com.fastchar.extjs.utils.ColorUtils;
+import com.fastchar.extjs.utils.ExtFileUtils;
 import com.fastchar.interfaces.IFastConfig;
 import com.fastchar.utils.FastFileUtils;
 import com.fastchar.utils.FastNumberUtils;
@@ -78,6 +79,9 @@ public final class FastExtConfig implements IFastConfig {
      */
     public FastExtConfig setCompressAppJs(boolean compressAppJs) {
         this.compressAppJs = compressAppJs;
+        if (compressAppJs) {
+            File app = new File(FastChar.getPath().getWebRootPath(), "app");
+        }
         return this;
     }
 
@@ -337,6 +341,7 @@ public final class FastExtConfig implements IFastConfig {
                         placeholder.put("frontColor", frontColor.getColorValue());
                         for (int i = 1; i < 9; i++) {
                             placeholder.put("frontColor" + i, ColorUtils.getLightColor(frontColor.getColorValue(), 1-FastNumberUtils.formatToDouble("0." + i)));
+                            placeholder.put("frontColorDark" + i, ColorUtils.getDarkColor(frontColor.getColorValue(), 1-FastNumberUtils.formatToDouble("0." + i)));
                         }
                     }
 

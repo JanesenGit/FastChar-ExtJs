@@ -16,7 +16,7 @@ function commitStoreUpdate(store) {
         let records = store.getUpdatedRecords();
         let phantoms = store.getNewRecords();
         records = records.concat(phantoms);
-        if (records.length == 0) {
+        if (records.length === 0) {
             return;
         }
         store.commiting = true;
@@ -258,6 +258,8 @@ function getEntityDataStore(entity, where, tree) {
                         store.getSorters().each(function (item) {
                             newParams["indexSort['" + item.getProperty() + "']"] = getColumn(store.grid, item.getProperty()).getIndex();
                         });
+
+                        checkColumnSearch(store.grid);
                     }
                     store.getProxy().setExtraParams(mergeJson(params, newParams));
                     return true;
@@ -319,11 +321,18 @@ function getEnumDataStore(enumName, firstData, lastData) {
  * 获得枚举的文本值
  */
 function getEnumText(enumName, id) {
-    let findRecord = getEnumDataStore(enumName).findRecord("id", id, 0, false, false, true);
+    let findRecord = getEnumRecord(enumName, id);
     if (findRecord) {
         return findRecord.get("text");
     }
     return null;
+}
+
+/**
+ * 获得枚举的文本值
+ */
+function getEnumRecord(enumName, id) {
+    return getEnumDataStore(enumName).findRecord("id", id, 0, false, false, true);
 }
 
 
@@ -332,8 +341,8 @@ function getEnumText(enumName, id) {
  * @returns
  */
 function getPageDataStore(maxSize, iteration) {
-    if (maxSize == null || maxSize.length == 0) maxSize = 100;
-    if (iteration == null || iteration.length == 0) iteration = 10;
+    if (!maxSize|| maxSize.length === 0) maxSize = 100;
+    if (!iteration|| iteration.length === 0) iteration = 10;
     let dataArray = [];
     for (let i = 0; i < maxSize / 10; i++) {
         let text = ((i + 1) * iteration) + '条';

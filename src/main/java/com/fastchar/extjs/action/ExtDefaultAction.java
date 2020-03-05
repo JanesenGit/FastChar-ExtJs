@@ -20,6 +20,7 @@ import com.fastchar.extjs.observer.FastHeadXmlObserver;
 import com.fastchar.extjs.observer.FastMenuXmlObserver;
 import com.fastchar.extjs.utils.ZXingUtils;
 import com.fastchar.out.FastOutCaptcha;
+import com.fastchar.out.FastOutText;
 import com.fastchar.utils.*;
 import net.coobird.thumbnailator.Thumbnails;
 import org.apache.commons.lang3.StringUtils;
@@ -338,11 +339,11 @@ public class ExtDefaultAction extends FastAction {
         FastMenuInfo menus = FastChar.getValues().get("menus");
         List<FastMenuInfo> newMenus = new ArrayList<>(menus.copy().getChildren());
         filterPowerMenus(newMenus, getParam("parent"));
-        filterMenus(newMenus, checked);
+        filterMenusByPower(newMenus, checked);
         return newMenus;
     }
 
-    private void filterMenus(List<FastMenuInfo> menus, String checked) {
+    private void filterMenusByPower(List<FastMenuInfo> menus, String checked) {
         List<FastMenuInfo> waitRemove = new ArrayList<>();
         for (FastMenuInfo menu : menus) {
             if (!menu.getBoolean("power", true)) {
@@ -351,7 +352,11 @@ public class ExtDefaultAction extends FastAction {
             }
             menu.setChecked(checked.contains(menu.getId()));
             menu.fromProperty();
-            filterMenus(menu.getChildren(), checked);
+            filterMenusByPower(menu.getChildren(), checked);
+
+            if (menu.getLeaf()) {
+
+            }
         }
         menus.removeAll(waitRemove);
     }
@@ -432,6 +437,7 @@ public class ExtDefaultAction extends FastAction {
             String fileUrl = paramFile.getUrl();
             Map<String, Object> result = new HashMap<>();
             result.put("url", fileUrl);
+            result.putAll(paramFile.getAttrs());
             result.put("http", getProjectHost());
             responseJson(0, "上传成功！", result);
         } else {

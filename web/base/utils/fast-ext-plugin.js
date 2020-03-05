@@ -70,8 +70,8 @@ Ext.define("Fast.ext.FastFile", {
             hidden: true,
             handler: function () {
                 let me = this;
-                if (me.fileModules.length == 1) {
-                    if (me.fileModules[0].type == 'images') {
+                if (me.fileModules.length === 1) {
+                    if (me.fileModules[0].type === 'images') {
                         if (me.getMenu()) {
                             me.getMenu().holdShow = true;
                         }
@@ -457,6 +457,7 @@ Ext.define("Fast.ext.Link", {
     allowBlank: true,
     layout: 'fit',
     multiSelect: false,
+    autoDisabled: true,
     submitValue: true,
     onBeforeSelect: null,
     onAfterSelect: null,
@@ -616,7 +617,7 @@ Ext.define("Fast.ext.Link", {
         }
         entityObj.showSelect(this, "选择" + selectTitle, me.linkValue.where, me.multiSelect).then(function (result) {
             if (result) {
-                if (result.length == 1) {
+                if (result.length === 1) {
                     let data = result[0];
                     me.setValue(data.get(me.entityText));
                     me.setRawValue(data.get(me.entityId));
@@ -636,12 +637,13 @@ Ext.define("Fast.ext.Link", {
                     me.setRawValue(moreValues[0], moreValues.slice(1));
                     me.setValue(newText.substring(1));
                 }
+
+                if (Ext.isFunction(me.onAfterSelect)) {
+                    me.onAfterSelect(me);
+                }
             }
             if (me.getMenu()) {
                 me.getMenu().holdShow = false;
-            }
-            if (Ext.isFunction(me.onAfterSelect)) {
-                me.onAfterSelect(me);
             }
         });
     },
@@ -659,7 +661,7 @@ Ext.define("Fast.ext.Link", {
             me.linkValue[me.entityId] = -1;
             me.linkValue[me.entityText] = null;
         }
-        if (Ext.isEmpty(me.linkValue[me.entityId])) {
+        if (!me.linkValue.hasOwnProperty(me.entityId)) {
             me.linkValue[me.entityId] = -1;
         }
         if (Ext.isEmpty(me.name)) {
@@ -686,7 +688,7 @@ Ext.define("Fast.ext.Link", {
                 name: me.name + "Display",
                 editable: me.editable,
                 value: displayValue,
-                disabled: me.linkValue[me.entityText] != null,
+                disabled: me.linkValue[me.entityText] != null && me.autoDisabled,
                 hideLabel: true,
                 fieldLabel: me.fieldLabel,
                 allowBlank: me.allowBlank,
@@ -1294,33 +1296,33 @@ Ext.define("Fast.ext.PCA", {
             let normalValue = "";
             if (province) {
                 normalValue = province.provinceName;
-                if (me.name == me.proName) {
+                if (me.name === me.proName) {
                     me.setValue(province.provinceName);
                     normalValue = null;
                 }
             }
             if (city) {
                 if (normalValue) {
-                    if (me.selectType == 0) {
+                    if (me.selectType === 0) {
                         normalValue += " " + city.cityName;
                     } else {
                         normalValue = city.cityName;
                     }
                 }
-                if (me.name == me.cityName) {
+                if (me.name === me.cityName) {
                     me.setValue(city.cityName);
                     normalValue = null;
                 }
             }
             if (area) {
                 if (normalValue) {
-                    if (me.selectType == 0) {
+                    if (me.selectType === 0) {
                         normalValue += " " + area.areaName;
                     } else {
                         normalValue = area.areaName;
                     }
                 }
-                if (me.name == me.areaName) {
+                if (me.name === me.areaName) {
                     me.setValue(area.areaName);
                     normalValue = null;
                 }
@@ -1382,7 +1384,259 @@ Ext.define("Fast.ext.PCA", {
 });
 
 
+/**
+ * 时间区间组件
+ */
+Ext.define("Fast.ext.DateRange", {
+    alias: ['widget.daterange', 'widget.daterangefield'],
+    extend: 'Ext.form.field.Text',
+    beginDate: null,
+    endDate: null,
+    editable: true,
+    allowBlank: true,
+    maxRangeDate: -1,//最大日期范围
+    maxRangeMonth: -1,//最大月份范围
+    maxRangeYear: -1,//最大年份范围
+    layout: 'column',
+    format: 'Y-m-d',
+    submitValue: true,
+    onAfterSelect: null,
+    onClearValue: null,
+    getMenu: function () {
+        return this.up("menu");
+    },
+    selectData: function () {
+        let me = this;
+        if (me.getMenu()) {
+            me.getMenu().holdShow = true;
+        }
 
+        let time = Ext.now();
+        let dateRangeMenu = Ext.create('Ext.menu.Menu', {
+            floating: true,
+            items: [{
+                xtype: 'panel',
+                padding: '10 10 10 10',
+                layout: 'column',
+                style: {
+                    background: "#ffffff",
+                    borderWidth: 1,
+                    borderColor: "#ffffff",
+                    color: '#eeeee'
+                },
+                border: 0,
+                items: [
+                    {
+                        xtype: 'combo',
+                        fieldLabel: '快速选择',
+                        valueField: 'value',
+                        labelWidth: 60,
+                        margin: '5 5 5 5',
+                        editable: false,
+                        columnWidth: 1,
+                        triggers: {
+                            close: {
+                                cls: 'text-clear',
+                                handler: function () {
+                                    this.setValue(null);
+                                    me.clearData();
+                                }
+                            }
+                        },
+                        listeners: {
+                            change: function (obj, newValue, oldValue, eOpts) {
+                                if (!newValue) {
+                                    return;
+                                }
+                                me.endDate = Ext.Date.format(new Date(), me.format);
+                                if (newValue === 6) {
+                                    me.beginDate = Ext.Date.format(new Date(), me.format);
+                                }else if (newValue === 1) {
+                                    me.beginDate = Ext.Date.format(Ext.Date.add(new Date(), Ext.Date.DAY, -7), me.format);
+                                }else if (newValue === 2) {
+                                    me.beginDate = Ext.Date.format(Ext.Date.add(new Date(), Ext.Date.MONTH, -1), me.format);
+                                }else if (newValue === 3) {
+                                    me.beginDate = Ext.Date.format(Ext.Date.add(new Date(), Ext.Date.MONTH, -3), me.format);
+                                }else if (newValue === 4) {
+                                    me.beginDate = Ext.Date.format(Ext.Date.add(new Date(), Ext.Date.MONTH, -6), me.format);
+                                }else if (newValue === 5) {
+                                    me.beginDate = Ext.Date.format(Ext.Date.add(new Date(), Ext.Date.YEAR, -1), me.format);
+                                }
+                                let error = me.refreshValue();
+                                if (error) {
+                                    toast(error);
+                                    obj.setValue(null);
+                                    me.clearData();
+                                    shakeComment(dateRangeMenu);
+                                    return;
+                                }
+                                Ext.getCmp("beginDate" + time).setValue(me.beginDate);
+                                Ext.getCmp("endDate" + time).setValue(me.endDate);
+                            }
+                        },
+                        store: Ext.create('Ext.data.Store', {
+                            data: [
+                                {
+                                    'text': '今天',
+                                    'value': 6
+                                },
+                                {
+                                    'text': '近一周',
+                                    'value': 1
+                                },
+                                {
+                                    'text': '近一个月',
+                                    "value": 2
+                                },
+                                {
+                                    'text': '近三个月',
+                                    "value": 3
+                                },
+                                {
+                                    'text': '近六个月',
+                                    "value": 4
+                                },
+                                {
+                                    'text': '近一年',
+                                    "value": 5
+                                }]
+                        })
+                    },
+                    {
+                        fieldLabel: '开始日期',
+                        margin: '5 5 5 5',
+                        xtype: 'datefield',
+                        id: 'beginDate' + time,
+                        columnWidth: 1,
+                        labelWidth: 60,
+                        format: me.format,
+                        value: me.beginDate,
+                        emptyText: '开始日期'
+                    }, {
+                        fieldLabel: '结束日期',
+                        margin: '5 5 5 5',
+                        xtype: 'datefield',
+                        id: 'endDate' + time,
+                        columnWidth: 1,
+                        labelWidth: 60,
+                        format: me.format,
+                        value: me.endDate,
+                        emptyText: '结束日期'
+                    }, {
+                        xtype: 'panel',
+                        layout: 'hbox',
+                        columnWidth: 1,
+                        border: 0,
+                        items: [
+                            {
+                                xtype: 'button',
+                                text: '确定',
+                                margin: '5 5 5 5',
+                                flex: 0.42,
+                                handler: function () {
+                                    let bDate = Ext.getCmp("beginDate" + time).getValue();
+                                    let eDate = Ext.getCmp("endDate" + time).getValue();
+                                    me.beginDate = Ext.util.Format.date(bDate, me.format);
+                                    me.endDate = Ext.util.Format.date(eDate, me.format);
+                                    if (Ext.isEmpty(me.beginDate)) {
+                                        me.beginDate = Ext.Date.format(new Date(0), me.format);
+                                    }
+
+                                    if (Ext.isEmpty(me.endDate)) {
+                                        me.endDate = Ext.Date.format(new Date(), me.format);
+                                    }
+                                    let error = me.refreshValue();
+                                    if (error) {
+                                        toast(error);
+                                        shakeComment(dateRangeMenu);
+                                        return;
+                                    }
+
+                                    if (Ext.isFunction(me.onAfterSelect)) {
+                                        me.onAfterSelect(me);
+                                    }
+                                    dateRangeMenu.close();
+                                }
+                            }
+                        ]
+                    }]
+            }]
+        });
+        dateRangeMenu.setWidth(Math.max(this.getWidth(), 200));
+        dateRangeMenu.showBy(this, "tl-bl?");
+    },
+    clearData: function () {
+        let me = this;
+        me.setValue(null);
+        me.beginDate = null;
+        me.endDate = null;
+    },
+    refreshValue: function () {
+        let me = this;
+        me.setValue(null);
+
+        let bDate = Ext.Date.parse(me.beginDate, me.format);
+        let eDate = Ext.Date.parse(me.endDate, me.format);
+
+        if (bDate > eDate) {
+            me.clearData();
+            return "开始日期必须小于等于结束日期！";
+        }
+
+        if (me.maxRangeDate > 0) {
+            let maxEndDate = Ext.Date.add(bDate, Ext.Date.DAY, me.maxRangeDate);
+            if (!Ext.Date.between(eDate, bDate, maxEndDate)) {
+                me.clearData();
+                return "日期范围区间必须在" + me.maxRangeDate + "天以内！";
+            }
+        }
+
+        if (me.maxRangeMonth > 0) {
+            let maxEndDate = Ext.Date.add(bDate, Ext.Date.MONTH, me.maxRangeMonth);
+            if (!Ext.Date.between(eDate, bDate, maxEndDate)) {
+                me.clearData();
+                return "日期范围区间必须在" + me.maxRangeMonth + "个月以内！";
+            }
+        }
+
+        if (me.maxRangeYear > 0) {
+            let maxEndDate = Ext.Date.add(bDate, Ext.Date.YEAR, me.maxRangeYear);
+            if (!Ext.Date.between(eDate, bDate, maxEndDate)) {
+                me.clearData();
+                return "日期范围区间必须在" + me.maxRangeYear + "年以内！";
+            }
+        }
+
+        me.setValue(me.beginDate + " 至 " + me.endDate);
+        if (Ext.Date.isEqual(bDate, eDate)) {
+            me.setValue("今天");
+        }
+        return null;
+    },
+    triggers: {
+        close: {
+            cls: 'text-clear',
+            handler: function () {
+                this.clearData();
+                if (Ext.isFunction(this.onClearValue)) {
+                    this.onClearValue();
+                }
+            }
+        },
+        search: {
+            cls: 'text-search',
+            handler: function () {
+                this.selectData();
+                this.inputEl.blur();
+            }
+        }
+    },
+    initComponent: function () {
+        this.editable = false;
+        this.refreshValue();
+        this.callParent(arguments);
+    }
+});
 
 
 

@@ -46,7 +46,7 @@ Ext.form.FormPanel.prototype.submitForm = function (entity, extraParams, waitMsg
             params: extraParams,
             success: function (form, action) {
                 Ext.Msg.alert('系统提醒', action.result.message, function (btn) {
-                    if (btn == "ok") {
+                    if (btn === "ok") {
                         resolve(action.result);
                     }
                 });
@@ -72,7 +72,7 @@ Ext.form.FormPanel.prototype.submitForm = function (entity, extraParams, waitMsg
 Ext.override(Ext.form.field.Date, {
     initComponent: Ext.Function.createSequence(Ext.form.field.Date.prototype.initComponent, function () {
         if (isSystem()) {
-            if (this.format == 'y-m-d') {
+            if (this.format === 'y-m-d') {
                 this.format = system.dateFormat;
             }
         }
@@ -161,7 +161,7 @@ Ext.override(Ext.form.Basic, {
             let errorInfo = "请正确填写数据！";
             invalid = me.getFields().filterBy(function (field) {
                 let v = !field.validate();
-                if (v && index == 0) {
+                if (v && index === 0) {
                     fieldName = field.getFieldLabel();
                     errorInfo = field.getErrors()[0];
                     index++;
@@ -191,7 +191,7 @@ Ext.override(Ext.form.Basic, {
  */
 function isDateField(field) {
     if (!field) return false;
-    return field == "datefield" || field.xtype == "datefield";
+    return field === "datefield" || field.xtype === "datefield";
 }
 
 /**
@@ -199,7 +199,7 @@ function isDateField(field) {
  */
 function isNumberField(field) {
     if (!field) return false;
-    return field == "numberfield" || field.xtype == "numberfield";
+    return field === "numberfield" || field.xtype === "numberfield";
 }
 
 /**
@@ -207,7 +207,7 @@ function isNumberField(field) {
  */
 function isTextField(field) {
     if (!field) return false;
-    return field == "textfield" || field.xtype == "textfield";
+    return field === "textfield" || field.xtype === "textfield";
 }
 
 
@@ -216,7 +216,7 @@ function isTextField(field) {
  */
 function isFileField(field) {
     if (!field) return false;
-    return field == "fastfile" || field.xtype == "fastfile" || field == "fastfilefield" || field.xtype == "fastfilefield";
+    return field === "fastfile" || field.xtype === "fastfile" || field === "fastfilefield" || field.xtype === "fastfilefield";
 }
 
 /**
@@ -224,7 +224,7 @@ function isFileField(field) {
  */
 function isFilesField(field) {
     if (!field) return false;
-    return field == "fastfiles" || field.xtype == "fastfiles" || field == "fastfilesfield" || field.xtype == "fastfilesfield";
+    return field === "fastfiles" || field.xtype === "fastfiles" || field === "fastfilesfield" || field.xtype === "fastfilesfield";
 }
 
 
@@ -233,7 +233,7 @@ function isFilesField(field) {
  */
 function isEnumField(field) {
     if (!field) return false;
-    return field == "enumcombo" || field == "enumcombobox" || field.xtype == "enumcombo" || field.xtype == "enumcombobox";
+    return field === "enumcombo" || field === "enumcombobox" || field.xtype === "enumcombo" || field.xtype === "enumcombobox";
 }
 
 /**
@@ -241,7 +241,7 @@ function isEnumField(field) {
  */
 function isContentField(field) {
     if (!field) return false;
-    return field == "contentfield" || field == "content" || field.xtype == "contentfield" || field.xtype == "content";
+    return field === "contentfield" || field === "content" || field.xtype === "contentfield" || field.xtype === "content";
 }
 
 /**
@@ -249,7 +249,7 @@ function isContentField(field) {
  */
 function isHtmlContentField(field) {
     if (!field) return false;
-    return field == "htmlcontentfield" || field == "htmlcontent" || field.xtype == "htmlcontentfield" || field.xtype == "htmlcontent";
+    return field === "htmlcontentfield" || field === "htmlcontent" || field.xtype === "htmlcontentfield" || field.xtype === "htmlcontent";
 }
 
 
@@ -258,7 +258,7 @@ function isHtmlContentField(field) {
  */
 function isLinkField(field) {
     if (!field) return false;
-    return field == "linkfield" || field == "link" || field.xtype == "linkfield" || field.xtype == "link";
+    return field === "linkfield" || field === "link" || field.xtype === "linkfield" || field.xtype === "link";
 }
 
 
@@ -267,7 +267,7 @@ function isLinkField(field) {
  */
 function isTargetField(field) {
     if (!field) return false;
-    return field == "targetfield" || field == "target" || field.xtype == "targetfield" || field.xtype == "target";
+    return field === "targetfield" || field === "target" || field.xtype === "targetfield" || field.xtype === "target";
 }
 
 /**
@@ -275,6 +275,6 @@ function isTargetField(field) {
  */
 function isPCAField(field) {
     if (!field) return false;
-    return field == "pcafield" || field == "pca" || field.xtype == "pcafield" || field.xtype == "pca";
+    return field === "pcafield" || field === "pca" || field.xtype === "pcafield" || field.xtype === "pca";
 }
 

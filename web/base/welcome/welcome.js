@@ -1,4 +1,9 @@
 function getWelcomePanel() {
+    let leftItems = [systemOperate(), systemWaitNotice()];
+
+    if (system.isSuperRole()) {
+        leftItems.push(systemBugReport());
+    }
     let accordionPanel = Ext.create('Ext.panel.Panel', {
         layout: {
             type: 'accordion'
@@ -6,11 +11,7 @@ function getWelcomePanel() {
         region: 'center',
         border: 0,
         flex: 0.6,
-        items: [
-            systemOperate(),
-            systemWaitNotice(),
-            systemBugReport()
-        ]
+        items: leftItems
     });
 
     let rightItems = [systemVersion()];
@@ -49,6 +50,7 @@ function systemOperate() {
     let dataStoreTSystemOperatesModel = Ext.create('Ext.data.Store', {
         autoLoad: false,
         fields: [],
+        id: 'SystemLogStore',
         idProperty: 'operateId',
         pageSize: 20,
         proxy: {
@@ -92,7 +94,7 @@ function systemOperate() {
                 header: '操作类型',
                 dataIndex: 'systemLogType',
                 align: 'center',
-                width: 100
+                width: 120
             },
             {
                 header: '操作介绍',
@@ -103,18 +105,17 @@ function systemOperate() {
             {
                 header: '操作时间',
                 dataIndex: 'systemLogDateTime',
-                width: 200,
+                width: 160,
                 align: 'center'
+            }, {
+                header: '操作',
+                dataIndex: 'systemLogId',
+                width: 100,
+                align: 'center',
+                renderer: function (val) {
+                    return "<a href=\"javascript:showSystemLogDetails(" + val + ");\">查看详情</a>";
+                }
             }],
-        plugins: [{
-            ptype: 'rowexpander',
-            rowBodyTpl: new Ext.XTemplate(
-                '<p>管理员: {a__managerName}</p>',
-                '<p>操作说明: {systemLogContent}</p>',
-                '<p>来自IP: <a target="_blank" href="https://www.baidu.com/s?wd=IP%E5%9C%B0%E5%9D%80%3A{systemLogIp}">{systemLogIp}</a></p>',
-                '<p>浏览器: {systemLogClient}</p>',
-                '<p><br/> {systemLogData}</p>')
-        }],
         dockedItems: [pagingtoolbar],
         viewConfig: {
             enableTextSelection: true,
@@ -153,9 +154,79 @@ function systemOperate() {
     return dataGridTSystemOperatesModel;
 }
 
+function showSystemLogDetails(id) {
+    let store = Ext.getStore("SystemLogStore");
+    let record = store.findRecord("systemLogId", id, 0, false, false, true);
+    let buildData = function (data) {
+        let array = [];
+        let names = {
+            "a__managerName": "管理员",
+            "systemLogType": "操作类型",
+            "systemLogContent": "操作详情",
+            "systemLogIp": "来自IP",
+            "systemLogClient": "浏览器信息",
+            "systemSendData": "提交的数据",
+            "systemResultData": "返回的数据",
+            "systemLogDateTime": "操作时间"
+        };
+        for (let key in names) {
+            array.push({
+                "name": names[key],
+                "key": key,
+                "value": data[key]
+            });
+        }
+        return array;
+    };
+
+    let grid = createDetailsGrid(buildData(record.getData()), {
+        region: 'center',
+        power: false,
+        hideHeaders: true
+    }, {
+        width: 100,
+        flex: 0,
+    }, {
+        align: 'left',
+        renderer: function (val, m, record) {
+            m.style = 'overflow:auto;padding: 3px 6px;text-overflow: ellipsis;white-space:normal !important;line-height:20px;word-break:break-word; ';
+            let attr = record.get("key");
+            if (attr === "systemLogIp") {
+                return "<a href='https://www.baidu.com/s?wd=" + val + "' target='_blank'>" + val + "</a>";
+            }
+            return val;
+        },
+        listeners: {
+            dblclick: function (grid, obj, celNo, obj1, obj2, rowNo, e) {
+                let currRecord = grid.getStore().getAt(celNo);
+                let attr = currRecord.get("key");
+                if (attr === "systemSendData"||attr === "systemResultData") {
+                    showFormatJson(obj, currRecord.get('value'));
+                }
+            }
+        }
+    });
+
+
+    let win = Ext.create('Ext.window.Window', {
+        title: "日志详情",
+        height: 500,
+        iconCls: 'extIcon extDetails',
+        width: 500,
+        layout: 'border',
+        resizable: true,
+        maximizable: true,
+        items: [grid],
+        modal: true,
+        constrain: true,
+    });
+    win.show();
+}
+
+
 //搜索系统日志
 function searchSysOperate(grid, obj) {
-    if (grid.searchForm == null) {
+    if (!grid.searchForm) {
         grid.searchForm = Ext.create('Ext.form.FormPanel', {
             bodyPadding: 5,
             region: 'center',
@@ -490,7 +561,7 @@ function systemConfig() {
                 handler: function () {
                     Ext.Msg.confirm("系统提醒", "您确定恢复系统默认的配置吗？",
                         function (button, text) {
-                            if (button == "yes") {
+                            if (button === "yes") {
                                 showWait("请稍后……");
                                 setPanel.getForm().reset();
                                 server.deleteSystemConfig(function (success, message) {
@@ -521,7 +592,7 @@ function systemConfig() {
                     waitMsg: '正在保存配置中……',
                     success: function (form, action) {
                         Ext.Msg.alert('系统设置', '设置保存成功！', function (btn) {
-                            if (btn == "ok") {
+                            if (btn === "ok") {
                                 location.reload();
                             }
                         });
@@ -567,7 +638,7 @@ function systemMonitor() {
                 let objDesc = desc[i];
                 let items = [];
                 for (let objDescKey in objDesc) {
-                    if (objDescKey == 'title') {
+                    if (objDescKey === 'title') {
                         continue;
                     }
                     let config = {
@@ -833,7 +904,7 @@ function showBugReportDetails(id) {
                         buttons: Ext.Msg.YESNO,
                         defaultFocus: "no",
                         callback: function (button, text) {
-                            if (button == "yes") {
+                            if (button === "yes") {
                                 commitStoreDelete(store, [record]).then(function () {
                                     win.close();
                                 });
@@ -862,7 +933,7 @@ function showBugReportDetails(id) {
 
 //搜索系统日志
 function searchBugReport(grid, obj) {
-    if (grid.searchForm == null) {
+    if (!grid.searchForm) {
         grid.searchForm = Ext.create('Ext.form.FormPanel', {
             bodyPadding: 5,
             region: 'center',
@@ -896,14 +967,14 @@ function searchBugReport(grid, obj) {
                     xtype: "enumcombo",
                     fieldLabel: "功能类型",
                     columnWidth: 0.5,
-                    enumName: "FuncTypeEnum"
+                    enumName: "ExtBugFuncTypeEnum"
                 },
                 {
                     name: "where['reportState']",
                     xtype: "enumcombo",
                     fieldLabel: "上报状态",
                     columnWidth: 0.5,
-                    enumName: "ReportStateEnum"
+                    enumName: "ExtBugReportStateEnum"
                 },
                 {
                     fieldLabel: '开始时间',
@@ -1050,7 +1121,14 @@ function systemWaitNotice() {
             ptype: 'rowexpander',
             rowBodyTpl: new Ext.XTemplate(
                 '<p>【{noticeTitle}】{noticeContent}</p>',
-                "<tpl if='noticeState==0' ><p><a id='aNoticeAction{noticeId}' href='javascript:doneSystemWait({noticeId});'>标记为已读</a></p></tpl>"
+                "<p>" +
+                "<tpl if='noticeState==0' >" +
+                "<a id='aNoticeAction{noticeId}' href='javascript:doneSystemWait({noticeId});'>标记为已读</a>&nbsp;&nbsp;&nbsp;&nbsp;" +
+                "</tpl>" +
+                "<tpl if='noticeAction' >" +
+                "<a href=\"javascript:{noticeAction};\">立即前往</a>" +
+                "</tpl>" +
+                "</p>"
             )
         }],
         dockedItems: [pagingtoolbar],
@@ -1094,7 +1172,7 @@ function doneSystemWait(noticeId) {
                 let noticeWin = Ext.getCmp("NoticeAlertWindow");
                 if (noticeWin) {
                     let $type = $("[type='bNoticeAction']");
-                    if ($type.length == 0) {
+                    if ($type.length === 0) {
                         noticeWin.close();
                     }
                 }
@@ -1119,7 +1197,7 @@ function checkSystemWait(justRefresh) {
         try {
             if (success) {
                 let noticeWin = Ext.getCmp("NoticeAlertWindow");
-                if (data.length <= 0 && Object.keys(params).length == 0) {
+                if (data.length <= 0 && Object.keys(params).length === 0) {
                     if (noticeWin) {
                         noticeWin.close();
                     }
@@ -1173,7 +1251,7 @@ function checkSystemWait(justRefresh) {
                         ]
                     };
                     winItems.push(noticePanel);
-                    if ($("#bNoticeAction" + notice.noticeId).length == 0) {
+                    if ($("#bNoticeAction" + notice.noticeId).length === 0) {
                         needRefresh = true;
                     }
                 }
