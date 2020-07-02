@@ -25,7 +25,9 @@ public class FastExtAfterInterceptor implements IFastInterceptor {
                 extSystemLogEntity.set("systemLogType", extSystemLogEntity.replaceHolder(fastLog.type(), fastAction.getRequest()));
                 extSystemLogEntity.set("systemLogContent", extSystemLogEntity.replaceHolder(fastLog.value(), fastAction.getRequest()));
                 extSystemLogEntity.set("systemSendData", FastChar.getJson().toJson(fastAction.getParamToMap()));
-                extSystemLogEntity.set("systemResultData", FastChar.getJson().toJson(fastAction.getFastOut().getData()));
+                if (fastAction.getFastOut() != null && fastAction.getFastOut().getData() != null) {
+                    extSystemLogEntity.set("systemResultData", FastChar.getJson().toJson(fastAction.getFastOut().getData()));
+                }
                 extSystemLogEntity.set("systemLogIp", fastAction.getRemoteIp());
                 extSystemLogEntity.set("systemLogClient", fastAction.getUserAgent());
                 extSystemLogEntity.put("log", false);
@@ -47,7 +49,7 @@ public class FastExtAfterInterceptor implements IFastInterceptor {
             }
         } catch (Exception e) {
             e.printStackTrace();
-            fastAction.invoke();
+            fastAction.responseJson(-1, "操作失败！" + e.toString());
         }
     }
 }

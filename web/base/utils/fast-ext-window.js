@@ -4,10 +4,11 @@ Ext.override(Ext.Window, {
             if (!eval(getExt("window-anim").value)) {
                 this.animateTarget = null;
             }
-            let regStr=/([^/]*.svg)/;
+            let regStr = /([^/]*.svg)/;
             if (this.icon && regStr.test(this.icon)) {
                 this.icon = server.getIcon(regStr.exec(this.icon)[1].trim(), "#ffffff");
             }
+            this.liveDrag = true;
         } catch (e) {
             console.error(e);
         }
@@ -23,7 +24,7 @@ Ext.override(Ext.window.Window, {
     }),
     setIcon: Ext.Function.createSequence(Ext.window.Window.prototype.setIcon, function (value) {
         let me = this;
-        let regStr=/([^/]*.svg)/;
+        let regStr = /([^/]*.svg)/;
         if (value && regStr.test(value)) {
             me.icon = server.getIcon(regStr.exec(value)[1].trim(), "#ffffff");
         }
@@ -79,10 +80,10 @@ function toast(message) {
         align: 't',
         slideInDuration: 200,
         slideBackDuration: 200,
-        minWidth: 120,
+        minWidth: 180,
         slideBackAnimation: 'easeOut',
         iconCls: 'extIcon extInfo',
-        title: '消息'
+        title: '消息提示'
     });
 }
 
@@ -90,11 +91,16 @@ function toast(message) {
  * 弹窗显示网页内容
  */
 function showHtml(obj, title, content) {
+    let winWidth = parseInt((document.body.clientWidth * 0.4).toFixed(0));
+    let winHeight = parseInt((document.body.clientHeight * 0.6).toFixed(0));
+
     let win = Ext.create('Ext.window.Window', {
         title: title,
         layout: 'fit',
-        height: 500,
-        width: 600,
+        height: winHeight,
+        width: winWidth,
+        minHeight: 500,
+        minWidth: 600,
         constrain: true,
         resizable: true,
         maximizable: true,
@@ -114,11 +120,15 @@ function showHtml(obj, title, content) {
  * 弹窗显示网页内容
  */
 function showLink(obj, title, url) {
+    let winWidth = parseInt((document.body.clientWidth * 0.4).toFixed(0));
+    let winHeight = parseInt((document.body.clientHeight * 0.6).toFixed(0));
     let win = Ext.create('Ext.window.Window', {
         title: title,
         layout: 'fit',
-        height: 500,
-        width: 600,
+        height: winHeight,
+        width: winWidth,
+        minHeight: 500,
+        minWidth: 600,
         resizable: true,
         maximizable: true,
         modal: true,
@@ -146,11 +156,15 @@ function showLink(obj, title, url) {
  * @param content
  */
 function showEditorHtml(obj, title, content) {
+    let winWidth = parseInt((document.body.clientWidth * 0.4).toFixed(0));
+    let winHeight = parseInt((document.body.clientHeight * 0.6).toFixed(0));
     let win = Ext.create('Ext.window.Window', {
         title: title,
         layout: 'fit',
-        height: 500,
-        width: 600,
+        height: winHeight,
+        width: winWidth,
+        minHeight: 500,
+        minWidth: 600,
         resizable: true,
         maximizable: true,
         modal: true,
@@ -177,14 +191,18 @@ function showEditorHtml(obj, title, content) {
 
 
 function showText(obj, icon, title, text) {
+    let winWidth = parseInt((document.body.clientWidth * 0.4).toFixed(0));
+    let winHeight = parseInt((document.body.clientHeight * 0.6).toFixed(0));
     let win = Ext.create('Ext.window.Window', {
         title: title,
         icon: icon,
         iconCls: icon,
         maximizable: true,
-        height: 400,
+        height: winHeight,
+        width: winWidth,
+        minHeight: 500,
+        minWidth: 600,
         resizable: true,
-        width: 600,
         layout: 'fit',
         animateTarget: obj,
         items: [
@@ -452,10 +470,14 @@ function showImage(obj, url, callBack, modal) {
             ]
         }
     });
+    let winWidth = parseInt((document.body.clientWidth * 0.4).toFixed(0));
+    let winHeight = parseInt((document.body.clientHeight * 0.6).toFixed(0));
     let newWin = Ext.create('Ext.window.Window', {
         title: "查看图片",
-        height: 500,
-        width: 600,
+        height: winHeight,
+        width: winWidth,
+        minHeight: 500,
+        minWidth: 600,
         id: 'ImageViewWindow',
         layout: 'border',
         iconCls: 'extIcon extImage',
@@ -485,10 +507,11 @@ function showImage(obj, url, callBack, modal) {
  * @param videoUrl
  */
 function showVideo(obj, videoUrl) {
+    //视频播放器的大小固定
     let win = Ext.create('Ext.window.Window', {
         title: '查看视频',
         layout: 'fit',
-        height: 520,
+        height: 515,
         width: 660,
         resizable: false,
         constrain: true,
@@ -506,7 +529,7 @@ function showVideo(obj, videoUrl) {
                 window["getVideoUrl"] = function () {
                     return videoUrl;
                 };
-                let html = "<iframe name='showVideoFrame' src='" + url + "'  width='100%' height='100%' frameborder='0' scrolling='no' >";
+                let html = "<iframe style='background-color: black;' name='showVideoFrame' src='" + url + "'  width='100%' height='100%' frameborder='0' scrolling='no' >";
                 this.update(html);
             }
         }
@@ -520,14 +543,17 @@ function showVideo(obj, videoUrl) {
 function editorText(obj, title, callBack) {
     let time = new Date().getTime();
     let areaId = "PublicTextArea" + time;
-
+    let winWidth = parseInt((document.body.clientWidth * 0.4).toFixed(0));
+    let winHeight = parseInt((document.body.clientHeight * 0.6).toFixed(0));
     let editorWin = Ext.create('Ext.window.Window', {
         title: title,
         iconCls: 'extIcon extEdit',
         resizable: true,
         maximizable: true,
-        height: 400,
-        width: 600,
+        height: winHeight,
+        width: winWidth,
+        minHeight: 500,
+        minWidth: 600,
         layout: 'fit',
         animateTarget: obj,
         items: [{
@@ -595,12 +621,16 @@ function editorText(obj, title, callBack) {
  * 格式化显示json字符串
  * @param obj
  */
-function showJson(obj,title, value) {
+function showJson(obj, title, value) {
     try {
+        let winWidth = parseInt((document.body.clientWidth * 0.4).toFixed(0));
+        let winHeight = parseInt((document.body.clientHeight * 0.6).toFixed(0));
         let win = Ext.create('Ext.window.Window', {
             title: title,
-            height: 400,
-            width: 600,
+            height: winHeight,
+            width: winWidth,
+            minHeight: 500,
+            minWidth: 600,
             animateTarget: obj,
             resizable: true,
             layout: 'fit',
@@ -624,10 +654,14 @@ function showJson(obj,title, value) {
  */
 function showFormatJson(obj, value) {
     try {
+        let winWidth = parseInt((document.body.clientWidth * 0.4).toFixed(0));
+        let winHeight = parseInt((document.body.clientHeight * 0.6).toFixed(0));
         let win = Ext.create('Ext.window.Window', {
             title: "查看数据",
-            height: 400,
-            width: 600,
+            height: winHeight,
+            width: winWidth,
+            minHeight: 500,
+            minWidth: 600,
             animateTarget: obj,
             layout: 'fit',
             resizable: true,
@@ -648,12 +682,16 @@ function showFormatJson(obj, value) {
 /**
  * 显示代码内容
  */
-function showCode(obj, value,linenumber) {
+function showCode(obj, value, linenumber) {
     try {
+        let winWidth = parseInt((document.body.clientWidth * 0.4).toFixed(0));
+        let winHeight = parseInt((document.body.clientHeight * 0.6).toFixed(0));
         let win = Ext.create('Ext.window.Window', {
             title: "查看内容",
-            height: 400,
-            width: 600,
+            height: winHeight,
+            width: winWidth,
+            minHeight: 500,
+            minWidth: 600,
             animateTarget: obj,
             resizable: true,
             layout: 'fit',
@@ -673,7 +711,7 @@ function showCode(obj, value,linenumber) {
         });
         if (linenumber) {
             win.update("<pre class='prettyprint linenums windowpre'>" + value + "</pre>");
-        }else{
+        } else {
             win.update("<pre class='prettyprint windowpre'>" + value + "</pre>");
         }
         win.show();

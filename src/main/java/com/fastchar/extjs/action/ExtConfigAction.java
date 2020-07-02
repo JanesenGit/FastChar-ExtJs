@@ -99,7 +99,8 @@ public class ExtConfigAction extends FastAction {
             return;
         }
         String entityCode = getParam("entityCode", true);
-        ExtSystemConfigEntity extConfig = ExtSystemConfigEntity.getInstance().set("log", false).getExtEntityColumnConfig(managerEntity.getId(), entityCode);
+        ExtSystemConfigEntity extConfig = ExtSystemConfigEntity.getInstance().set("log", false)
+                .getExtEntityColumnConfig(managerEntity.getId(), entityCode);
         if (extConfig != null) {
             responseJson(0, "获取成功！", extConfig);
         }else{

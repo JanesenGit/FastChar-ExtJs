@@ -37,9 +37,13 @@ function getWelcomePanel() {
         window["initWelcomeItems"](items);
     }
 
-    checkSystemWait(true);
+    if (!isPower()) {
+        checkSystemWait(true);
+    }
+
     return Ext.create('Ext.panel.Panel', {
         layout: 'border',
+        region: 'center',
         border: 0,
         items: items
     });
@@ -52,7 +56,7 @@ function systemOperate() {
         fields: [],
         id: 'SystemLogStore',
         idProperty: 'operateId',
-        pageSize: 20,
+        pageSize: 50,
         proxy: {
             type: 'ajax',
             url: 'entity/list',
@@ -145,7 +149,7 @@ function systemOperate() {
             Ext.apply(store.proxy.extraParams, jsonData);
             Ext.apply(store.proxy.extraParams, {
                 "entityCode": "ExtSystemLogEntity",
-                "limit": 50
+                "limit": dataStoreTSystemOperatesModel.pageSize
             });
         });
 
@@ -200,7 +204,7 @@ function showSystemLogDetails(id) {
             dblclick: function (grid, obj, celNo, obj1, obj2, rowNo, e) {
                 let currRecord = grid.getStore().getAt(celNo);
                 let attr = currRecord.get("key");
-                if (attr === "systemSendData"||attr === "systemResultData") {
+                if (attr === "systemSendData" || attr === "systemResultData") {
                     showFormatJson(obj, currRecord.get('value'));
                 }
             }
@@ -254,19 +258,25 @@ function searchSysOperate(grid, obj) {
                     }
                 }
             },
-            items: [{
-                fieldLabel: '开始时间',
-                columnWidth: 0.5,
-                name: "where['systemLogDateTime>=']",
-                xtype: 'datefield',
-                format: 'Y-m-d'
-            }, {
-                fieldLabel: '结束时间',
-                columnWidth: 0.5,
-                name: "where['systemLogDateTime<=']",
-                xtype: 'datefield',
-                format: 'Y-m-d'
-            },
+            items: [
+                {
+                    fieldLabel: '关键字',
+                    columnWidth: 1,
+                    name: "where['^search']",
+                    xtype: 'textfield'
+                }, {
+                    fieldLabel: '开始时间',
+                    columnWidth: 0.5,
+                    name: "where['systemLogDateTime>=']",
+                    xtype: 'datefield',
+                    format: 'Y-m-d'
+                }, {
+                    fieldLabel: '结束时间',
+                    columnWidth: 0.5,
+                    name: "where['systemLogDateTime<=']",
+                    xtype: 'datefield',
+                    format: 'Y-m-d'
+                },
                 {
                     fieldLabel: '操作用户',
                     columnWidth: 0.5,
@@ -274,11 +284,12 @@ function searchSysOperate(grid, obj) {
                     xtype: 'textfield'
                 },
                 {
-                    fieldLabel: '关键字',
+                    fieldLabel: '操作类型',
                     columnWidth: 0.5,
-                    name: "where['systemLogContent%?%']",
+                    name: "where['systemLogType%?%']",
                     xtype: 'textfield'
-                }]
+                }
+            ]
         });
 
         let title = obj.text;
@@ -291,7 +302,7 @@ function searchSysOperate(grid, obj) {
             width: 500,
             minWidth: 500,
             minHeight: 110,
-            height: 200,
+            height: 230,
             layout: 'border',
             constrain: true,
             iconCls: 'extIcon extSearch',
@@ -550,6 +561,18 @@ function systemConfig() {
                         value: 1,
                         bind: '{tab-record}',
                         store: getYesOrNoDataStore()
+                    },
+                    {
+                        name: 'font-size',
+                        fieldLabel: '系统字体大小',
+                        columnWidth: 1,
+                        xtype: 'combo',
+                        displayField: 'text',
+                        valueField: 'id',
+                        editable: false,
+                        value: 1,
+                        bind: '{font-size}',
+                        store: getFontSizeDataStore()
                     }
                 ]
             },
@@ -831,7 +854,7 @@ function systemBugReport() {
         Ext.apply(store.proxy.extraParams, jsonData);
         Ext.apply(store.proxy.extraParams, {
             "entityCode": "ExtBugReportEntity",
-            "limit": 50
+            "limit": dataStoreBugReport.pageSize
         });
     });
     dataStoreBugReport.on('load', function (store, records, successful, operation, eOpts) {
@@ -1055,7 +1078,7 @@ function systemWaitNotice() {
         fields: [],
         id: "SystemWaitNoticeStore",
         entity: entity,
-        pageSize: 20,
+        pageSize: 50,
         proxy: {
             type: 'ajax',
             url: 'entity/list',
@@ -1097,7 +1120,7 @@ function systemWaitNotice() {
                 header: '待办标题',
                 dataIndex: 'noticeTitle',
                 align: 'center',
-                width: 100
+                width: 200
             },
             {
                 header: '处理人',
@@ -1150,7 +1173,7 @@ function systemWaitNotice() {
             Ext.apply(store.proxy.extraParams, jsonData);
             Ext.apply(store.proxy.extraParams, {
                 "entityCode": "ExtSystemNoticeEntity",
-                "limit": 50
+                "limit": dataStoreNotice.pageSize
             });
         });
 
@@ -1279,6 +1302,19 @@ function checkSystemWait(justRefresh) {
                                     Ext.getStore("SystemWaitNoticeStore").loadPage(1);
                                     checkSystemWait(true);
                                 }
+                            }, {
+                                type: 'close',
+                                callback: function () {
+                                    showWait("正在清除中，请稍后……");
+                                    server.clearWaitNotice(function (success, message) {
+                                        hideWait();
+                                        if (success) {
+                                            noticeWin.close();
+                                        } else {
+                                            showAlert("系统提醒", message);
+                                        }
+                                    });
+                                }
                             }
                         ],
                         collapsible: true,
@@ -1291,6 +1327,9 @@ function checkSystemWait(justRefresh) {
                 } else {
                     noticeWin.insert(0, winItems);
                     noticeWin.setScrollY(0, true);
+                }
+                if (window["onSystemNoticeShow"]) {
+                    window["onSystemNoticeShow"]();
                 }
             }
         } finally {

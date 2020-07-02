@@ -2,7 +2,6 @@ package com.fastchar.extjs.entity;
 
 import com.fastchar.core.FastChar;
 import com.fastchar.core.FastEntity;
-import com.fastchar.extjs.core.FastExtEntity;
 import com.fastchar.database.FastPage;
 import com.fastchar.database.info.FastSqlInfo;
 import com.fastchar.extjs.entity.abstracts.AbstractExtSystemNoticeEntity;
@@ -162,5 +161,10 @@ public class ExtSystemNoticeEntity extends AbstractExtSystemNoticeEntity {
     public int updateWaitInfo(String code) {
         String sqlStr = "update ext_system_notice set noticeState = ? where noticeCode = ? ";
         return updateBySql(sqlStr,ExtSystemNoticeStateEnum.已处理.ordinal(),code);
+    }
+
+    public int clearNotice(String managerLayerCode) {
+        String sqlStr = "update ext_system_notice set noticeState = ? where noticeLayerCode like ? ";
+        return updateBySql(sqlStr,ExtSystemNoticeStateEnum.已处理.ordinal(),managerLayerCode + "@%");
     }
 }

@@ -8,6 +8,9 @@ const server = {
     loginUrl: function () {
         return "controller/login";
     },
+    validOperateUrl: function () {
+        return "controller/valid";
+    },
     showConfigUrl: function () {
         return "showConfig";
     },
@@ -28,7 +31,7 @@ const server = {
             }
             if (Ext.isFunction(callBack)) {
                 if (result.success) {
-                    callBack(true);
+                    callBack(true, result.message);
                 } else {
                     callBack(false, result.message);
                 }
@@ -46,7 +49,7 @@ const server = {
             }
             if (Ext.isFunction(callBack)) {
                 if (result.success) {
-                    callBack(true);
+                    callBack(true, result.message);
                 } else {
                     callBack(false, result.message);
                 }
@@ -132,7 +135,7 @@ const server = {
         $.post("ext/config/showExtConfig", params, function (result) {
             if (Ext.isFunction(callBack)) {
                 if (result.success) {
-                    callBack(true, result.data.configValue);
+                    callBack(true, result.data.configValue, result.message);
                 } else {
                     callBack(false, null, result.message);
                 }
@@ -155,7 +158,7 @@ const server = {
         $.post("ext/config/saveExtConfig", params, function (result) {
             if (Ext.isFunction(callBack)) {
                 if (result.success) {
-                    callBack(true);
+                    callBack(true, result.message);
                 } else {
                     callBack(false, result.message);
                 }
@@ -174,7 +177,7 @@ const server = {
         $.post("ext/config/deleteExtConfig", params, function (result) {
             if (Ext.isFunction(callBack)) {
                 if (result.success) {
-                    callBack(true);
+                    callBack(true, result.message);
                 } else {
                     callBack(false, result.message);
                 }
@@ -192,7 +195,7 @@ const server = {
             }
             if (Ext.isFunction(callBack)) {
                 if (result.success) {
-                    callBack(true, result.data);
+                    callBack(true, result.data, result.message);
                 } else {
                     callBack(false, null, result.message);
                 }
@@ -210,7 +213,7 @@ const server = {
             }
             if (Ext.isFunction(callBack)) {
                 if (result.success) {
-                    callBack(true, result.data);
+                    callBack(true, result.data, result.message);
                 } else {
                     callBack(false, null, result.message);
                 }
@@ -221,7 +224,7 @@ const server = {
         $.post("ext/config/showEntityColumn?entityCode=" + entityCode, function (result) {
             if (Ext.isFunction(callBack)) {
                 if (result.success) {
-                    callBack(true, result.data.configValue);
+                    callBack(true, result.data.configValue, result.message);
                 } else {
                     callBack(false, null, result.message);
                 }
@@ -242,7 +245,7 @@ const server = {
         $.post("ext/config/showSystemConfig", function (result) {
             if (Ext.isFunction(callBack)) {
                 if (result.success) {
-                    callBack(true, result.data);
+                    callBack(true, result.data, result.message);
                 } else {
                     callBack(false, null, result.message);
                 }
@@ -281,6 +284,13 @@ const server = {
     },
     doneWaitNotice: function (noticeId,callBack) {
         $.post("controller/doneNotice", {"noticeId": noticeId}, function (result) {
+            if (Ext.isFunction(callBack)) {
+                callBack(result.success, result.message, result.data);
+            }
+        });
+    },
+    clearWaitNotice: function (callBack) {
+        $.post("controller/clearNotice", function (result) {
             if (Ext.isFunction(callBack)) {
                 callBack(result.success, result.message, result.data);
             }

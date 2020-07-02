@@ -21,6 +21,7 @@ public class FastExtEntities {
 
     public FastExtEntities addEntity(Class<? extends FastExtEntity<?>> targetClass) throws Exception {
         if (!FastExtEntity.class.isAssignableFrom(targetClass)) {
+            FastChar.getLog().warn(FastChar.getLocal().getInfo("ExtEntity_Error1", targetClass));
             return this;
         }
         if (!FastClassUtils.checkNewInstance(targetClass)) {
@@ -28,8 +29,13 @@ public class FastExtEntities {
         }
         FastExtEntity<?> fastExtEntity = FastClassUtils.newInstance(targetClass);
         if (fastExtEntity != null) {
+
             String entityCode = fastExtEntity.getEntityCode();
-            if (entityMap.containsKey(entityCode) && !FastClassUtils.isSameRefined(targetClass, entityMap.get(entityCode))) {
+            if (entityMap.containsKey(entityCode)) {
+                if (FastClassUtils.isSameRefined(targetClass, entityMap.get(entityCode))) {
+                    FastChar.getLog().warn(FastChar.getLocal().getInfo("ExtEntity_Error3", targetClass, entityMap.containsKey(entityCode)));
+                    return this;
+                }
 
                 int existPriority = 0;
                 int currPriority = 0;
@@ -40,6 +46,7 @@ public class FastExtEntities {
                 Class<? extends FastExtEntity<?>> existClass = entityMap.get(entityCode);
 
                 if (existClass.equals(targetClass)) {
+                    FastChar.getLog().warn(FastChar.getLocal().getInfo("ExtEntity_Error4", targetClass));
                     return this;
                 }
 
@@ -107,6 +114,8 @@ public class FastExtEntities {
                     }
                     info.put("idProperty", idProperty);
                     infos.add(info);
+                }else{
+                    FastChar.getLog().error(FastChar.getLocal().getInfo("ExtEntity_Error5", aClass));
                 }
             }
 

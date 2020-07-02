@@ -19,7 +19,7 @@ public class FastMenuInfo extends FastBaseInfo {
     private String iconCls;
     private String color;
     private String parentId;
-    private String index = "0";
+    private String index = "9999999";
     private Boolean checked;
     private Boolean leaf;
     private Integer depth;
@@ -183,7 +183,7 @@ public class FastMenuInfo extends FastBaseInfo {
 
     public void merge(FastMenuInfo menuInfo) {
         for (String key : menuInfo.keySet()) {
-            if (key.equals("children")) {
+            if (String.valueOf(key).equals("children")) {
                 continue;
             }
             this.set(key, menuInfo.get(key));
@@ -202,7 +202,7 @@ public class FastMenuInfo extends FastBaseInfo {
 
     public FastMenuInfo copy() {
         FastMenuInfo newMenu = new FastMenuInfo();
-        newMenu.putAll(this);
+        newMenu.setAll(this);
 
         List<FastMenuInfo> children = new ArrayList<>();
         for (FastMenuInfo child : this.getChildren()) {

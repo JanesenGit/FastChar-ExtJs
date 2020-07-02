@@ -31,17 +31,24 @@ Ext.override(Ext.button.Button, {
  * @param button
  */
 function buttonToMenuItem(button) {
+    if (button.hidden) {
+        return null;
+    }
     let child = {
         icon: button.icon,
         iconCls: button.iconCls,
         text: button.text,
         subtext: button.subtext,
-        handler: button.handler
+        handler: button.handler,
+        disabled: button.disabled
     };
     if (button.getMenu() != null) {
         let menus = [];
         button.getMenu().items.each(function (item, index) {
-            menus.push(buttonToMenuItem(item));
+            let items = buttonToMenuItem(item);
+            if (items) {
+                menus.push(items);
+            }
         });
         child.menu = menus;
     }

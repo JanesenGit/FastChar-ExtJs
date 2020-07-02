@@ -1,15 +1,15 @@
 package com.fastchar.extjs.utils;
 
 import com.fastchar.core.FastChar;
+import com.fastchar.utils.FastFileUtils;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FilenameFilter;
-import java.io.InputStreamReader;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import javax.activation.FileTypeMap;
+import javax.activation.MimetypesFileTypeMap;
+import java.io.*;
+import java.net.URL;
+import java.net.URLConnection;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 
 public class ExtFileUtils {
 

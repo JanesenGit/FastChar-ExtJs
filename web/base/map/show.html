@@ -74,19 +74,18 @@
             map = new AMap.Map("container", {
                 resizeEnable: true
             });
-            map.plugin(["AMap.ToolBar", "AMap.OverView", "AMap.Scale", "AMap.Geocoder", "AMap.PlaceSearch"], function () {
-                //加载工具条
-                tool = new AMap.ToolBar({
-                    autoPosition: false
-                });
-                map.addControl(tool);
-                //加载鹰眼
-                view = new AMap.OverView();
-                map.addControl(view);
-                //加载比例尺
-                scale = new AMap.Scale();
-                map.addControl(scale);
-
+            map.plugin([
+                'AMap.ToolBar',
+                'AMap.Scale',
+                'AMap.MapType',
+                'AMap.PlaceSearch'
+            ], function(){
+                // 在图面添加工具条控件，工具条控件集成了缩放、平移、定位等功能按钮在内的组合控件
+                map.addControl(new AMap.ToolBar());
+                // 在图面添加比例尺控件，展示地图在当前层级和纬度下的比例尺
+                map.addControl(new AMap.Scale());
+                // 在图面添加类别切换控件，实现默认图层与卫星图、实施交通图层之间切换的控制
+                map.addControl(new AMap.MapType());
                 regeocoder();
             });
         } catch (e) {
@@ -101,7 +100,7 @@
             map: map,
             position: position
         });
-        AMap.event.addListener(marker, 'click', function () { //鼠标点击marker弹出自定义的信息窗体
+        marker.on("click", function () {
             infoWindow.open(map, marker.getPosition());
         });
 
@@ -126,7 +125,6 @@
 
         infoWindow = new AMap.InfoWindow({
             content: address,
-            size: new AMap.Size(300, 0),
             offset: new AMap.Pixel(0, -30)
         });
         infoWindow.open(map, marker.getPosition());

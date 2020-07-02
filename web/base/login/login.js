@@ -22,10 +22,10 @@ function showLogin(container) {
     if (loginBgUrl.indexOf("?") === -1) {
         loginBgUrl = loginBgUrl + "?1=1";
     }
-    if (loginBgUrl.indexOf("bg=")==-1) {
+    if (loginBgUrl.indexOf("bg=") === -1) {
         loginBgUrl = loginBgUrl + "&bg=" + systemBgColor;
     }
-    if (loginBgUrl.indexOf("dot=")==-1) {
+    if (loginBgUrl.indexOf("dot=") === -1) {
         loginBgUrl = loginBgUrl + "&dot=" + systemBgColor;
     }
     let panel = Ext.create('Ext.panel.Panel', {
@@ -59,6 +59,8 @@ function showLogin(container) {
         loginMember = 0;
     }
 
+    let labelWidth = getNumberValue(fontSize) * 3 + 8;
+
     let loginPanel = Ext.create('Ext.form.FormPanel', {
         url: server.loginUrl(),
         method: 'POST',
@@ -80,7 +82,7 @@ function showLogin(container) {
                         xtype: 'textfield',
                         fieldLabel: '登录名',
                         labelAlign: 'right',
-                        labelWidth: 50,
+                        labelWidth: labelWidth,
                         margin: '10 10 0 0',
                         name: 'loginName',
                         allowBlank: false,
@@ -92,7 +94,7 @@ function showLogin(container) {
                         xtype: 'textfield',
                         fieldLabel: '密码',
                         labelAlign: 'right',
-                        labelWidth: 50,
+                        labelWidth: labelWidth,
                         inputType: 'password',
                         margin: '10 10 0 0',
                         allowBlank: false,
@@ -116,7 +118,7 @@ function showLogin(container) {
                             xtype: 'textfield',
                             fieldLabel: '验证码',
                             labelAlign: 'right',
-                            labelWidth: 50,
+                            labelWidth: labelWidth,
                             margin: '10 10 0 0',
                             allowBlank: loginNormal,
                             flex: 1,
@@ -136,7 +138,7 @@ function showLogin(container) {
                         fieldLabel: '记住',
                         xtype: 'combo',
                         labelAlign: 'right',
-                        labelWidth: 50,
+                        labelWidth: labelWidth,
                         margin: '10 10 0 0',
                         displayField: 'text',
                         valueField: 'id',
@@ -216,7 +218,7 @@ function showLogin(container) {
                 onBeforeLogin(form.getValues(), function () {
                     toLogin();
                 });
-            }else{
+            } else {
                 toLogin();
             }
         }
@@ -229,10 +231,13 @@ function showLogin(container) {
             let loginName = loginPanel.form.findField("loginName").getValue();
             let loginMember = loginPanel.form.findField("loginMember").getValue();
 
-            $.cookie("loginName", loginName);
-            $.cookie("loginMember", loginMember);
+            let date = new Date();
+            date.setTime(date.getTime() + (30 * 24 * 60 * 60 * 1000));//30天后失效
+
+            $.cookie("loginName", loginName, {expires: date});
+            $.cookie("loginMember", loginMember, {expires: date});
             if (parseInt(loginMember) === 1) {
-                $.cookie("loginPassword", loginPassword);
+                $.cookie("loginPassword", loginPassword, {expires: date});
             } else {
                 $.removeCookie("loginPassword");
             }
@@ -259,13 +264,18 @@ function showLogin(container) {
         }
     };
 
+    let targetValue = "_blank";
+    if (copyrightUrl.startWith("javascript:")) {
+        targetValue = "_self";
+    }
+
     let bottomPanel = Ext.create('Ext.panel.Panel', {
         region: 'south',
         layout: 'fit',
         width: '100%',
         height: 50,
         border: 0,
-        html: "<div align='center'><a href='" + copyrightUrl + "' target='_blank' style='font-size: xx-small;color:#aaa;text-decoration:none;'>" + copyright + "</a>" +
+        html: "<div align='center'><a href='" + copyrightUrl + "' target='" + targetValue + "' style='font-size: xx-small;color:#aaa;text-decoration:none;'>" + copyright + "</a>" +
             "</div><div align='center' style='font-size: xx-small;color:#aaa;margin-top: 5px;'>Copyright © " + year + " " + version + "</div>"
     });
 

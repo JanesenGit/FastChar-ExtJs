@@ -1,5 +1,14 @@
 //定义fileModules
 const files = {
+    formatLength: function (length) {
+        if (length < 1024) {
+            return length + "B";
+        }
+        if (length < 1024 * 1024) {
+            return (length / 1024).toFixed(2) + "KB";
+        }
+        return (length / 1024 / 1024).toFixed(2) + "M";
+    },
     validate: function (modules, name) {
         if (Ext.isEmpty(modules)) {
             showAlert("系统提醒", "参数" + name + "必传！");
@@ -49,7 +58,7 @@ const files = {
     },
     word: function () {
         return {
-            reg: /\.(doc)$/i,
+            reg: /\.(doc|docx)$/i,
             tipMsg: 'word文档',
             type: 'words',
             renderer: renders.file()
@@ -60,6 +69,30 @@ const files = {
             reg: /\.(xls|xlsx)$/i,
             tipMsg: 'excel文档',
             type: 'excels',
+            renderer: renders.file()
+        };
+    },
+    ppt: function () {
+        return {
+            reg: /\.(ppt|pptx)$/i,
+            tipMsg: 'ppt文档',
+            type: 'ppt',
+            renderer: renders.file()
+        };
+    },
+    pdf: function () {
+        return {
+            reg: /\.(pdf)$/i,
+            tipMsg: 'pdf文档',
+            type: 'pdf',
+            renderer: renders.file()
+        };
+    },
+    zip: function () {
+        return {
+            reg: /\.(zip|rar)$/i,
+            tipMsg: 'zip压缩包',
+            type: 'zip',
             renderer: renders.file()
         };
     },
@@ -199,6 +232,32 @@ function uploadFile(obj, fileModules) {
             constrain: true,
             buttons: [
                 {
+                    text: '网络同步',
+                    iconCls: 'extIcon extLink',
+                    handler: function () {
+                        Ext.Msg.prompt('从网络中同步文件', '填写网络路径（http）：', function (btn, text) {
+                            if (btn == 'ok') {
+                                showWait("正在同步中，请稍后……");
+                                let params = {"url": text};
+                                $.post("upload", params, function (result) {
+                                    hideWait();
+                                    if (result.success) {
+                                        toast("文件上传成功！");
+                                        if (!resolve.called) {
+                                            resolve.called = true;
+                                            resolve(result.data);
+                                        }
+                                        uploadWin.close();
+                                    }else{
+                                        Ext.Msg.alert('系统提醒', "上传失败！" + result.message);
+                                    }
+                                });
+                            }
+                        });
+                    }
+                },
+                '->',
+                {
                     text: '重置',
                     width: 88,
                     iconCls: 'extIcon extReset',
@@ -256,12 +315,59 @@ function showFiles(obj, callBack, fileModules, defaultFiles) {
             fileArray = Ext.JSON.decode(defaultFiles);
         }
         for (let i = 0; i < fileArray.length; i++) {
-            datas.push({url: fileArray[i]});
+            let source = fileArray[i];
+            let arrayInfo = source.split("@");
+            let url = arrayInfo[0];
+            let name = url.substring(url.lastIndexOf("/") + 1);
+            let length = -1;
+            if (arrayInfo.length > 1) {
+                name = arrayInfo[1];
+            }
+            if (arrayInfo.length > 2) {
+                length = arrayInfo[2];
+            }
+            datas.push({url: url, name: name, length: length});
         }
     }
     if (fileModules.length === 1) {
         renderer = fileModules[0].renderer;
         title = fileModules[0].tipMsg + "管理";
+    }
+    let columns = [
+        {
+            header: '文件',
+            dataIndex: 'url',
+            flex: 1,
+            align: 'center',
+            renderer: renderer
+        }
+    ];
+    if (obj.showFileName) {
+        columns.push({
+            header: '文件名',
+            dataIndex: 'name',
+            width: 150,
+            align: 'center',
+            field: {
+                xtype: 'textfield',
+                listeners:{
+                    change: function () {
+                        fileStore.modify = true;
+                    }
+                }
+            },
+            renderer: renders.normal()
+        });
+
+        if (obj.showFileLength) {
+            columns.push({
+                header: '大小',
+                dataIndex: 'length',
+                width: 100,
+                align: 'center',
+                renderer: renders.fileSize()
+            });
+        }
     }
 
 
@@ -275,13 +381,7 @@ function showFiles(obj, callBack, fileModules, defaultFiles) {
         store: fileStore,
         columnLines: true,
         cellTip: true,
-        columns: [{
-            header: '文件',
-            dataIndex: 'url',
-            flex: 1,
-            align: 'center',
-            renderer: renderer
-        }],
+        columns: columns,
         plugins: [Ext.create('Ext.grid.plugin.CellEditing', {
             clicksToEdit: 2
         })],
@@ -302,7 +402,7 @@ function showFiles(obj, callBack, fileModules, defaultFiles) {
                         Ext.Msg.confirm("系统提醒", "您确定立即删除选中的附件吗？", function (button, text) {
                             if (button === "yes") {
                                 let params = {};
-                                Ext.Array.each(data, function (record,index) {
+                                Ext.Array.each(data, function (record, index) {
                                     params["path[" + index + "]"] = record.get("url");
                                 });
                                 showWait("正在删除中……");
@@ -311,11 +411,11 @@ function showFiles(obj, callBack, fileModules, defaultFiles) {
                                     if (success) {
                                         dataGridFiles.getSelectionModel().deselectAll();
                                         showAlert("系统提醒", "删除成功！");
-                                        Ext.Array.each(data, function (record,index) {
+                                        Ext.Array.each(data, function (record, index) {
                                             fileStore.remove(record);
                                             fileStore.modify = true;
                                         });
-                                    }else{
+                                    } else {
                                         showAlert("系统提醒", message);
                                     }
                                 });
@@ -365,7 +465,14 @@ function showFiles(obj, callBack, fileModules, defaultFiles) {
                 if (fileStore.modify) {
                     let data = [];
                     fileStore.each(function (record, index) {
-                        data.push(record.get("url"));
+                        let url = record.get("url");
+                        if (obj.showFileName) {
+                            url = url + "@" + record.get("name");
+                            if (obj.showFileLength) {
+                                url = url + "@" + record.get("length");
+                            }
+                        }
+                        data.push(url);
                     });
                     if (callBack != null) {
                         callBack(Ext.encode(data));

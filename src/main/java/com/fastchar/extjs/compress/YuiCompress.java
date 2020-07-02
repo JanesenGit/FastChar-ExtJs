@@ -1,5 +1,6 @@
 package com.fastchar.extjs.compress;
 
+import com.fastchar.core.FastChar;
 import com.fastchar.utils.FastFileUtils;
 import com.yahoo.platform.yui.compressor.JavaScriptCompressor;
 import org.mozilla.javascript.ErrorReporter;
@@ -9,6 +10,7 @@ import java.io.*;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 
 public class YuiCompress {
@@ -21,11 +23,11 @@ public class YuiCompress {
             StringBuilder builder = new StringBuilder();
             for (File file : files) {
                 if (file.exists()) {
-                    String jsContent = FastFileUtils.readFileToString(file, Charset.forName("utf-8"));
+                    String jsContent = FastFileUtils.readFileToString(file, StandardCharsets.UTF_8);
                     builder.append(jsContent);
                 }
             }
-            FastFileUtils.writeStringToFile(targetFile, builder.toString(), Charset.forName("utf-8"));
+            FastFileUtils.writeStringToFile(targetFile, builder.toString(), StandardCharsets.UTF_8);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -49,7 +51,7 @@ public class YuiCompress {
         File file = new File(path);
         if (file.isFile() && file.getName().endsWith(".js")) {
             String code = FastFileUtils.readFileToString(file, "utf-8");
-            compress(code, new BufferedWriter(new OutputStreamWriter(new FileOutputStream(targetPath), Charset.forName("utf-8"))));
+            compress(file.getPath(),code, new BufferedWriter(new OutputStreamWriter(new FileOutputStream(targetPath), Charset.forName("utf-8"))));
         } else {
             File[] files = file.listFiles();
             if (files != null) {
@@ -61,8 +63,7 @@ public class YuiCompress {
     }
 
 
-
-    private static void compress(String code, Writer writer) {
+    private static void compress(final String filePath, String code, Writer writer) {
         try (Reader in = new InputStreamReader(new ByteArrayInputStream(code.getBytes()))) {
             if (in.ready()) {
                 JavaScriptCompressor compressor = new JavaScriptCompressor(in, new ErrorReporter() {
@@ -72,6 +73,9 @@ public class YuiCompress {
 
                     public void error(String message, String sourceName,
                                       int line, String lineSource, int lineOffset) {
+                        if (line > 0) {
+                            FastChar.getLog().warn(YuiCompress.class,"【JS压缩错误】 "+filePath + "\tat " + line + ':' + lineOffset + ':' + message);
+                        }
                     }
 
                     public EvaluatorException runtimeError(String message, String sourceName,

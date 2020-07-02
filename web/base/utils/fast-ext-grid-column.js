@@ -74,7 +74,8 @@ function configColumnProperty(column) {
             }
             me.where = [];
             me.searchMenu = null;
-            me.setStyle('color', '#444444');
+            me.searching = false;
+            refreshColumnStyle(me);
         };
         column.doSearch = function (requestServer) {
             let me = this;
@@ -87,16 +88,14 @@ function configColumnProperty(column) {
                     if (w.compare.indexOf('?') >= 0) {
                         value = '%' + w.value + '%';
                     }
+
                     storeParams[key] = value;
                 }
                 if (toBool(requestServer, true)) {
                     getColumnGrid(me).getStore().loadPage(1);
                 }
-                if (me.where.length === 0) {
-                    me.setStyle('color', '#444444');
-                } else {
-                    me.setStyle('color', 'red');
-                }
+                me.searching = me.where.length !== 0;
+                refreshColumnStyle(me);
             }
         };
 
@@ -128,7 +127,13 @@ function refreshColumnStyle(column) {
             if (Ext.isEmpty(column.sumText)) {
                 column.sumText = "<font size='1'></font>";
             }
-            column.setText("&nbsp;" + column.configText + column.sumText + sortDirection + "&nbsp;");
+            if (column.searching) {
+                column.setText(getSVGIcon("extSearch") +"&nbsp;"+ column.configText + column.sumText + sortDirection + "&nbsp;");
+                column.setStyle('color', 'red');
+            }else{
+                column.setText("&nbsp;" + column.configText + column.sumText + sortDirection + "&nbsp;");
+                column.setStyle('color', '#444444');
+            }
             checkColumnSort(getColumnGrid(column));
         }
     } catch (e) {
@@ -384,7 +389,11 @@ function buildSearchItem(column, where) {
                 this.items.each(function (item) {
                     if (Ext.isFunction(item.getValue)) {
                         if (item.isValid()) {
-                            params[item.getName()] = item.getValue();
+                            if (Ext.isDate(item.getValue())) {
+                                params[item.getName()] = Ext.Date.format(item.getValue(), item.format)
+                            } else {
+                                params[item.getName()] = item.getValue();
+                            }
                         } else {
                             shakeComment(item);
                             toast(item.getErrors()[0]);
@@ -443,6 +452,10 @@ function buildSearchItem(column, where) {
  */
 function showCompute(grid, column, type) {
     try {
+        if (!column) {
+            Ext.Msg.alert('系统提醒', '计算失败!计算列无效！');
+            return;
+        }
         if (!grid.getStore().entity) {
             Ext.Msg.alert('系统提醒', '计算失败！Grid的DataStore未绑定Entity!');
             return;
@@ -484,14 +497,17 @@ function showCompute(grid, column, type) {
             if (type === 'avg') {
                 value = value / selection.length;
             }
-            if (Ext.isFunction(column.renderer)) {
-                Ext.Msg.alert('系统提醒', "当前选中的数据，" + title + column.renderer(value));
-            } else {
+            try {
+                if (Ext.isFunction(column.renderer)) {
+                    Ext.Msg.alert('系统提醒', "当前选中的数据，" + title + column.renderer(value));
+                } else {
+                    Ext.Msg.alert('系统提醒', "当前选中的数据，" + title + value);
+                }
+            } catch (e) {
                 Ext.Msg.alert('系统提醒', "当前选中的数据，" + title + value);
             }
             return;
         }
-
 
         let storeParams = grid.getStore().proxy.extraParams;
 
@@ -514,9 +530,13 @@ function showCompute(grid, column, type) {
             } else if (type === 'max') {
                 msg = column.configText + "最大值：";
             }
-            if (Ext.isFunction(column.renderer)) {
-                Ext.Msg.alert('系统提醒', msg + column.renderer(result.data));
-            } else {
+            try {
+                if (Ext.isFunction(column.renderer)) {
+                    Ext.Msg.alert('系统提醒', msg + column.renderer(result.data));
+                } else {
+                    Ext.Msg.alert('系统提醒', msg + result.data);
+                }
+            } catch (e) {
                 Ext.Msg.alert('系统提醒', msg + result.data);
             }
         });
@@ -729,7 +749,7 @@ function batchEditColumn(column) {
     let editorField = column.batchField;
     if (!editorField) {
         editorField = getColumnSimpleEditor(column);
-        if(!editorField) return;
+        if (!editorField) return;
         editorField.flex = 1;
         editorField.emptyText = "请输入";
         editorField = column.batchField = Ext.create(editorField);
@@ -752,6 +772,7 @@ function batchEditColumn(column) {
             }
             getColumnGrid(column).getStore().holdUpdate = false;
             getColumnGrid(column).getStore().fireEvent("endupdate");
+
         }
     };
     let placeholder = "批量修改当前页的【" + column.text + "】数据";
@@ -1238,7 +1259,7 @@ function batchEditColumnRandom(column) {
 
 
     let setColumnValue = function (valueArray) {
-        if (valueArray.length === 0||!(getColumnGrid(column).getStore())) return;
+        if (valueArray.length === 0 || !(getColumnGrid(column).getStore())) return;
         getColumnGrid(column).getStore().holdUpdate = true;
         let selectData = getColumnGrid(column).getSelectionModel().getSelection();
         if (selectData.length > 0) {

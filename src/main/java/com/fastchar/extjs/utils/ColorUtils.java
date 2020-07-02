@@ -1,7 +1,10 @@
 package com.fastchar.extjs.utils;
 
-import javafx.scene.paint.Color;
+//import javafx.scene.paint.Color;
 
+//import javafx.scene.paint.Color;
+
+import java.awt.*;
 import java.math.BigInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -28,25 +31,25 @@ public class ColorUtils {
 
     /**
      * 颜色加深
+     *
      * @param hexColor 原色
-     * @param level 深度0~1
+     * @param level    深度0~1
      * @return 加深后的颜色
      */
     public static String getDarkColor(String hexColor, double level) {
-        Color darkColor = getDarkColor(Color.valueOf(hexColor), level);
-        String hexStr= darkColor.toString();
-        return hexStr.replace("0x", "#");
+        Color darkColor = getDarkColor(HexToColor(hexColor), level);
+        return ColorToHex(darkColor);
     }
 
 
     public static Color getDarkColor(Color color, double level) {
-        double red = color.getRed();
-        double green = color.getGreen();
-        double blue = color.getBlue();
+        int red = color.getRed();
+        int green = color.getGreen();
+        int blue = color.getBlue();
         String maxColor = "red";
         if (green >= red && green >= blue) {
             maxColor = "green";
-        } else if (blue >= red && blue >= green) {
+        } else if (blue >= red) {
             maxColor = "blue";
         }
         switch (maxColor) {
@@ -69,8 +72,7 @@ public class ColorUtils {
         if (blue < 0) {
             blue = 0;
         }
-
-        return Color.color(red, green, blue);
+        return new Color(red, green, blue);
     }
 
     private static int changeHex2Int(String temp) {
@@ -81,6 +83,20 @@ public class ColorUtils {
     private static String changeInt2Hex(String temp) {
         BigInteger bigInteger = new BigInteger(temp, 10);
         return Integer.toHexString(Integer.parseInt(bigInteger.toString()));
+    }
+
+    public static Color HexToColor(String str) {
+        return new Color(Integer.parseInt(str.substring(1), 16));
+    }
+
+    public static String ColorToHex(Color color) {
+        String R = Integer.toHexString(color.getRed() & 0xff);
+        R = R.length() < 2 ? ('0' + R) : R;
+        String B = Integer.toHexString(color.getBlue() & 0xff);
+        B = B.length() < 2 ? ('0' + B) : B;
+        String G = Integer.toHexString(color.getGreen() & 0xff);
+        G = G.length() < 2 ? ('0' + G) : G;
+        return '#' + R + G + B;
     }
 
 }

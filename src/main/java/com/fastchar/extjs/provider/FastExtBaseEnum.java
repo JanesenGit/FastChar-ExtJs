@@ -35,7 +35,7 @@ public abstract class FastExtBaseEnum implements IFastExtEnum {
                     }
                     if (Modifier.isPublic(declaredField.getModifiers())) {
                         String value = String.valueOf(declaredField.get(enumValue));
-                        info.put(declaredField.getName(), value);
+                        info.set(declaredField.getName(), value);
                     }
                 }
                 info.fromProperty();

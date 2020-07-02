@@ -31,10 +31,6 @@ public class ExtManagerRoleEntity extends AbstractExtManagerRoleEntity {
         return this.getClass().getSimpleName();
     }
 
-    @Override
-    public FastPage<ExtManagerRoleEntity> showLayerList(ExtManagerEntity managerEntity, int page, int pageSize) {
-        return showList(page, pageSize);
-    }
 
     @Override
     public FastPage<ExtManagerRoleEntity> showList(int page, int pageSize) {

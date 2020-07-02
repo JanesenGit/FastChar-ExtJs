@@ -4,23 +4,20 @@ import com.fastchar.annotation.AFastCache;
 import com.fastchar.annotation.AFastRoute;
 import com.fastchar.core.*;
 import com.fastchar.extjs.FastExtConfig;
+import com.fastchar.extjs.FastExtHelper;
 import com.fastchar.extjs.annotation.AFastSession;
-import com.fastchar.extjs.core.heads.FastHeadExtInfo;
-import com.fastchar.extjs.core.heads.FastHeadInfo;
-import com.fastchar.extjs.core.heads.FastHeadLinkInfo;
-import com.fastchar.extjs.core.heads.FastHeadScriptInfo;
+import com.fastchar.extjs.core.heads.*;
 import com.fastchar.extjs.core.menus.FastMenuInfo;
 import com.fastchar.extjs.entity.ExtBugReportEntity;
 import com.fastchar.extjs.entity.ExtManagerEntity;
 import com.fastchar.extjs.entity.ExtManagerRoleEntity;
 import com.fastchar.extjs.entity.ExtSystemConfigEntity;
 import com.fastchar.extjs.interfaces.IFastExtEnum;
-import com.fastchar.extjs.interfaces.IFastManager;
+import com.fastchar.extjs.interfaces.IFastManagerListener;
 import com.fastchar.extjs.observer.FastHeadXmlObserver;
 import com.fastchar.extjs.observer.FastMenuXmlObserver;
 import com.fastchar.extjs.utils.ZXingUtils;
 import com.fastchar.out.FastOutCaptcha;
-import com.fastchar.out.FastOutText;
 import com.fastchar.utils.*;
 import net.coobird.thumbnailator.Thumbnails;
 import org.apache.commons.lang3.StringUtils;
@@ -34,6 +31,7 @@ import oshi.hardware.HardwareAbstractionLayer;
 import oshi.software.os.FileSystem;
 import oshi.software.os.OSFileStore;
 import oshi.util.Util;
+
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -97,6 +95,7 @@ public class ExtDefaultAction extends FastAction {
                 headString.append(head.getText()).append("\n");
             }
         }
+
         Map<String, Object> holders = new HashMap<>();
         holders.put("head", headString.toString());
         holders.put("http", getProjectHost());
@@ -106,6 +105,13 @@ public class ExtDefaultAction extends FastAction {
             holders.put("color", extInfo.getColorValue());
         } else {
             holders.put("color", FastExtConfig.getInstance().getDefaultThemeColor());
+        }
+
+        FastHeadExtInfo fontSize = FastExtConfig.getInstance().getExtInfo("font-size");
+        if (fontSize != null) {
+            holders.put("fontSize", fontSize.getValue());
+        }else{
+            holders.put("fontSize", "14px");
         }
 
         String indexHtml = FastFileUtils.readFileToString(new File(FastChar.getPath().getWebRootPath(), "fast-index.html"), "utf-8");
@@ -128,13 +134,13 @@ public class ExtDefaultAction extends FastAction {
             FastHeadExtInfo indexUrl = FastChar.getConfig(FastExtConfig.class).getExtInfo("indexUrl");
             if (indexUrl != null) {
                 baseJsUrl = indexUrl.getValue();
-            }else{
+            } else {
                 responseJson(-1, "初始化失败！系统index.js文件异常，请及时告知开发人员！");
             }
             ExtManagerEntity byId = ExtManagerEntity.dao().getById(manager.getId());
             if (byId != null) {
                 hasLogin = true;
-                IFastManager iFastManager = FastChar.getOverrides().singleInstance(false, IFastManager.class);
+                IFastManagerListener iFastManager = FastChar.getOverrides().singleInstance(false, IFastManagerListener.class);
                 if (iFastManager != null) {
                     FastHandler handler = new FastHandler();
                     iFastManager.onManagerLogin(byId, handler);
@@ -150,7 +156,7 @@ public class ExtDefaultAction extends FastAction {
             FastHeadExtInfo loginUrl = FastChar.getConfig(FastExtConfig.class).getExtInfo("loginUrl");
             if (loginUrl != null) {
                 baseJsUrl = loginUrl.getValue();
-            }else{
+            } else {
                 responseJson(-1, "初始化失败！系统login.js文件异常，请及时告知开发人员！");
             }
 
@@ -406,7 +412,7 @@ public class ExtDefaultAction extends FastAction {
                                     menuInfo.setChecked(checked.contains(menuInfo.getId()));
                                     menuInfo.setDepth(menu.getDepth() + 1);
                                     menuInfo.setParentId(menu.getId());
-                                    menuInfo.putAll(column);
+                                    menuInfo.setAll(column);
                                     menuInfo.fromProperty();
                                     menu.getChildren().add(menuInfo);
                                 }
@@ -427,6 +433,7 @@ public class ExtDefaultAction extends FastAction {
      * 上传文件
      */
     public void upload() throws Exception {
+        setLogResponse(true);
         String type = getParam("type");
         FastFile<?> paramFile = getParamFile();
         if (paramFile != null) {
@@ -434,16 +441,33 @@ public class ExtDefaultAction extends FastAction {
                 paramFile = paramFile.renameTo(new File(paramFile.getAttachDirectory() + File.separator + type,
                         FastMD5Utils.MD5(System.currentTimeMillis() + paramFile.getFileName()) + paramFile.getExtensionName()), true);
             }
-            String fileUrl = paramFile.getUrl();
-            Map<String, Object> result = new HashMap<>();
-            result.put("url", fileUrl);
-            result.putAll(paramFile.getAttrs());
-            result.put("http", getProjectHost());
-            responseJson(0, "上传成功！", result);
         } else {
-            responseJson(-1, "上传失败！");
+            String url = getParam("url");
+            if (FastStringUtils.isNotEmpty(url)) {
+                paramFile = FastExtHelper.getFastFileFromUrl(url);
+            }
         }
+
+        if (paramFile == null) {
+            responseJson(-1, "上传失败！未获取的文件！");
+            return;
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("name", paramFile.getUploadFileName());
+        result.put("length", paramFile.getFile().length());
+        result.put("url", paramFile.getUrl());
+        result.putAll(paramFile.getAttrs());
+        result.put("http", getProjectHost());
+        //上传文件强制使用text/html格式返回，避免浏览器弹出json下载
+        if (!isParamExists("__accept")) {
+            addParam("__accept", "text/html");
+        }
+
+        responseJson(0, "上传成功！", result);
     }
+
+
 
     /**
      * 下载或查看文件
@@ -509,7 +533,7 @@ public class ExtDefaultAction extends FastAction {
                     }
                 }
                 FastFileUtils.copyURLToFile(url, new File(folderFile, fileName));
-            }else{
+            } else {
                 path = path.replace("attach/", "").split("\\?")[0];
                 File file = new File(FastChar.getConstant().getAttachDirectory(), path);
                 if (file.isDirectory()) continue;
@@ -532,7 +556,7 @@ public class ExtDefaultAction extends FastAction {
     /**
      * 查看生成的接口文档
      */
-    @AFastRoute({"document", "interface", "document.html", "interface.html","api"})
+    @AFastRoute({"document", "interface", "document.html", "interface.html", "api"})
     public void doc() throws Exception {
         File file = new File(FastChar.getPath().getWebRootPath(), "documents");
         File[] files = file.listFiles(new FilenameFilter() {
@@ -541,6 +565,10 @@ public class ExtDefaultAction extends FastAction {
                 return name.endsWith(".html");
             }
         });
+        if (files == null) {
+            responseJson(-1, "获取文档失败！");
+            return;
+        }
         List<Map<String, String>> docs = new ArrayList<>();
         for (int i = 0; i < files.length; i++) {
             File html = files[i];
@@ -550,6 +578,8 @@ public class ExtDefaultAction extends FastAction {
             doc.put("name", parse.title());
             String docUrl = "documents/" + html.getName() + "?t=" + System.currentTimeMillis();
             doc.put("url", docUrl);
+            doc.put("file", html.getName());
+            doc.put("time", String.valueOf(html.lastModified()));
             docs.add(doc);
         }
         Collections.sort(docs, new Comparator<Map<String, String>>() {
@@ -573,8 +603,10 @@ public class ExtDefaultAction extends FastAction {
         }
         setRequestAttr("first", docs.get(0).get("id"));
         setRequestAttr(getParamToMap());
+        setRequestAttr("http", getProjectHost());
         responseVelocity("fast-doc.html");
     }
+
 
     /**
      * 检查文档是否已刷新
@@ -584,7 +616,10 @@ public class ExtDefaultAction extends FastAction {
         long time = getParamToLong("time", true);
         String file = getParam("file", true);
         File localFile = new File(FastChar.getPath().getWebRootPath(), "/documents/" + file);
-        responseJson(0, "获取成功！", time < localFile.lastModified());
+        if (localFile.exists()) {
+            responseJson(0, "获取成功！", time < localFile.lastModified());
+        }
+        responseJson(0, "获取成功！", false);
     }
 
 
@@ -599,7 +634,7 @@ public class ExtDefaultAction extends FastAction {
         String logo = getParam("logo");
         String render = getParam("render", "json");
         String fileName = FastChar.getSecurity().MD5_Encrypt(content + logo) + ".png";
-        FastFile fastFile = FastFile.newInstance(new File(FastChar.getConstant().getAttachDirectory(), "/qrcode").getAbsolutePath(),
+        FastFile<?> fastFile = FastFile.newInstance(new File(FastChar.getConstant().getAttachDirectory(), "/qrcode").getAbsolutePath(),
                 fileName).setKey(FastChar.getSecurity().MD5_Encrypt(fileName));
         if (fastFile.exists()) {
             if (render.equalsIgnoreCase("json")) {
@@ -617,12 +652,14 @@ public class ExtDefaultAction extends FastAction {
         }
         try {
             if (StringUtils.isNotEmpty(logo)) {
+
                 BufferedImage bufferedImage = Thumbnails.of(new URL(logo))
                         .forceSize(58, 58)
                         .asBufferedImage();
                 ZXingUtils.insertImage(qrImage, bufferedImage, true);
             }
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
         if (!fastFile.getFile().getParentFile().exists()) {
@@ -669,7 +706,7 @@ public class ExtDefaultAction extends FastAction {
         Map<String, Object> cpuInfo = new LinkedHashMap<>();
         cpuInfo.put("cpuCount", processor.getLogicalProcessorCount());
         cpuInfo.put("sys", FastNumberUtils.formatToDouble((cSys * 1.0 / totalCpu * 1.0) * 100, 2) + "%");
-        cpuInfo.put("used",  FastNumberUtils.formatToDouble((user * 1.0 / totalCpu * 1.0) * 100, 2) + "%");
+        cpuInfo.put("used", FastNumberUtils.formatToDouble((user * 1.0 / totalCpu * 1.0) * 100, 2) + "%");
         double cpuTotal = FastNumberUtils.formatToDouble(((user + cSys) * 1.0 / totalCpu * 1.0) * 100, 2);
         cpuInfo.put("total", cpuTotal + "%");
         cpuInfo.put("alert", cpuTotal > 80);
@@ -677,7 +714,7 @@ public class ExtDefaultAction extends FastAction {
         cpuDesc.put("title", "CPU监控信息");
         cpuDesc.put("cpuCount", "CPU核数");
         cpuDesc.put("sys", "系统使用率");
-        cpuDesc.put("used",  "用户使用率");
+        cpuDesc.put("used", "用户使用率");
         cpuDesc.put("total", "总的使用率");
 
 
@@ -699,7 +736,7 @@ public class ExtDefaultAction extends FastAction {
         memDesc.put("title", "内存监控信息");
         memDesc.put("total", "内存大小");
         memDesc.put("used", "已使用");
-        memDesc.put("free",  "剩余内存");
+        memDesc.put("free", "剩余内存");
         memDesc.put("usage", "已使用率");
 
         data.add(memInf);
@@ -718,7 +755,7 @@ public class ExtDefaultAction extends FastAction {
         jvmDesc.put("path", "所在位置");
         jvmDesc.put("max", "最大内存");
         jvmDesc.put("total", "可用内存");
-        jvmDesc.put("free",  "剩余内存");
+        jvmDesc.put("free", "剩余内存");
         jvmDesc.put("used", "已使用");
 
         data.add(jvmInfo);
@@ -726,8 +763,7 @@ public class ExtDefaultAction extends FastAction {
 
         FileSystem fileSystem = systemInfo.getOperatingSystem().getFileSystem();
         OSFileStore[] fsArray = fileSystem.getFileStores();
-        for (OSFileStore osFileStore : fsArray)
-        {
+        for (OSFileStore osFileStore : fsArray) {
             if (osFileStore.getMount().startsWith("/private")) {
                 continue;
             }
@@ -749,7 +785,7 @@ public class ExtDefaultAction extends FastAction {
             diskDesc.put("dir", "磁盘位置");
             diskDesc.put("name", "磁盘名称");
             diskDesc.put("total", "磁盘大小");
-            diskDesc.put("free",  "剩余大小");
+            diskDesc.put("free", "剩余大小");
             diskDesc.put("used", "已使用");
             diskDesc.put("usage", "已使用率");
 

@@ -50,16 +50,15 @@ public final class FastCharExtWeb implements IFastWebRun {
         engine.getConfig(FastExtConfig.class)
                 .getMergeJs().delete();
 
-        engine.getScanner()
-                .addAccepter(new FastExtAppJsAccepter())
-                .addAccepter(new FastExtEntityAccepter())
-                .addAccepter(new FastExtEnumAccepter());
-
         engine.getObservable()
                 .addObserver(new FastMenuXmlObserver())
                 .addObserver(new FastHeadXmlObserver());
 
         engine.getOverrides()
+                .add(FastEnumValidator.class)
+                .add(FastExtAppJsAccepter.class)
+                .add(FastExtEntityAccepter.class)
+                .add(FastExtEnumAccepter.class)
                 .add(FastExtParamError.class)
                 .add(FastExtLocal_CN.class)
                 .add(FastExtEnum.class);
@@ -68,9 +67,6 @@ public final class FastCharExtWeb implements IFastWebRun {
                 .setSessionMaxInterval(24 * 60 * 60)
                 .setAttachNameMD5(true);
 
-
-        engine.getValidators()
-                .add(FastEnumValidator.class);
 
         engine.getInterceptors()
                 .addRoot(FastExtRootAttachInterceptor.class, "/attach/*")

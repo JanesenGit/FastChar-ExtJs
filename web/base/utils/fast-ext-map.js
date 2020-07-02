@@ -4,7 +4,7 @@
 function showMap(obj, lng, lat, address) {
     return new Ext.Promise(function (resolve, reject) {
         let defaultLngLat = "";
-        if (!Ext.isEmpty(lng) && !Ext.isEmpty(lat) && parseFloat(lng) != 0 && parseFloat(lat) != 0) {
+        if (!Ext.isEmpty(lng) && !Ext.isEmpty(lat) && parseFloat(lng) !== 0 && parseFloat(lat) !== 0) {
             defaultLngLat = lng + "," + lat;
         }
 
@@ -118,12 +118,15 @@ function showMap(obj, lng, lat, address) {
                 formPanel, mapPanel, bottomPanel
             ]
         });
-
+        let winWidth = parseInt((document.body.clientWidth * 0.4).toFixed(0));
+        let winHeight = parseInt((document.body.clientHeight * 0.6).toFixed(0));
         let win = Ext.create('Ext.window.Window', {
             title: '选择位置',
-            height: 500,
+            height: winHeight,
+            width: winWidth,
+            minHeight: 500,
+            minWidth: 600,
             iconCls: 'extIcon extMap',
-            width: 500,
             layout: 'fit',
             resizable: true,
             maximizable: true,
@@ -204,11 +207,16 @@ function showAddressInMap(obj, lnglat) {
             }
         }
     });
+
+    let winWidth = parseInt((document.body.clientWidth * 0.4).toFixed(0));
+    let winHeight = parseInt((document.body.clientHeight * 0.6).toFixed(0));
     let win = Ext.create('Ext.window.Window', {
         title: '查看位置',
-        height: 500,
+        height: winHeight,
+        width: winWidth,
+        minHeight: 500,
+        minWidth: 600,
         iconCls: 'extIcon extMap',
-        width: 500,
         layout: 'border',
         resizable: true,
         maximizable: true,

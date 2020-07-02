@@ -10,7 +10,7 @@ import com.fastchar.extjs.annotation.AFastLog;
 import com.fastchar.extjs.annotation.AFastSession;
 import com.fastchar.extjs.core.heads.FastHeadExtInfo;
 import com.fastchar.extjs.entity.*;
-import com.fastchar.extjs.interfaces.IFastManager;
+import com.fastchar.extjs.interfaces.IFastManagerListener;
 import com.fastchar.utils.FastMD5Utils;
 
 import java.util.List;
@@ -58,7 +58,7 @@ public class ExtManagerAction extends FastAction {
                 responseJson(-1, "登录失败！您的账号已被禁用！");
             }
 
-            IFastManager iFastManager = FastChar.getOverrides().singleInstance(false, IFastManager.class);
+            IFastManagerListener iFastManager = FastChar.getOverrides().singleInstance(false, IFastManagerListener.class);
             if (iFastManager != null) {
                 FastHandler handler = new FastHandler();
                 iFastManager.onManagerLogin(managerEntity, handler);
@@ -81,6 +81,65 @@ public class ExtManagerAction extends FastAction {
         } else {
             payErrorEntity.save();
             responseJson(-2, "登录失败，用户名或密码错误！" + errorInfo);
+        }
+    }
+
+
+    @AFastLog(value = "${managerRole}【${managerName}】进行了操作【${operate}】验证！", type = "安全验证")
+    public void valid() {
+        String loginName = getParam("loginName", true);
+        String operate = getParam("operate", "安全操作验证");
+        int time = getParamToInt("timeout", 24 * 60 * 60);
+
+        setRequestAttr("managerName", loginName);
+        setRequestAttr("managerRole", "后台管理员");
+        setRequestAttr("operate", operate);
+
+        FastHeadExtInfo extInfo = FastExtConfig.getInstance().getExtInfo("login-type");
+        if (extInfo != null) {
+            if (!extInfo.getValue().equalsIgnoreCase("normal")) {
+                if (!validateCaptcha(getParam("validateCode", true))) {
+                    responseJson(-3, "验证失败，验证码错误！");
+                    return;
+                }
+            }
+        }
+        String loginPassword = getParam("loginPassword", true);
+
+        ExtManagerEntity managerEntity = ExtManagerEntity.getInstance().login(loginName, loginPassword);
+        int errorCount = ExtManagerErrorEntity.dao().countTodayError(loginName);
+        int nextCount = Math.max(7 - errorCount, 0);
+        String errorInfo = null;
+        if (nextCount > 0) {
+            errorInfo = "今日还剩余" + nextCount + "次！";
+        } else {
+            responseJson(-1, "您今日登录错误次数超限！请明日再试！");
+        }
+
+        ExtManagerErrorEntity payErrorEntity = new ExtManagerErrorEntity();
+        payErrorEntity.set("managerLoginName", loginName);
+        if (managerEntity != null) {
+            if (managerEntity.getInt("managerState") == ExtManagerEntity.ManagerStateEnum.禁用.ordinal()) {
+                responseJson(-1, "验证失败！您的账号已被禁用！");
+            }
+
+            IFastManagerListener iFastManager = FastChar.getOverrides().singleInstance(false, IFastManagerListener.class);
+            if (iFastManager != null) {
+                FastHandler handler = new FastHandler();
+                iFastManager.onManagerLogin(managerEntity, handler);
+                if (handler.getCode() != 0) {
+                    responseJson(-1, handler.getError());
+                }
+            }
+            payErrorEntity.delete("managerLoginName");
+            if (!operate.startsWith("^")) {
+                //不需要存的操作
+                setCookie("ValidOperate" + FastMD5Utils.MD5(operate), true, time);
+            }
+            responseJson(0, "验证成功！");
+        } else {
+            payErrorEntity.save();
+            responseJson(-2, "验证失败，用户名或密码错误！" + errorInfo);
         }
     }
 
@@ -201,6 +260,16 @@ public class ExtManagerAction extends FastAction {
         extSystemNoticeEntity.set("noticeState", ExtSystemNoticeEntity.ExtSystemNoticeStateEnum.已处理.ordinal());
         extSystemNoticeEntity.update();
         responseJson(0, "标记成功！");
+    }
+
+    /**
+     * 清空待办事项
+     */
+    @AFastSession
+    public void clearNotice() {
+        ExtManagerEntity sessionUser = getSession("manager");
+        ExtSystemNoticeEntity.dao().clearNotice(sessionUser.getLayerValue());
+        responseJson(0, "清空成功！");
     }
 
 }

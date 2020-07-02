@@ -47,6 +47,7 @@ public class FastHeadExtInfo extends FastHeadInfo {
         return "#" + FastStringUtils.stripStart(getValue(), "#");
     }
 
+
     @Override
     public boolean isWriteHtml() {
         return false;

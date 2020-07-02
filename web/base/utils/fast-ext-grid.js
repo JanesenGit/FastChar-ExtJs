@@ -14,7 +14,12 @@ Ext.override(Ext.tree.Panel, {
 
 function onGridInitComponent() {
     let grid = this;
+    //取消行缓存渲染
+    grid.bufferedRenderer = false;
     if (grid.entityList) {
+        // grid.trailingBufferZone = 100;
+        // grid.leadingBufferZone = 100;
+
         if (grid.getStore() && grid.getStore().where) {
             grid.fromRecycle = grid.getStore().where['^fromRecycle'];
         }
@@ -87,11 +92,15 @@ function configGridContextMenu(grid) {
                 subtitle = "【" + grid.getStore().entity.menu.text + "】";
             }
 
+            let winWidth = parseInt((document.body.clientWidth * 0.3).toFixed(0));
+            let winHeight = parseInt((document.body.clientHeight * 0.6).toFixed(0));
             let win = Ext.create('Ext.window.Window', {
                 title: "查看详情" + subtitle,
                 subtitle: subtitle,
-                height: 480,
-                width: 400,
+                height: winHeight,
+                width: winWidth,
+                minHeight: 450,
+                minWidth: 400,
                 iconCls: 'extIcon extDetails',
                 layout: 'border',
                 resizable: true,
@@ -274,7 +283,7 @@ function configGridContextMenu(grid) {
                             params['data.' + idName] = record.get(idName);
                         }
                         if (grid.getStore().entity.menu) {
-                            params["menu"] = grid.getStore().entity.menu.text;
+                            params["menu"] = getStoreMenuText(grid.getStore());
                         }
                         params['data.' + fieldName] = "<null>";
                         showWait("正在清空中……");
@@ -450,12 +459,12 @@ function configGridListeners(grid) {
         saveGridColumn(obj);
     });
     grid.on('headertriggerclick', function (ct, column, e, t, eOpts) {
-        if (Ext.isEmpty(column.dataIndex)|| grid.fromRecycle) return;
+        if (Ext.isEmpty(column.dataIndex) || grid.fromRecycle) return;
         ct.sortOnClick = false;
         ct.triggerColumn = column;
     });
     grid.on('headercontextmenu', function (ct, column, e, t, eOpts) {
-        if (Ext.isEmpty(column.dataIndex)|| grid.fromRecycle) return;
+        if (Ext.isEmpty(column.dataIndex) || grid.fromRecycle) return;
         ct.sortOnClick = false;
         ct.onHeaderTriggerClick(column, e, column.triggerEl);
     });
@@ -752,7 +761,7 @@ function configGridHeadMenu(grid) {
                     let confirmConfig = {
                         title: "清除无效数据",
                         icon: Ext.Msg.QUESTION,
-                        message: "将属性【" + menu.activeHeader.text + "】在【当前当前条件】下为空的所有无效数据！请您确定操作！",
+                        message: "将清除属性【" + menu.activeHeader.text + "】在【当前当前条件】下为空的所有无效数据！请您确定操作！",
                         buttons: Ext.Msg.YESNO,
                         defaultFocus: "no",
                         callback: function (button, text) {
@@ -763,7 +772,7 @@ function configGridHeadMenu(grid) {
                                 let params = {
                                     "entityCode": columnGrid.getStore().entity.entityCode,
                                     "field": menu.activeHeader.dataIndex,
-                                    "menu": columnGrid.getStore().entity.menu.text
+                                    "menu": getStoreMenuText(columnGrid.getStore())
                                 };
 
                                 server.clearEntity(mergeJson(params, storeParams), function (success, message) {
@@ -991,10 +1000,8 @@ function getPageToolBar(dataStore) {
         pageTool: true,
         displayField: 'text',
         valueField: 'id',
-        fieldLabel: '每页',
-        labelWidth: 40,
         editable: false,
-        width: 130,
+        width: 100,
         value: dataStore.pageSize,
         store: getPageDataStore(),
         listeners: {
@@ -1058,34 +1065,44 @@ function getPageToolBar(dataStore) {
         tooltip: '清空数据',
         iconCls: 'extIcon extClear grayColor',
         handler: function () {
+            let menuText = getStoreMenuText(dataStore.grid.getStore());
             let confirmFunction = function (button, text) {
                 if (button === "yes") {
-                    showWait("正在清空数据中……");
-                    let storeParams = dataStore.grid.getStore().proxy.extraParams;
-                    let params = {"entityCode": dataStore.entity.entityCode, "all": true};
-                    if (dataStore.grid.getStore().entity.menu) {
-                        params["menu"] = dataStore.grid.getStore().entity.menu.text;
-                    }
-                    server.deleteEntity(mergeJson(params, storeParams), function (success, message) {
-                        hideWait();
-                        if (success) {
-                            dataStore.loadPage(1);
+                    system.validOperate("清空【" + menuText + "】数据", function () {
+                        showWait("正在清空数据中……");
+                        let storeParams = dataStore.grid.getStore().proxy.extraParams;
+                        let params = {"entityCode": dataStore.entity.entityCode, "all": true};
+                        if (dataStore.grid.getStore().entity.menu) {
+                            params["menu"] = getStoreMenuText(dataStore.grid.getStore());
                         }
-                        showAlert("系统提醒", message);
+                        server.deleteEntity(mergeJson(params, storeParams), function (success, message) {
+                            hideWait();
+                            if (success) {
+                                dataStore.loadPage(1);
+                            }
+                            showAlert("系统提醒", message);
+                        });
                     });
                 }
             };
 
-            let message = "<b style='color: red;font-size: 16px;line-height: 18px;'>请您谨慎操作！</b><br/>您确定清空当前条件下的所有数据吗？！<br/>当前共" + dataStore.getTotalCount() + "条数据！";
+            let message = "<div style='line-height: 170%;'>";
+            message += "<b style='color: red;font-size: 18px;'>请您谨慎操作！</b><br/>";
+            if (menuText) {
+                message += "<b style='color: red;font-size: 16px;'>当前页面【" + menuText + "】</b><br/>";
+            }
+            message += "<b style='font-size: 16px;'>您确定清空当前条件下的所有数据吗？！<br/>当前共" + dataStore.getTotalCount() + "条数据！</b>";
             if (entityRecycle) {
                 message += "<br/><b style='color: red;font-size: 14px;line-height: 18px;'>此操作将跳过回收站！</b>";
             }
+            message += "</div>"
             let confirmConfig = {
                 title: "系统提醒",
-                icon: Ext.Msg.QUESTION,
+                icon: Ext.Msg.WARNING,
                 message: message,
                 buttons: Ext.Msg.YESNO,
                 defaultFocus: "no",
+                cls: 'redAlert',
                 callback: confirmFunction
             };
 
@@ -1098,7 +1115,7 @@ function getPageToolBar(dataStore) {
             };
 
             Ext.Msg.on("hide", hideFunction, this, {single: true});
-            Ext.Msg.show(confirmConfig);
+            let msgBox = Ext.Msg.show(confirmConfig);
             let timeFunction = function (second) {
                 let msgButton = Ext.Msg.msgButtons["yes"];
                 if (second <= 0) {
@@ -1113,7 +1130,21 @@ function getPageToolBar(dataStore) {
                     timeFunction(second - 1);
                 }, 1000);
             };
-            timeFunction(5);
+            let msgButton = Ext.Msg.msgButtons["yes"];
+            msgButton.disable();
+            shakeComment(msgBox, function () {
+                let time = 5;
+                if (dataStore.getTotalCount() > 50) {
+                    time = 15;
+                }
+                if (dataStore.getTotalCount() > 5000) {
+                    time = 20;
+                }
+                if (dataStore.getTotalCount() > 10000) {
+                    time = 30;
+                }
+                timeFunction(time);
+            }, 3000);
         }
     };
 
@@ -1153,6 +1184,12 @@ function getPageToolBar(dataStore) {
 
 
     pagingtoolbar.insert(0, control);
+    pagingtoolbar.insert(0, {
+        xtype: 'label',
+        text: '每页',
+        margin: '0 10 0 10'
+    });
+
     let beginIndex = 2;
     pagingtoolbar.insert(pagingtoolbar.items.getCount() - beginIndex, "-");
     pagingtoolbar.insert(pagingtoolbar.items.getCount() - beginIndex, searchBtn);
@@ -1172,13 +1209,15 @@ function getPageToolBar(dataStore) {
         pagingtoolbar.insert(pagingtoolbar.items.getCount() - beginIndex, rebackBtn);
     }
 
-    if (system.isSuperRole()) {
-        pagingtoolbar.insert(pagingtoolbar.items.getCount() - beginIndex, "-");
-        if (!fromRecycle) {
-            pagingtoolbar.insert(pagingtoolbar.items.getCount() - beginIndex, copyBtn);
-        }
-        pagingtoolbar.insert(pagingtoolbar.items.getCount() - beginIndex, deleteAllBtn);
+    // if (system.isSuperRole()) {
+    // }
+
+    pagingtoolbar.insert(pagingtoolbar.items.getCount() - beginIndex, "-");
+    if (!fromRecycle) {
+        pagingtoolbar.insert(pagingtoolbar.items.getCount() - beginIndex, copyBtn);
     }
+    pagingtoolbar.insert(pagingtoolbar.items.getCount() - beginIndex, deleteAllBtn);
+
     if (!fromRecycle && entityRecycle) {
         pagingtoolbar.insert(pagingtoolbar.items.getCount() - beginIndex, "-");
         pagingtoolbar.insert(pagingtoolbar.items.getCount() - beginIndex, recycleBtn);
@@ -1333,6 +1372,13 @@ function saveGridColumn(grid) {
             let columnInfos = {};
             Ext.each(grid.getColumns(), function (item, index) {
                 if (!Ext.isEmpty(item.dataIndex)) {
+                    if (!system.isSuperRole()) {
+                        if (!item.hideable && item.hidden) {
+                            //没有权限的列或者不需要显示的列
+                            return;
+                        }
+                    }
+
                     let columnInfo = {column: true};
                     columnInfo["width"] = item.width;
                     columnInfo["hidden"] = item.isHidden();
@@ -1366,7 +1412,7 @@ function saveGridColumn(grid) {
             let params = {};
             if (grid.getStore().entity && grid.getStore().entity.menu) {
                 params["menuId"] = grid.getStore().entity.menu.id;
-                if (system.isSuperRole() && toBool(grid.tabPanelList, false)) {//左侧主菜单
+                if (toBool(grid.tabPanelList, false)) {//左侧主菜单
                     params["entityCode"] = grid.getStore().entity.entityCode;
                 }
             }
@@ -1428,6 +1474,13 @@ function restoreGridColumn(grid) {
                 for (let i = 0; i < configColumns.length; i++) {
                     let column = configColumns[i];
                     if (!Ext.isEmpty(column.dataIndex)) {
+                        if (toBool(grid.power, true)) {
+                            if (!column.hideable && column.hidden) {
+                                //没有权限的列或者不需要显示的列
+                                continue;
+                            }
+                        }
+
                         let newColumn = column.cloneConfig();
                         if (columnInfos.hasOwnProperty(column.code)) {
                             let info = columnInfos[column.code];
@@ -1473,18 +1526,16 @@ function restoreGridColumn(grid) {
  * 创建详情grid
  */
 function builderDetailsGrid() {
-    let detailsStore = Ext.create('Ext.data.Store', {
-        autoLoad: false,
-        fields: []
-    });
-
-    let detailsGrid = Ext.create('Ext.grid.Panel', {
+    return Ext.create('Ext.grid.Panel', {
         border: 0,
         scrollable: 'y',
         region: 'center',
-        store: detailsStore,
+        store: Ext.create('Ext.data.Store', {
+            autoLoad: false,
+            fields: []
+        }),
         hideHeaders: true,
-        deferRowRender: true,
+        deferRowRender: false,
         superGrid: null,
         setRecord: function (grid, record) {
             this.superGrid = grid;
@@ -1505,8 +1556,8 @@ function builderDetailsGrid() {
                 };
                 data.push(item);
             }
-            detailsStore.loadData(data);
-            detailsStore.sort('index', 'ASC');
+            this.getStore().loadData(data);
+            this.getStore().sort('index', 'ASC');
         },
         columns: [
             {
@@ -1548,32 +1599,37 @@ function builderDetailsGrid() {
             margin: '5',
             xtype: 'textfield',
             doSearch: function () {
+                let grid = this.ownerCt;
+                let store = grid.getStore();
                 let currIndex = 0;
-                let dataIndex = detailsStore.getAt(0).get("dataIndex");
+                let dataIndex = store.getAt(0).get("dataIndex");
                 let text = null;
                 let searchKey = this.getValue();
+                let currRecord = null;
                 if (!Ext.isEmpty(searchKey)) {
-                    detailsStore.each(function (record, index) {
+                    store.each(function (record, index) {
                         let fieldName = record.get("text").toString();
                         let fieldValue = record.get("value");
                         if (fieldName.indexOf(searchKey) >= 0) {
                             currIndex = index;
                             dataIndex = record.get("dataIndex");
                             text = fieldName;
+                            currRecord = record;
                             return;
                         }
                         if (!Ext.isEmpty(fieldValue) && fieldValue.toString().indexOf(searchKey) >= 0) {
                             currIndex = index;
                             dataIndex = record.get("dataIndex");
                             text = fieldName;
+                            currRecord = record;
                             return false;
                         }
                     });
                 }
-                scrollToColumn(detailsGrid.superGrid, dataIndex, text);
-                detailsGrid.getSelectionModel().select(currIndex);
-                detailsGrid.view.focusRow(currIndex);
-                this.focus();
+                scrollToColumn(grid.superGrid, dataIndex, text);
+                grid.getSelectionModel().select(currIndex);
+                grid.view.focusRow(currIndex);
+                // grid.view.setScrollY(currIndex * 25, true);
             },
             triggers: {
                 search: {
@@ -1622,7 +1678,6 @@ function builderDetailsGrid() {
             }
         }
     });
-    return detailsGrid;
 }
 
 
@@ -1656,6 +1711,7 @@ function getDetailsPanel(grid, fromWindow) {
                 if (grid != null) {
                     let data = grid.getSelectionModel().getSelection();
                     if (data.length === 1) {
+                        me.record = data[0];
                         me.items.get(0).setRecord(grid, data[0]);
                         me.show();
                     } else {
@@ -1701,21 +1757,22 @@ function getDetailsPanel(grid, fromWindow) {
         detailsConfig.split = true;
         detailsConfig.hidden = true;
         detailsConfig.region = "east";
-        detailsConfig.maxWidth = 688;
-        detailsConfig.width = 258;
+        detailsConfig.maxWidth = document.body.clientWidth / 2;
+        detailsConfig.width = document.body.clientWidth * 0.3;
         detailsConfig.minWidth = 200;
-        detailsConfig.tools = [{
-            type: 'gear',
-            callback: function () {
-                setGrid(this, grid);
-            }
-        }, {
-            type: 'close',
-            id: 'close' + timestamp,
-            callback: function () {
-                detailsPanel.collapse();
-            }
-        }];
+        detailsConfig.tools = [
+            {
+                type: 'gear',
+                callback: function () {
+                    setGrid(this, grid);
+                }
+            }, {
+                type: 'close',
+                id: 'close' + timestamp,
+                callback: function () {
+                    detailsPanel.collapse();
+                }
+            }];
     }
     let detailsPanel = Ext.create('Ext.panel.Panel', detailsConfig);
     if (!fromWindow) {
@@ -1754,21 +1811,42 @@ function exportGrid(grid) {
         Ext.Msg.alert('系统提醒', '导出失败！Grid的DataStore未绑定Entity!');
         return;
     }
-    Ext.Msg.confirm("系统提醒", "您确定导出当前条件下的所有数据吗？", function (button, text) {
+    let message = "您确定导出当前条件下的所有数据吗？";
+    let data = grid.getSelection();
+    if (data.length > 0) {
+        message = "您确定导出选中的" + data.length + "条数据吗？";
+    }
+
+    Ext.Msg.confirm("系统提醒", message, function (button, text) {
         if (button === "yes") {
             let storeParams = grid.getStore().proxy.extraParams;
             let params = {};
             if (grid.getStore().entity.menu) {
                 params.title = grid.getStore().entity.menu.text;
             }
+
+            if (data.length > 0) {
+                for (let i = 0; i < data.length; i++) {
+                    let record = data[i];
+                    for (let j = 0; j < grid.getStore().entity.idProperty.length; j++) {
+                        let idName = grid.getStore().entity.idProperty[j];
+                        let key = "where['" + idName + "#']";
+                        if (!params[key]) {
+                            params[key] = [];
+                        }
+                        params[key].push(record.get(idName));
+                    }
+                }
+            }
+
             Ext.each(grid.getColumns(), function (item, index) {
                 //排除文件类
-                if (isFileColumn(item) || isFilesColumn(item)) return;
                 if (!Ext.isEmpty(item.dataIndex)) {
                     params["column[" + index + "].width"] = item.width;
                     params["column[" + index + "].text"] = item.configText;
                     params["column[" + index + "].enum"] = getEnumName(item);
                     params["column[" + index + "].dataIndex"] = item.dataIndex;
+                    params["column[" + index + "].file"] = isFileColumn(item) || isFilesColumn(item);
                 }
             });
 
@@ -1776,7 +1854,7 @@ function exportGrid(grid) {
             server.exportExcel(mergeJson(params, storeParams), function (success, data, message) {
                 hideWait();
                 if (success) {
-                    toast("导出成功！");
+                    toast(message);
                     location.href = "attach/" + data;
                 } else {
                     Ext.Msg.alert('系统提醒', "导出失败！" + message);
@@ -1793,6 +1871,7 @@ function exportGrid(grid) {
  * @param obj
  */
 function setGrid(obj, grid) {
+
     let setPanel = Ext.create('Ext.form.Panel', {
         bodyPadding: 5,
         region: 'center',
@@ -1801,7 +1880,7 @@ function setGrid(obj, grid) {
             data: grid.operate
         },
         defaults: {
-            labelWidth: 60
+            labelWidth: getNumberValue(fontSize) * 4 + 8
         },
         items: [
             {
@@ -1860,13 +1939,17 @@ function setGrid(obj, grid) {
 
     let winTitle = "操作设置";
     if (grid.getStore().entity && grid.getStore().entity.menu) {
-        winTitle = grid.getStore().entity.menu.text + "-" + winTitle;
+        winTitle = getStoreMenuText(grid.getStore()) + "-" + winTitle;
     }
+    let winWidth = parseInt((document.body.clientWidth * 0.3).toFixed(0));
+    let winHeight = parseInt((document.body.clientHeight * 0.4).toFixed(0));
     let win = Ext.create('Ext.window.Window', {
         title: winTitle,
-        height: 370,
         iconCls: 'extIcon extSet',
-        width: 300,
+        height: winHeight,
+        width: winWidth,
+        minHeight: 370,
+        minWidth: 300,
         layout: 'border',
         resizable: false,
         animateTarget: obj,
@@ -1994,13 +2077,15 @@ function showDetailsWindow(obj, title, entity, record) {
                 }
             });
 
+            let winWidth = parseInt((document.body.clientWidth * 0.3).toFixed(0));
+            let winHeight = parseInt((document.body.clientHeight * 0.6).toFixed(0));
             let win = Ext.create('Ext.window.Window', {
                 title: title,
-                height: 450,
-                width: 400,
-                minHeight: 300,
+                height: winHeight,
+                width: winWidth,
+                minHeight: 450,
                 iconCls: 'extIcon extDetails',
-                minWidth: 200,
+                minWidth: 400,
                 layout: 'border',
                 resizable: true,
                 constrain: true,
@@ -2110,7 +2195,7 @@ function createDetailsGrid(data, configGrid, configName, configValue) {
 }
 
 
-function showRecycleGrid(obj,dataStore) {
+function showRecycleGrid(obj, dataStore) {
     if (!dataStore) {
         return;
     }
@@ -2130,12 +2215,16 @@ function showRecycleGrid(obj,dataStore) {
     let entityOwner = gridPanel.down("[entityList=true]");
     entityOwner.code = $.md5(dataStore.entity.entityCode + "回收站");
 
+    let winWidth = parseInt((document.body.clientWidth * 0.7).toFixed(0));
+    let winHeight = parseInt((document.body.clientHeight * 0.8).toFixed(0));
     let win = Ext.create('Ext.window.Window', {
         title: title,
         iconCls: 'extIcon extRecycle',
         layout: 'fit',
-        height: 500,
-        width: 600,
+        height: winHeight,
+        width: winWidth,
+        minHeight: 500,
+        minWidth: 600,
         constrain: true,
         resizable: true,
         modal: true,

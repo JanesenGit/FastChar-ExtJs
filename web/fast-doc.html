@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <title>API接口文档-${projectName}</title>
+    <base href="${http}">
     <link rel="icon" href="${logo}" type="image/png"/>
     <link rel="stylesheet" href="base/iconfont/iconfont.css"/>
     <script src="js/jquery.js"></script>
@@ -53,6 +54,7 @@
             top: 0;
             left: 0;
             width: 100%;
+            height: 45px;
         }
 
         .content {
@@ -74,7 +76,7 @@
         }
 
         .bar {
-            width: 50px;
+            /*width: 50px;*/
             position: fixed;
             right: 0;
             bottom: 0;
@@ -84,16 +86,15 @@
             margin-bottom: 25px;
             display: flex;
             flex-direction: column;
+            direction: rtl;
         }
 
         .searchContainer {
             position: fixed;
             right: 0;
             top: 0;
-            margin-top: 50px;
-            margin-right: 90px;
-            padding: 10px;
-            width: 350px;
+            margin-top: 60px;
+            margin-right: 80px;
             display: none;
         }
 
@@ -101,7 +102,7 @@
             border: 1px solid #cccccc;
             font-size: 14px;
             padding: 10px;
-            width: 100%;
+            width: 350px !important;
             -webkit-box-shadow: inset 0 5px 5px rgba(0, 0, 0, .075), 0 0 18px ${themeColor};
             box-shadow: inset 0 5px 5px rgba(0, 0, 0, .075), 0 0 18px ${themeColor};
         }
@@ -117,15 +118,14 @@
             top: 0;
             right: 0;
             font-size: smaller;
-            color:#1aa1c5;
+            color: #1aa1c5;
             margin-top: 20px;
         }
 
         .searchContent {
             background: #ffffff;
-            width: 100%;
+            width: 370px !important;
             border-color: ${themeColor};
-            padding: 10px;
             -webkit-box-shadow: inset 0 5px 5px rgba(0, 0, 0, .075), 0 0 18px ${themeColor};
             box-shadow: inset 0 5px 5px rgba(0, 0, 0, .075), 0 0 18px ${themeColor};
             visibility: hidden;
@@ -135,13 +135,17 @@
 
         .searchContent > li {
             list-style: none;
-            margin-top: 10px;
             cursor: pointer;
+            display: inline-block;
+            padding: 10px;
+            border-bottom: 1px solid #cccccc;
         }
 
         .searchContent > li:hover {
             color: ${themeColor};
             font-weight: bold;
+            background: #f0f0f0;
+            border-left: 5px solid ${themeColor};
         }
 
         .searchContent > li:focus {
@@ -149,11 +153,18 @@
             font-weight: bold;
         }
 
+        .searchClick {
+            background: #fde9e4;
+            border-left: 5px solid ${themeColor};
+            font-weight: bold;
+            color: ${themeColor};
+        }
+
         .tab {
             flex: 1;
             text-align: center;
             cursor: pointer;
-            padding: 10px;
+            line-height: 45px;
         }
 
         .tab:hover {
@@ -209,10 +220,45 @@
             box-shadow: 0 0 25px ${themeColor};
         }
 
+        .refreshTip {
+            background: #c60700;
+            color: white;
+            height: 40px;
+            line-height: 40px;
+            text-align: center;
+            border-top-right-radius: 25px;
+            border-bottom-right-radius: 25px;
+            -moz-box-shadow: 0 0 3px ${themeColor};
+            -webkit-box-shadow: 0 0 3px ${themeColor};
+            box-shadow: 0 0 3px ${themeColor};
+            padding-left: 10px;
+            padding-right: 20px;
+            font-size: small;
+            display: none;
+        }
+
     </style>
     <script>
-        let selectedId = null;
+        let selectedId = null, selectedSearch;
         let documents = {};
+        let refreshTimeout, flashTitleTimeout;
+        let webTitle;
+
+        window.addEventListener("popstate", function (e) {
+            selectMenuFromHref();
+        }, false);
+
+        function selectMenuFromHref() {
+            let href = window.location.href;
+            if (href.indexOf("#") > 0) {
+                let menuId = href.substring(href.lastIndexOf("/") + 1);
+                href = href.replace("/" + menuId, "");
+                let tab = href.substring(href.lastIndexOf("/") + 1);
+                docMenuClick(null, menuId, tab);
+                return true;
+            }
+            return false;
+        }
 
         function copyToBoard(content) {
             let oInput = document.createElement('input');
@@ -274,10 +320,13 @@
                     let countMenu = countFrameMenu(document.getElementById("contentFrame").contentWindow);
                     let tabTitle = tab.getAttribute("data-name") + "（" + countMenu + "）";
                     tab.innerHTML = tabTitle;
+                    tab.setAttribute("data-title", tabTitle);
+                    checkRefresh();
                     setFrameStyle();
                     try {
                         document.getElementById("contentFrame").contentWindow["onload"]();
-                    } catch (e) {}
+                    } catch (e) {
+                    }
                     let selectedId = "$!{id}";
                     if (selectedId.length > 0) {
                         docMenuClick(null, selectedId);
@@ -336,14 +385,18 @@
                 " background: #fefeff !important;" +
                 "}";
             if (oStyle.styleSheet) {
-                oStyle.styleSheet.cssText = scrollStyleText+selectStyleText + styleText;
+                oStyle.styleSheet.cssText = scrollStyleText + selectStyleText + styleText;
             } else {
-                oStyle.innerHTML = scrollStyleText+selectStyleText + styleText;
+                oStyle.innerHTML = scrollStyleText + selectStyleText + styleText;
             }
             oHead.appendChild(oStyle);
         }
 
         function onload() {
+            webTitle = document.title;
+            if (selectMenuFromHref()) {
+                return;
+            }
             let selected = "$!{tab}";
             if (selected.length == 0) {
                 selected = getCookie("selectedTab" + document.title);
@@ -352,16 +405,17 @@
             if (!menu) {
                 selected = "$first";
             }
-            selectTab(selected, true)
-
+            selectTab(selected, true);
         }
 
         function docGoUp() {
-            document.getElementById("contentFrame").contentWindow["goUp"]();
+            // document.getElementById("contentFrame").contentWindow["goUp"]();
+            history.go(-1);
         }
 
         function docGoNext() {
-            document.getElementById("contentFrame").contentWindow["goNext"]();
+            // document.getElementById("contentFrame").contentWindow["goNext"]();
+            history.go(1);
         }
 
         function docNow() {
@@ -369,7 +423,32 @@
         }
 
         function docReload() {
+            var timestamp = (new Date()).valueOf();
+            let tab = document.getElementById("contentFrame").tab;
+            document.getElementById(tab + "Tab").setAttribute("data-time", timestamp);
             document.getElementById("contentFrame").src = document.getElementById("contentFrame").getAttribute("data-url") + "&t=" + new Date().getTime();
+            // let childWindpw = document.getElementById("contentFrame").contentWindow;
+            // console.log(childWindpw);
+            // let form = childWindpw.document.getElementById("bf35bb9e9475f912bb64d1bddaa859bfForm");
+            // form.fromCode.value = "测试输入！";
+            // form.getElementsByTagName("button")[0].click();
+        }
+
+        function onDocSelect(menu, id, tab) {
+            let href = window.location.href;
+            if (href.indexOf("#") > 0) {
+                let menuId = href.substring(href.lastIndexOf("/") + 1);
+                if (id == menuId) {
+                    return;
+                }
+            }
+
+            let url = "doc/#/" + menu + "/" + tab + "/" + id;
+            let state = {
+                title: menu,
+                url: url
+            };
+            window.history.pushState(state, menu, url);
         }
 
         function showSearch(obj) {
@@ -434,7 +513,8 @@
                     let liHas = 0;
                     let liLastIndex = -1;
                     let sourceTitlte = liTag.innerText + liTag.getAttribute("url");
-                    let title =  liTag.innerText + "~" + liTag.getAttribute("url");
+                    let title = liTag.innerText + "~" + liTag.getAttribute("url");
+
                     let coutedKey = "";
                     for (let j = 0; j < keys.length; j++) {
                         let key = keys[j].trim();
@@ -457,15 +537,14 @@
                             .replace(new RegExp("@", 'g'), "</b>")
                             .replace(new RegExp("~", 'g'), "<br/>");
 
-
-                        let content = "<li style='display: flex;' onclick=\"docMenuClick(this,'" + liTag.id + "','" + key + "')\">" +
+                        let content = "<li id='" + liTag.id + "Search' style='display: flex;' onclick=\"docMenuClick(this,'" + liTag.id + "','" + key + "')\">" +
                             (i + 1) + "、" +
                             "<span style='flex: 1'>" + title +
                             "</span>" +
                             "<span style='font-size: smaller;color: #cccccc'>" +
                             "【" + doc.title + "】" +
                             "</span>"
-                            + "</li><hr/>";
+                            + "</li>";
                         searched.push({count: liHas, content: content});
                     }
                 }
@@ -476,6 +555,18 @@
 
 
         function docMenuClick(obj, id, tab) {
+            if (selectedSearch) {
+                let selectedSearchLi = document.getElementById(selectedSearch);
+                if (selectedSearchLi) {
+                    selectedSearchLi.classList.remove("searchClick");
+                }
+            }
+
+            let searchLi = document.getElementById(id + "Search");
+            if (searchLi) {
+                searchLi.classList.add("searchClick");
+                selectedSearch = id + "Search";
+            }
             if (tab) {
                 let contentFrame = document.getElementById("contentFrame");
                 if (contentFrame.tab == tab) {
@@ -491,11 +582,66 @@
             }
         }
 
-        function copyLink(id) {
+        function copyLink(menu, id) {
             let selected = getCookie("selectedTab" + document.title);
-            let url = location.href + "?id=" + id + "&tab=" + selected;
+            let url = "${http}/doc/#/" + menu + "/" + selected + "/" + id;
             copyToBoard(url);
             alert("复制成功！");
+        }
+
+        function checkRefresh() {
+            let id = document.getElementById("contentFrame").tab;
+            let menu = document.getElementById(id + "Tab");
+            if (!menu) {
+                return;
+            }
+            if (refreshTimeout) {
+                clearTimeout(refreshTimeout);
+                refreshTimeout = null;
+            }
+            let tabTitle = menu.getAttribute("data-title");
+            let file = menu.getAttribute("data-file");
+            let time = menu.getAttribute("data-time");
+            $.post("doc_check", {
+                "file": file,
+                "time": time
+            }, function (result) {
+                if (result.success && result.data) {
+                    document.getElementById("refreshTip").style.display = "inline-block";
+                    if (!flashTitleTimeout) {
+                        flashTitle("文档更新了！");
+                    }
+                } else {
+                    document.getElementById("refreshTip").style.display = "none";
+                    stopFlashTitle();
+                }
+                refreshTimeout = setTimeout(function () {
+                    checkRefresh();
+                }, 3000);
+            }).error(function () {
+                refreshTimeout = setTimeout(function () {
+                    checkRefresh();
+                }, 3000);
+            });
+        }
+
+        function flashTitle(title, defaultTitle) {
+            if (title) {
+                document.title = "【" + title + "】" + webTitle;
+            } else {
+                document.title = webTitle;
+            }
+            flashTitleTimeout = setTimeout(function () {
+                flashTitle(defaultTitle, title);
+            }, 500);
+        }
+
+        function stopFlashTitle() {
+            if (flashTitleTimeout) {
+                clearTimeout(flashTitleTimeout);
+                flashTitleTimeout = null;
+                document.title = webTitle;
+            }
         }
 
 
@@ -505,7 +651,10 @@
 
 <div class="head">
     #foreach ($d in $docs)
-    <div id="${d.id}Tab" onclick="selectTab('$d.id',true);" data-url="$d.url" data-name="$d.name" class="tab">$d.name
+    <div id="${d.id}Tab" onclick="selectTab('$d.id',true);"
+         data-url="$d.url" data-time="$d.time"
+         data-file="$d.file"
+         data-name="$d.name" class="tab">$d.name
     </div>
     <script>
         documents['$d.id'] = '$d.url';
@@ -524,8 +673,14 @@
 
     <span style="flex: 1"></span>
 
-    <span class="arrow extIcon extRefresh" onclick="docReload()">
-    </span>
+    <div>
+         <span class="arrow extIcon extRefresh" onclick="docReload()">
+        </span>
+        <span class="refreshTip" id="refreshTip">
+           文档更新了，请刷新文档
+        </span>
+    </div>
+
 
     <span class="arrow extIcon extArrowLeft" onclick="docGoUp()">
     </span>

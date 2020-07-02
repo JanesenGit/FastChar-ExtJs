@@ -99,6 +99,7 @@ Ext.define('Ext.ux.TabCloseMenu', {
         menu.child('#close').setDisabled(!me.item.closable);
         menu.child('#copyTab').setDisabled(!me.item.closable);
         menu.child('#openInWindowTab').setDisabled(!me.item.closable);
+        menu.child('#copyUrlTab').setDisabled(!me.item.closable);
 
         if (me.item.justFixed) {
             menu.child('#fixedTab').hide();
@@ -148,6 +149,15 @@ Ext.define('Ext.ux.TabCloseMenu', {
         if (!me.menu) {
             var items = [];
             items.push({
+                itemId: 'copyUrlTab',
+                text: '复制地址',
+                scope: me,
+                iconCls: 'extIcon extCopy',
+                handler: function(){
+                    me.item.doCopyUrl();
+                }
+            });
+            items.push({
                 itemId: 'fixedTab',
                 text: '固定标签',
                 scope: me,
@@ -171,10 +181,14 @@ Ext.define('Ext.ux.TabCloseMenu', {
                 scope: me,
                 iconCls: 'extIcon extWindow',
                 handler: function(){
+                    var winWidth = parseInt((document.body.clientWidth * 0.8).toFixed(0));
+                    var winHeight = parseInt((document.body.clientHeight * 0.9).toFixed(0));
                     var win = Ext.create('Ext.window.Window', {
                         title: me.item.title,
-                        height: 500,
-                        width: 800,
+                        height: winHeight,
+                        width: winWidth,
+                        minHeight: 500,
+                        minWidth: 800,
                         icon: me.item.icon,
                         layout: 'fit',
                         resizable: true,

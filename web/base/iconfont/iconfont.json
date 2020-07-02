@@ -1,0 +1,534 @@
+{
+  "id": "1144120",
+  "name": "FastChar-ExtJs",
+  "font_family": "extIcon",
+  "css_prefix_text": "ext",
+  "description": "",
+  "glyphs": [
+    {
+      "icon_id": "13725585",
+      "name": "apk",
+      "font_class": "FileAPK",
+      "unicode": "e61d",
+      "unicode_decimal": 58909
+    },
+    {
+      "icon_id": "13725586",
+      "name": "zip",
+      "font_class": "FileZIP",
+      "unicode": "e61f",
+      "unicode_decimal": 58911
+    },
+    {
+      "icon_id": "13725589",
+      "name": "xls",
+      "font_class": "FileExcel",
+      "unicode": "e625",
+      "unicode_decimal": 58917
+    },
+    {
+      "icon_id": "13725590",
+      "name": "ppt",
+      "font_class": "FilePPT",
+      "unicode": "e627",
+      "unicode_decimal": 58919
+    },
+    {
+      "icon_id": "13725592",
+      "name": "txt",
+      "font_class": "FileTXT",
+      "unicode": "e62a",
+      "unicode_decimal": 58922
+    },
+    {
+      "icon_id": "13725597",
+      "name": "mp4",
+      "font_class": "FileMP4",
+      "unicode": "e631",
+      "unicode_decimal": 58929
+    },
+    {
+      "icon_id": "13725600",
+      "name": "psd",
+      "font_class": "FilePSD",
+      "unicode": "e634",
+      "unicode_decimal": 58932
+    },
+    {
+      "icon_id": "13725603",
+      "name": "doc",
+      "font_class": "FileWord",
+      "unicode": "e638",
+      "unicode_decimal": 58936
+    },
+    {
+      "icon_id": "13727017",
+      "name": "unknow",
+      "font_class": "File",
+      "unicode": "e63a",
+      "unicode_decimal": 58938
+    },
+    {
+      "icon_id": "2925587",
+      "name": "还原",
+      "font_class": "Reback",
+      "unicode": "e61b",
+      "unicode_decimal": 58907
+    },
+    {
+      "icon_id": "2564183",
+      "name": "回收站",
+      "font_class": "Recycle",
+      "unicode": "e61a",
+      "unicode_decimal": 58906
+    },
+    {
+      "icon_id": "6744522",
+      "name": "bug",
+      "font_class": "Bug",
+      "unicode": "e618",
+      "unicode_decimal": 58904
+    },
+    {
+      "icon_id": "2088194",
+      "name": "监控",
+      "font_class": "Monitor",
+      "unicode": "e617",
+      "unicode_decimal": 58903
+    },
+    {
+      "icon_id": "6908227",
+      "name": "跳回原位置",
+      "font_class": "LastPoint",
+      "unicode": "e647",
+      "unicode_decimal": 58951
+    },
+    {
+      "icon_id": "11367091",
+      "name": "向前",
+      "font_class": "ArrowLeft",
+      "unicode": "e616",
+      "unicode_decimal": 58902
+    },
+    {
+      "icon_id": "11560211",
+      "name": "向前",
+      "font_class": "ArrowRight",
+      "unicode": "e783",
+      "unicode_decimal": 59267
+    },
+    {
+      "icon_id": "4011618",
+      "name": "问号",
+      "font_class": "Question",
+      "unicode": "e615",
+      "unicode_decimal": 58901
+    },
+    {
+      "icon_id": "1614880",
+      "name": "排序",
+      "font_class": "Sort",
+      "unicode": "e643",
+      "unicode_decimal": 58947
+    },
+    {
+      "icon_id": "9399102",
+      "name": "提 示",
+      "font_class": "Tip",
+      "unicode": "e639",
+      "unicode_decimal": 58937
+    },
+    {
+      "icon_id": "2741700",
+      "name": "随机",
+      "font_class": "Random",
+      "unicode": "e613",
+      "unicode_decimal": 58899
+    },
+    {
+      "icon_id": "4734129",
+      "name": "下载",
+      "font_class": "Download2",
+      "unicode": "e612",
+      "unicode_decimal": 58898
+    },
+    {
+      "icon_id": "947143",
+      "name": "下载",
+      "font_class": "Download",
+      "unicode": "e6ad",
+      "unicode_decimal": 59053
+    },
+    {
+      "icon_id": "1050705",
+      "name": "固定",
+      "font_class": "Fixed",
+      "unicode": "e61e",
+      "unicode_decimal": 58910
+    },
+    {
+      "icon_id": "9541891",
+      "name": "固定",
+      "font_class": "UnFixed",
+      "unicode": "e782",
+      "unicode_decimal": 59266
+    },
+    {
+      "icon_id": "4650069",
+      "name": "刷新",
+      "font_class": "Refresh",
+      "unicode": "e630",
+      "unicode_decimal": 58928
+    },
+    {
+      "icon_id": "2704666",
+      "name": "上下",
+      "font_class": "TopBottom",
+      "unicode": "e635",
+      "unicode_decimal": 58933
+    },
+    {
+      "icon_id": "8780322",
+      "name": "上下",
+      "font_class": "LeftRight",
+      "unicode": "e781",
+      "unicode_decimal": 59265
+    },
+    {
+      "icon_id": "58867",
+      "name": "放大",
+      "font_class": "ZoomOut",
+      "unicode": "e611",
+      "unicode_decimal": 58897
+    },
+    {
+      "icon_id": "2093185",
+      "name": "缩小",
+      "font_class": "ZoomIn",
+      "unicode": "e60f",
+      "unicode_decimal": 58895
+    },
+    {
+      "icon_id": "3214860",
+      "name": "一比一",
+      "font_class": "OneOne",
+      "unicode": "e62b",
+      "unicode_decimal": 58923
+    },
+    {
+      "icon_id": "7670597",
+      "name": "右旋转",
+      "font_class": "Around",
+      "unicode": "e667",
+      "unicode_decimal": 58983
+    },
+    {
+      "icon_id": "3568832",
+      "name": "加号",
+      "font_class": "Plus",
+      "unicode": "e60e",
+      "unicode_decimal": 58894
+    },
+    {
+      "icon_id": "3916409",
+      "name": "查看",
+      "font_class": "Eye",
+      "unicode": "e64a",
+      "unicode_decimal": 58954
+    },
+    {
+      "icon_id": "3079720",
+      "name": "excel导入",
+      "font_class": "ExcelImport",
+      "unicode": "e628",
+      "unicode_decimal": 58920
+    },
+    {
+      "icon_id": "3380934",
+      "name": "excel导入",
+      "font_class": "ExcelModule",
+      "unicode": "e60d",
+      "unicode_decimal": 58893
+    },
+    {
+      "icon_id": "3347167",
+      "name": "权限",
+      "font_class": "Power",
+      "unicode": "e60c",
+      "unicode_decimal": 58892
+    },
+    {
+      "icon_id": "1440094",
+      "name": "查看 (1)",
+      "font_class": "See",
+      "unicode": "e614",
+      "unicode_decimal": 58900
+    },
+    {
+      "icon_id": "2435522",
+      "name": "消息",
+      "font_class": "Info",
+      "unicode": "e63c",
+      "unicode_decimal": 58940
+    },
+    {
+      "icon_id": "4230803",
+      "name": "图片",
+      "font_class": "Image",
+      "unicode": "e606",
+      "unicode_decimal": 58886
+    },
+    {
+      "icon_id": "2357651",
+      "name": "错误",
+      "font_class": "Error",
+      "unicode": "e605",
+      "unicode_decimal": 58885
+    },
+    {
+      "icon_id": "8304973",
+      "name": "失效用户",
+      "font_class": "SessionOut",
+      "unicode": "e6c4",
+      "unicode_decimal": 59076
+    },
+    {
+      "icon_id": "1206345",
+      "name": "关闭",
+      "font_class": "Close",
+      "unicode": "e622",
+      "unicode_decimal": 58914
+    },
+    {
+      "icon_id": "5712913",
+      "name": "上传",
+      "font_class": "Upload",
+      "unicode": "e619",
+      "unicode_decimal": 58905
+    },
+    {
+      "icon_id": "5844624",
+      "name": "文件夹",
+      "font_class": "Folder",
+      "unicode": "e604",
+      "unicode_decimal": 58884
+    },
+    {
+      "icon_id": "5397863",
+      "name": "地图-",
+      "font_class": "Map",
+      "unicode": "e68a",
+      "unicode_decimal": 59018
+    },
+    {
+      "icon_id": "1200837",
+      "name": "登录",
+      "font_class": "Login",
+      "unicode": "e67c",
+      "unicode_decimal": 59004
+    },
+    {
+      "icon_id": "7855890",
+      "name": "选择",
+      "font_class": "Select",
+      "unicode": "e6ca",
+      "unicode_decimal": 59082
+    },
+    {
+      "icon_id": "4840367",
+      "name": "更多",
+      "font_class": "More",
+      "unicode": "e6a2",
+      "unicode_decimal": 59042
+    },
+    {
+      "icon_id": "2060407",
+      "name": "复制",
+      "font_class": "Copy2",
+      "unicode": "e6d1",
+      "unicode_decimal": 59089
+    },
+    {
+      "icon_id": "7108903",
+      "name": "清除",
+      "font_class": "Clear",
+      "unicode": "e6d9",
+      "unicode_decimal": 59097
+    },
+    {
+      "icon_id": "7487603",
+      "name": "保存",
+      "font_class": "Save",
+      "unicode": "e602",
+      "unicode_decimal": 58882
+    },
+    {
+      "icon_id": "7586323",
+      "name": "搜索--1",
+      "font_class": "Search",
+      "unicode": "e603",
+      "unicode_decimal": 58883
+    },
+    {
+      "icon_id": "3656971",
+      "name": "管理员",
+      "font_class": "Manager",
+      "unicode": "e609",
+      "unicode_decimal": 58889
+    },
+    {
+      "icon_id": "5971829",
+      "name": "角色",
+      "font_class": "Role",
+      "unicode": "e601",
+      "unicode_decimal": 58881
+    },
+    {
+      "icon_id": "5310304",
+      "name": "Excel",
+      "font_class": "Excel",
+      "unicode": "e621",
+      "unicode_decimal": 58913
+    },
+    {
+      "icon_id": "106984",
+      "name": "确定",
+      "font_class": "Ok",
+      "unicode": "e687",
+      "unicode_decimal": 59015
+    },
+    {
+      "icon_id": "524416",
+      "name": "重置密码",
+      "font_class": "ResetPassword",
+      "unicode": "e60a",
+      "unicode_decimal": 58890
+    },
+    {
+      "icon_id": "721702",
+      "name": "设置",
+      "font_class": "Set",
+      "unicode": "e60b",
+      "unicode_decimal": 58891
+    },
+    {
+      "icon_id": "1502944",
+      "name": "版本",
+      "font_class": "Version",
+      "unicode": "e646",
+      "unicode_decimal": 58950
+    },
+    {
+      "icon_id": "1548905",
+      "name": "220-@-取消排序",
+      "font_class": "CancelOrder",
+      "unicode": "e610",
+      "unicode_decimal": 58896
+    },
+    {
+      "icon_id": "4530989",
+      "name": "首页-选中",
+      "font_class": "Index",
+      "unicode": "e600",
+      "unicode_decimal": 58880
+    },
+    {
+      "icon_id": "5192614",
+      "name": "编辑",
+      "font_class": "Edit",
+      "unicode": "e780",
+      "unicode_decimal": 59264
+    },
+    {
+      "icon_id": "5442192",
+      "name": "关联",
+      "font_class": "Link",
+      "unicode": "e650",
+      "unicode_decimal": 58960
+    },
+    {
+      "icon_id": "5651538",
+      "name": "文件添加",
+      "font_class": "Add",
+      "unicode": "e698",
+      "unicode_decimal": 59032
+    },
+    {
+      "icon_id": "6488970",
+      "name": "合同详情",
+      "font_class": "Details",
+      "unicode": "e626",
+      "unicode_decimal": 58918
+    },
+    {
+      "icon_id": "6969973",
+      "name": "删 除 (1)",
+      "font_class": "Delete",
+      "unicode": "e6db",
+      "unicode_decimal": 59099
+    },
+    {
+      "icon_id": "7070494",
+      "name": "字段",
+      "font_class": "Field",
+      "unicode": "e620",
+      "unicode_decimal": 58912
+    },
+    {
+      "icon_id": "7166280",
+      "name": "函数",
+      "font_class": "Math",
+      "unicode": "e607",
+      "unicode_decimal": 58887
+    },
+    {
+      "icon_id": "7515703",
+      "name": "重置",
+      "font_class": "Reset",
+      "unicode": "e608",
+      "unicode_decimal": 58888
+    },
+    {
+      "icon_id": "7692390",
+      "name": "日志",
+      "font_class": "Log",
+      "unicode": "e661",
+      "unicode_decimal": 58977
+    },
+    {
+      "icon_id": "109380",
+      "name": "退出",
+      "font_class": "Exits",
+      "unicode": "e690",
+      "unicode_decimal": 59024
+    },
+    {
+      "icon_id": "608197",
+      "name": "窗口",
+      "font_class": "Window",
+      "unicode": "e64d",
+      "unicode_decimal": 58957
+    },
+    {
+      "icon_id": "2388418",
+      "name": "减号",
+      "font_class": "CloseOther",
+      "unicode": "e6d8",
+      "unicode_decimal": 59096
+    },
+    {
+      "icon_id": "6774666",
+      "name": "复制",
+      "font_class": "Copy",
+      "unicode": "e63b",
+      "unicode_decimal": 58939
+    },
+    {
+      "icon_id": "7560838",
+      "name": "关 闭",
+      "font_class": "CloseAll",
+      "unicode": "e6f3",
+      "unicode_decimal": 59123
+    }
+  ]
+}

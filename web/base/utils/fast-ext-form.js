@@ -1,3 +1,43 @@
+
+
+Ext.override(Ext.form.Basic, {
+    isValid: function () {
+        try {
+            let me = this,
+                invalid;
+            Ext.suspendLayouts();
+            let fieldName = "";
+            let index = 0;
+            let errorInfo = "请正确填写数据！";
+            invalid = me.getFields().filterBy(function (field) {
+                let v = !field.validate();
+                if (v && index === 0) {
+                    fieldName = field.getFieldLabel();
+                    errorInfo = field.getErrors()[0];
+                    index++;
+                }
+                return v;
+            });
+            Ext.resumeLayouts(true);
+            let result = invalid.length < 1;
+            if (!result) {
+                if (Ext.isEmpty(fieldName)) {
+                    toast("请将数据填写完整！");
+                } else {
+                    toast("【" + fieldName + "】错误：" + errorInfo);
+                }
+                shakeComment(me.owner.ownerCt);
+            }
+            return result;
+        } catch (e) {
+            showException(e);
+        }
+    }
+});
+
+
+
+
 /**
  * 设置字段值，例如：formPanel.setFieldValue('name','FastChar');
  */
@@ -59,7 +99,7 @@ Ext.form.FormPanel.prototype.submitForm = function (entity, extraParams, waitMsg
         if (entity) {
             submitConfig.params["entityCode"] = entity.entityCode;
             if (entity.menu) {
-                submitConfig.params["menu"] = entity.menu.text;
+                submitConfig.params["menu"] =getStoreMenuText({entity: entity});
             }
         }
         let form = me.getForm();
@@ -75,6 +115,8 @@ Ext.override(Ext.form.field.Date, {
             if (this.format === 'y-m-d') {
                 this.format = system.dateFormat;
             }
+            //修改日期picker弹出方式
+            this.pickerAlign = "tl-tr?";
         }
     })
 });
@@ -149,42 +191,6 @@ Ext.form.FormPanel.prototype.deleteCache = function (key) {
     $.post("ext/config/deleteExtConfig", params, function (result) {
     });
 };
-
-Ext.override(Ext.form.Basic, {
-    isValid: function () {
-        try {
-            let me = this,
-                invalid;
-            Ext.suspendLayouts();
-            let fieldName = "";
-            let index = 0;
-            let errorInfo = "请正确填写数据！";
-            invalid = me.getFields().filterBy(function (field) {
-                let v = !field.validate();
-                if (v && index === 0) {
-                    fieldName = field.getFieldLabel();
-                    errorInfo = field.getErrors()[0];
-                    index++;
-                }
-                return v;
-            });
-            Ext.resumeLayouts(true);
-            let result = invalid.length < 1;
-            if (!result) {
-                if (Ext.isEmpty(fieldName)) {
-                    toast("请将数据填写完整！");
-                } else {
-                    toast("【" + fieldName + "】错误：" + errorInfo);
-                }
-                shakeComment(me.owner.ownerCt);
-            }
-            return result;
-        } catch (e) {
-            showException(e);
-        }
-    }
-});
-
 
 /**
  * 是否是日期控件

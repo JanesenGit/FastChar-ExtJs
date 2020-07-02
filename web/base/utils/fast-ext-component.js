@@ -2,6 +2,10 @@ Ext.override(Ext.Component, {
     initComponent: Ext.Function.createSequence(Ext.Component.prototype.initComponent, function () {
         let me = this;
         try {
+            //取消blur和change验证，避免控件异常！
+            me.validateOnBlur = false;
+            me.validateOnChange = false;
+
             me.closeToolText = "关闭";
             me.collapseToolText = "关闭";
             me.expandToolText = "展开";
@@ -28,10 +32,10 @@ Ext.override(Ext.Component, {
                 me.collapsed = collapse;
                 me.setCollapsed(collapse);
                 me.on('resize', function (obj, width, height, eOpts) {
-                    if (width != Ext.getBody().getWidth()) {
+                    if (width !== Ext.getBody().getWidth()) {
                         setCache(fastOnlyCode + "Width", width);
                     }
-                    if (height != Ext.getBody().getHeight()) {
+                    if (height !== Ext.getBody().getHeight()) {
                         setCache(fastOnlyCode + "Height", height);
                     }
                 });
@@ -378,6 +382,87 @@ Ext.override(Ext.Component, {
         }
     })
 });
+
+
+
+
+Ext.override(Ext, {
+    getScrollbarSize: function (force) {
+        //<debug>
+        if (!Ext.isDomReady) {
+            Ext.raise("getScrollbarSize called before DomReady");
+        }
+        //</debug>
+
+        let scrollbarSize = Ext._scrollbarSize;
+
+        if (force || !scrollbarSize) {
+            let db = document.body,
+                div = document.createElement('div');
+
+            div.style.width = div.style.height = '100px';
+            div.style.overflow = 'scroll';
+            div.style.position = 'absolute';
+
+            db.appendChild(div); // now we can measure the div...
+
+            // at least in iE9 the div is not 100px - the scrollbar size is removed!
+            Ext._scrollbarSize = scrollbarSize = {
+                width: div.offsetWidth - div.clientWidth,
+                height: div.offsetHeight - div.clientHeight
+            };
+
+            db.removeChild(div);
+        }
+        if (scrollbarSize.width <= 0) {
+            scrollbarSize.width = 15;
+        }
+        if (scrollbarSize.height <= 0) {
+            scrollbarSize.height = 15;
+        }
+        return scrollbarSize;
+    }
+});
+
+
+
+
+Ext.override(Ext.Component, {
+    onAlignToScroll: function () {
+    },
+    adjustPosition: function (x, y) {
+        let me = this,
+            floatParentBox;
+
+        // Floating Components being positioned in their ownerCt have to be made absolute.
+        if (me.isContainedFloater()) {
+            floatParentBox = me.floatParent.getTargetEl().getViewRegion();
+            x += floatParentBox.left;
+            y += floatParentBox.top;
+        }
+
+        try {
+            if (me.pickerField) {
+                let winWidth = document.body.clientWidth;
+                let winHeight = document.body.clientHeight;
+                if (me.pickerField.xtype === "datefield") {
+                    x = Math.min(me.pickerField.getX() + me.pickerField.getWidth(), winWidth - me.getWidth());
+                    y = Math.min(me.pickerField.getY(), winHeight - me.getHeight());
+                } else if (me.pickerField.xtype.indexOf("combo") !== -1) {
+                    x = Math.min(me.pickerField.bodyEl.getX(), winWidth - me.getWidth());
+                    y = Math.min(me.pickerField.getY() + me.pickerField.getHeight(), winHeight - me.getHeight());
+                }
+            }
+        } catch (e) {
+            console.error(e);
+        }
+        return {
+            x: x,
+            y: y
+        };
+    }
+});
+
 
 
 

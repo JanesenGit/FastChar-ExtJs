@@ -1,17 +1,244 @@
 const system = {
-    currTabId: -1,
-    currTab: null,
+    lastTabId: -1,
     dateFormat: 'Y-m-d H:i:s',
     init: false,
-    manager:null,//当前登录的管理员
-    menus:null,//菜单
-    http:null,//项目http路径
+    manager: null,//当前登录的管理员
+    menus: null,//菜单
+    http: null,//项目http路径
     regByImage: /\.(jpg|png|gif|jpeg)$/i,
     regByMP4: /\.(mp4)$/i,
     regByExcel: /\.(xls|xlsx)$/i,
     regByWord: /\.(doc)$/i,
     regByText: /\.(txt)$/i,
     tabPanelContainer: null,
+    fullscreen: false,
+    inFullScreen: function () {//进入全屏
+        try {
+            let element = document.documentElement;
+            if (element.requestFullscreen) {
+                element.requestFullscreen();
+            } else if (element.msRequestFullscreen) {
+                element.msRequestFullscreen();
+            } else if (element.mozRequestFullScreen) {
+                element.mozRequestFullScreen();
+            } else if (element.webkitRequestFullscreen) {
+                element.webkitRequestFullscreen();
+            }
+            this.fullscreen = true;
+        } catch (e) {
+            console.error(e);
+        }
+    },
+    validOperate: function (operate, callBack, timeout) {
+        if (!operate) {
+            return;
+        }
+        let operateValid = $.cookie("ValidOperate" + $.md5(operate));
+        if (!timeout) {
+            timeout = 24 * 60 * 60;
+        }
+        if (operateValid) {
+            callBack();
+        }else{
+            let loginNormal = getExt("login-type").value === "normal";
+            let labelWidth = getNumberValue(fontSize) * 5 + 8;
+            let doValid = function () {
+                let form = loginPanel.form;
+                if (form.isValid()) {
+                    let loginPassword = loginPanel.form.findField("loginPassword").getValue();
+
+                    form.submit({
+                        params: {
+                            loginPassword: $.md5(loginPassword),
+                            operate: operate,
+                            timeout: timeout
+                        },
+                        waitMsg: '正在为您验证中……',
+                        success: function (form, action) {
+                            win.close();
+                            callBack();
+                        },
+                        failure: function (form, action) {
+                            refreshCode();
+                            Ext.Msg.alert('验证失败', action.result.message, function () {
+                                if (action.result.code === -3) {
+                                    loginPanel.form.findField("validateCode").focus();
+                                }
+                            });
+                        }
+                    });
+                }
+            };
+
+            let loginPanel = Ext.create('Ext.form.FormPanel', {
+                url: server.validOperateUrl(),
+                method: 'POST',
+                fileUpload: true,
+                border: 0,
+                width: '100%',
+                layout: "anchor",
+                region: 'center',
+                bodyStyle: {},
+                padding: '10 10 0 10',
+                items: [
+                    {
+                        xtype: 'textfield',
+                        fieldLabel: '登录账号',
+                        labelAlign: 'right',
+                        labelWidth: labelWidth,
+                        margin: '10 10 0 0',
+                        name: 'loginName',
+                        allowBlank: false,
+                        blankText: '请输入当前登录名',
+                        emptyText: '请输入当前登录名',
+                        anchor: "100%"
+                    }, {
+                        xtype: 'textfield',
+                        fieldLabel: '登录密码',
+                        labelAlign: 'right',
+                        labelWidth: labelWidth,
+                        inputType: 'password',
+                        margin: '10 10 0 0',
+                        allowBlank: false,
+                        blankText: '请输入登录密码',
+                        emptyText: '请输入登录密码',
+                        submitValue: false,
+                        name: 'loginPassword',
+                        anchor: "100%"
+                    },
+                    {
+                        xtype: 'fieldcontainer',
+                        labelWidth: 0,
+                        anchor: "100%",
+                        layout: {
+                            type: 'hbox',
+                            align: 'stretch'
+                        },
+                        hidden: loginNormal,
+                        items: [{
+                            xtype: 'textfield',
+                            fieldLabel: '验证码',
+                            labelAlign: 'right',
+                            labelWidth: labelWidth,
+                            margin: '10 10 0 0',
+                            allowBlank: loginNormal,
+                            flex: 1,
+                            name: 'validateCode',
+                            emptyText: '请输入验证码',
+                            blankText: '请输入验证码'
+                        }, {
+                            xtype: 'image',
+                            margin: '10 10 0 0',
+                            width: 70,
+                            id: 'imgCode',
+                            height: 32
+                        }]
+                    },
+                    {
+                        xtype: 'fieldcontainer',
+                        labelWidth: 0,
+                        anchor: "100%",
+                        layout: {
+                            type: 'hbox',
+                            align: 'stretch'
+                        },
+                        items: [{
+                            xtype: 'button',
+                            text: '取消',
+                            iconCls: 'extIcon extReset',
+                            flex: 1,
+                            tipText: '取消验证',
+                            margin: '10 5 10 10',
+                            handler: function () {
+                                win.close();
+                            }
+                        }, {
+                            xtype: 'button',
+                            text: '确定',
+                            tipText: '确定验证',
+                            margin: '10 10 10 5',
+                            iconCls: 'extIcon extOk',
+                            flex: 1,
+                            handler: function () {
+                                doValid();
+                            }
+                        }]
+                    }],
+                listeners: {
+                    'render': function (text) {
+                        try {
+                            new Ext.util.KeyMap({
+                                target: text.getEl(),
+                                key: 13,
+                                fn: doValid,
+                                scope: Ext.getBody()
+                            });
+                        } catch (e) {
+                            console.error(e);
+                        }
+
+                    }
+                }
+            });
+
+            let refreshCode = function () {
+                try {
+                    loginPanel.form.findField("validateCode").reset();
+                    Ext.getCmp("imgCode").setSrc("showCaptcha?t=" + Math.random());
+                } catch (e) {
+                }
+            };
+
+            let bottomPanel = Ext.create('Ext.panel.Panel', {
+                region: 'south',
+                layout: 'fit',
+                width: '100%',
+                border: 0,
+                html: "<div align='center' style='font-size: small;color:red;text-decoration:none; padding-left: 40px;padding-right: 40px;padding-bottom: 10px;'>完成验证后将自动继续《" + operate + "》操作</div>"
+            });
+
+            let win = Ext.create('Ext.window.Window', {
+                title: '当前操作需要安全验证',
+                iconCls: 'extIcon extPower',
+                width: 380,
+                resizable: false,
+                layout: 'vbox',
+                toFrontOnShow: true,
+                modal: true,
+                constrain: true,
+                items: [loginPanel,bottomPanel]
+            });
+            win.show(null, function () {
+                try {
+                    if (!loginNormal) {
+                        refreshCode();
+                        Ext.get('imgCode').on({
+                            click: function () {
+                                refreshCode();
+                            }
+                        });
+                    }
+                } catch (e) {
+                }
+            });
+        }
+    },
+    outFullscreen: function () {//退出全屏
+        try {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.msExitFullscreen) {
+                document.msExitFullscreen();
+            } else if (document.mozCancelFullScreen) {
+                document.mozCancelFullScreen();
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            }
+            this.fullscreen = false;
+        } catch (e) {
+            console.error(e);
+        }
+    },
     formatUrl: function (url, params) {
         if (url.startWith("http://") || url.startWith("https://")) {
             return url;
@@ -227,8 +454,23 @@ const system = {
             } catch (e) {
             }
         });
+
+
+        window.addEventListener("popstate", function (e) {
+            me.selectTabFromHref();
+        }, false);
+
         me.init = true;
         me.initSystem();
+    },
+    selectTabFromHref: function () {
+        let me = this;
+        let href = window.location.href;
+        if (href.indexOf("#") > 0) {
+            let menuId = href.substring(href.lastIndexOf("/") + 1);
+            return me.selectTab(menuId);
+        }
+        return false;
     },
     initSystem: function () {
         removeLoading();
@@ -248,7 +490,7 @@ const system = {
             height: 60,
             padding: '0 0 0 0',
             border: 0,
-            flex:1,
+            flex: 1,
             power: false,
             cls: 'headContainer',
             style: {
@@ -262,14 +504,14 @@ const system = {
                     width: 40,
                     cls: 'headLogo',
                     margin: '10 5 5 5',
-                    style:{
+                    style: {
                         borderRadius: '10px'
                     }
                 },
                 {
                     xtype: 'label',
                     margin: '0 0 0 5',
-                    html: "<div class='headTitle' style='color: " + systemTlColor + ";font-size: 20px;line-height: 20px;font-weight: 700;' >" + systemTitle + "</div>"
+                    html: "<div class='headTitle' style='color: " + systemTlColor + ";' >" + systemTitle + "</div>"
                 },
                 "->",
                 {
@@ -300,7 +542,7 @@ const system = {
         let headerTip = Ext.create('Ext.toolbar.Toolbar', {
             border: 0,
             padding: '0 0 0 0',
-            flex:1,
+            flex: 1,
             height: 3,
             style: {
                 background: systemBgColor
@@ -314,9 +556,22 @@ const system = {
             height: 60,
             border: 0,
             hidden: power.config,
-            items: [headerInfo,headerTip]
+            items: [headerInfo, headerTip],
+            listeners: {
+                afterlayout: function () {
+                    this.getEl().on("dblclick", function () {
+                        if (system.fullscreen) {
+                            system.outFullscreen();
+                        } else {
+                            system.inFullScreen();
+                        }
+                    });
+                }
+            }
         });
-        let leftTreeWidth = 200;
+
+
+        let leftTreeWidth = document.body.clientWidth * 0.25;
         let leftTreePanel = Ext.create('Ext.panel.Panel', {
             border: 0,
             region: 'center',
@@ -455,14 +710,19 @@ const system = {
             justFixed: true,
             items: [getWelcomePanel()],
             listeners: {
-                activate: function (tab) {
+                beforeactivate: function (tab) {
                     try {
-                        if (me.currTab) {
-                            me.selectMenu(me.currTab.getId(), true);
-                            me.currTab = null;
-                        }
+                        me.selectMenu(me.lastTabId, true);
                     } catch (e) {
-                        me.tabPanelContainer.setActiveTab(tab);
+                    }
+                },
+                activate: function (tab) {
+                    if (me.restoredTab) {
+                        let state = {
+                            title: tab.title,
+                            url: ""
+                        };
+                        window.history.pushState(state, tab.title, "");
                     }
                 }
             }
@@ -477,21 +737,29 @@ const system = {
             items: [headerPanel, leftContainer, rightContainer]
         });
         container.add(containerPanel);
+        let tabFromHref = me.selectTabFromHref();
         if (toBool(me['tab-record'].value, true)) {
             Ext.MessageBox.updateProgress(1, '即将完成操作，请耐心等待', '系统初始化成功！获取菜单中…');
             me.restoreTab().then(function (value) {
-                let tabs = jsonToObject(value);
-                Ext.each(tabs, function (tab) {
-                    me.showTab(tab.method, tab.id, tab.title, tab.icon, tab.active, true, tab.where, tab.closable, tab.reorderable);
-                });
                 if (Ext.MessageBox.isVisible()) {
                     Ext.MessageBox.hide();
                 }
-                if (tabs.length === 0 || ! me.tabPanelContainer.getActiveTab()) {
+                let tabs = jsonToObject(value);
+                me.restoredTab = true;
+                if (!tabs) {
+                    return;
+                }
+                Ext.each(tabs, function (tab) {
+                    if (tabFromHref) {
+                        tab.active = false;
+                    }
+                    me.showTab(tab.method, tab.id, tab.title, tab.icon, tab.active, true, tab.where, tab.closable, tab.reorderable);
+                });
+                if (tabs.length === 0 || !me.tabPanelContainer.getActiveTab()) {
                     me.tabPanelContainer.setActiveTab(Ext.getCmp("tabWelcome"));
                 }
             });
-        }else{
+        } else {
             if (Ext.MessageBox.isVisible()) {
                 Ext.MessageBox.hide();
             }
@@ -511,8 +779,11 @@ const system = {
     },
     showTab: function (method, tabId, title, icon, activate, moveFirst, where, closable, reorderable) {
         let me = this;
-        if (me.currTab && tabId === me.currTab.getId()) return;
-        if (!icon|| icon.length === 0) icon = server.getIcon("icon_function.svg");
+        let tabs = Ext.getCmp("tabs");
+        if (tabs.getActiveTab() && tabId === tabs.getActiveTab().getId()) {
+            return;
+        }
+        if (!icon || icon.length === 0) icon = server.getIcon("icon_function.svg");
         if (Ext.isEmpty(moveFirst)) {
             moveFirst = true;
         }
@@ -536,10 +807,9 @@ const system = {
             }
         };
 
-        let tabs = Ext.getCmp("tabs");
-        me.currTab = Ext.getCmp(tabId);
-        if (!me.currTab) {
-            me.currTab = tabs.add({
+        let currTab = Ext.getCmp(tabId);
+        if (!currTab) {
+            currTab = tabs.add({
                 xtype: 'panel',
                 id: tabId,
                 code: tabId,
@@ -575,6 +845,11 @@ const system = {
                         tabs.recordTab();
                     }
                 },
+                doCopyUrl: function () {
+                    let tab = this;
+                    copyToBoard(system.http + "#/" + tab.title + "/" + tab.id);
+                    toast("复制成功！");
+                },
                 listeners: {
                     deactivate: function (tab) {
                         changeIcon(tab, false);
@@ -583,6 +858,7 @@ const system = {
                         if (!tab) {
                             return;
                         }
+                        me.lastTabId = tab.id;
                         if (me.existMenu(tab.id)) {
                             me.selectMenu(tab.id, false);
                         }
@@ -601,26 +877,44 @@ const system = {
                                         entityOwner.code = $.md5(tabId);
                                     }
                                     tab.add(obj);
-                                    me.recordTab();
                                 } catch (e) {
+                                    console.error(e);
                                 }
                             });
                         }
+
+                        try {
+                            let href = window.location.href;
+                            if (href.indexOf("#") > 0) {
+                                let menuId = href.substring(href.lastIndexOf("/") + 1);
+                                if (tab.id === menuId) {
+                                    return;
+                                }
+                            }
+                            let state = {
+                                title: tab.title,
+                                url: "#/" + tab.title + "/" + tab.id
+                            };
+                            window.history.pushState(state, tab.title, "#/" + tab.title + "/" + tab.id);
+                        } catch (e) {
+                            console.error(e);
+                        }
+                        me.recordTab();
                     },
-                    afterlayout: function (obj, container, pos) {
+                    afterlayout: function (tab, container, pos) {
                         try {
                             Ext.get(this.tabBtnId).dom.ondblclick = function () {
-                                let currShowTabId = me.currTab.getId();
+                                let currShowTabId = tab.getId();
                                 tabs.items.each(function (obj, index) {
-                                    if (index != 0 && obj.id === currShowTabId) {
+                                    if (index !== 0 && obj.id === currShowTabId) {
                                         if (obj.closable) {
                                             obj.close();
                                         }
                                     }
                                 });
                             };
-                            if (tabs.getActiveTab() === me.currTab) {
-                                changeIcon(me.currTab, true);
+                            if (tabs.getActiveTab() && tabs.getActiveTab().getId() === tab.getId()) {
+                                changeIcon(tab, true);
                             }
                         } catch (e) {
                         }
@@ -636,14 +930,14 @@ const system = {
         }
 
         if (activate) {
-            if (!tabs.getActiveTab() || tabs.getActiveTab() != me.currTab) {
+            if (!tabs.getActiveTab() || tabs.getActiveTab().getId() !== currTab.getId()) {
                 if (moveFirst) {
                     let cmp = me.findLastTag();
                     if (cmp) {
-                        Ext.getCmp("tabs").moveAfter(me.currTab, cmp);
+                        Ext.getCmp("tabs").moveAfter(currTab, cmp);
                     }
                 }
-                tabs.setActiveTab(me.currTab);
+                tabs.setActiveTab(currTab);
             }
         }
     },
@@ -699,11 +993,22 @@ const system = {
             }
         });
     },
+    selectTab: function (id) {
+        let me = this;
+        let tab = Ext.getCmp(id);
+        if (tab) {
+            me.tabPanelContainer.setActiveTab(tab);
+            tab.focus();
+            return true;
+        } else {
+            return me.selectMenu(id, false);
+        }
+    },
     addTab: function (component, id, title, icon) {
         let me = this;
-        me.currTab = Ext.getCmp(id);
-        if (!me.currTab) {
-            me.currTab = me.tabPanelContainer.add({
+        let currTab = Ext.getCmp(id);
+        if (!currTab) {
+            currTab = me.tabPanelContainer.add({
                 title: title,
                 xtype: 'panel',
                 id: id,
@@ -717,7 +1022,7 @@ const system = {
                 items: [component]
             });
         }
-        me.tabPanelContainer.setActiveTab(me.currTab);
+        me.tabPanelContainer.setActiveTab(currTab);
     },
     selectMenu: function (menuId, justParent) {
         try {
@@ -727,7 +1032,7 @@ const system = {
             }
             let treelist = Ext.getCmp("leftTreeList");
             let record = treelist.getStore().getNodeById(menuId);
-            if (!record) return;
+            if (!record) return false;
             let parentId = record.get("parentId");
 
             if (!Ext.isEmpty(parentId)) {
@@ -735,20 +1040,19 @@ const system = {
                 if (justParent) {
                     treelist.setSelection(parent);
                     parent.collapse();
-                    me.currTab = null;
                     return;
                 } else {
-                    if (parentId != "root") {
+                    if (parentId !== "root") {
                         parent.expand(false, true);
                         me.selectMenu(parentId, justParent);
                     }
                 }
             }
             treelist.setSelection(record);
+            return true;
         } catch (e) {
             showException(e, "选择菜单！[system.selectMenu]");
         }
-
     },
     existMenu: function (menuId) {
         let treelist = Ext.getCmp("leftTreeList");
@@ -757,10 +1061,14 @@ const system = {
 
     },
     getMenu: function (menuId) {
-        let treelist = Ext.getCmp("leftTreeList");
-        let record = treelist.getStore().getNodeById(menuId);
+        let treeList = Ext.getCmp("leftTreeList");
+        let record = treeList.getStore().getNodeById(menuId);
         if (record) {
-            return record.data;
+            let data = record.data;
+            if (data && data.parentId && data.parentId !== 'root') {
+                data.parent = this.getMenu(data.parentId);
+            }
+            return data;
         }
         return null;
     },
@@ -1017,11 +1325,14 @@ const system = {
                     }
                 }
             });
-
+            let winWidth = parseInt((document.body.clientWidth * 0.4).toFixed(0));
+            let winHeight = parseInt((document.body.clientHeight * 0.5).toFixed(0));
             let win = Ext.create('Ext.window.Window', {
                 title: '权限配置（选择功能菜单）',
-                width: 400,
-                height: 470,
+                height: winHeight,
+                width: winWidth,
+                minHeight: 400,
+                minWidth: 470,
                 layout: 'fit',
                 iconCls: 'extIcon extSelect',
                 resizable: true,
@@ -1230,7 +1541,7 @@ const system = {
 function showList(menuId, entityCode, where) {
     let entity = system.getEntity(entityCode);
     if (!entity) {
-        throw "操作失败！未获取到 '" + entityCode + "' 实体类！";
+        throw "操作失败！未获取到 '" + entityCode + "' 实体类！请检查实体类关联的表格是否存在！";
     }
     if (!entity.js) {
         throw "操作失败！未获取到 '" + entityCode + "' JS对象！";

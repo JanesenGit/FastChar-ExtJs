@@ -1,3 +1,24 @@
+/**
+ * 获取store相关的菜单文字，包含了父类
+ * @param store
+ * @param menu
+ * @returns {string|null}
+ */
+function getStoreMenuText(store, menu) {
+    if (menu) {
+        if (menu.parent) {
+            let storeMenuText = getStoreMenuText(null, menu.parent);
+            if (storeMenuText) {
+                return storeMenuText + ">" + menu.text;
+            }
+        }
+        return menu.text;
+    } else if (store && store.entity) {
+        return getStoreMenuText(null, store.entity.menu);
+    }
+    return null;
+}
+
 
 /**
  * 提交entity store 修改的数据
@@ -22,7 +43,7 @@ function commitStoreUpdate(store) {
         store.commiting = true;
         let params = {"entityCode": store.entity.entityCode};
         if (store.entity.menu) {
-            params["menu"] = store.entity.menu.text;
+            params["menu"] = getStoreMenuText(store);
         }
         for (let i = 0; i < records.length; i++) {
             let record = records[i];
@@ -57,7 +78,7 @@ function commitStoreDelete(store, data) {
         }
         let params = {"entityCode": store.entity.entityCode};
         if (store.entity.menu) {
-            params["menu"] = store.entity.menu.text;
+            params["menu"] =getStoreMenuText(store);
         }
         for (let i = 0; i < data.length; i++) {
             let record = data[i];
@@ -92,7 +113,7 @@ function commitStoreReback(store, data) {
         }
         let params = {"entityCode": store.entity.entityCode};
         if (store.entity.menu) {
-            params["menu"] = store.entity.menu.text;
+            params["menu"] =getStoreMenuText(store);
         }
         for (let i = 0; i < data.length; i++) {
             let record = data[i];
@@ -127,7 +148,7 @@ function commitStoreCopy(store, data) {
         }
         let params = {"entityCode": store.entity.entityCode};
         if (store.entity.menu) {
-            params["menu"] = store.entity.menu.text;
+            params["menu"] = getStoreMenuText(store);
         }
         for (let i = 0; i < data.length; i++) {
             let record = data[i];
@@ -151,8 +172,6 @@ function commitStoreCopy(store, data) {
         });
     });
 }
-
-
 
 
 /**
@@ -196,9 +215,13 @@ function getEntityDataStore(entity, where, tree) {
             },
             listeners: {
                 exception: function (obj, request, operation, eOpts) {
-                    let data = eval("(" + request.responseText + ")");
-                    if (!data.success) {
-                        Ext.Msg.alert('数据获取失败', data.message);
+                    try {
+                        let data = eval("(" + request.responseText + ")");
+                        if (!data.success) {
+                            Ext.Msg.alert('数据获取失败', data.message);
+                        }
+                    } catch (e) {
+                        Ext.Msg.alert('数据获取失败', request.responseText);
                     }
                 }
             },
@@ -235,15 +258,17 @@ function getEntityDataStore(entity, where, tree) {
                         if (store.grid) {
                             if (!hasSearchColumn(store.grid)) {
                                 newParams["where['" + tree.parentIdName + "']"] = parentValue;
-                            }else{
+                            } else {
                                 newParams["where['" + tree.parentIdName + "']"] = null;
                             }
-                        }else{
+                        } else {
                             newParams["where['" + tree.parentIdName + "']"] = parentValue;
                         }
                     }
 
                     if (store.grid) {
+                        newParams["power"] = toBool(store.grid.power, true);
+
                         if (store.grid.getSelection().length > 0) {
                             store.grid.getSelectionModel().deselectAll();
                         } else {
@@ -258,6 +283,7 @@ function getEntityDataStore(entity, where, tree) {
                         store.getSorters().each(function (item) {
                             newParams["indexSort['" + item.getProperty() + "']"] = getColumn(store.grid, item.getProperty()).getIndex();
                         });
+
 
                         checkColumnSearch(store.grid);
                     }
@@ -283,12 +309,16 @@ function getEntityDataStore(entity, where, tree) {
  * @param firstData
  * @param lastData
  */
-function getEnumDataStore(enumName, firstData, lastData) {
-    let cacheKey = $.md5(enumName);
+function getEnumDataStore(enumName, firstData, lastData, params) {
+    if (!params) {
+        params = {};
+    }
+    let cacheKey = $.md5(enumName + Ext.JSON.encode(params));
     if (!MemoryCache.hasOwnProperty(cacheKey)) {
         Ext.Ajax.request({
             url: 'showEnums?enumName=' + enumName,
             async: false,
+            params: params,
             success: function (response, opts) {
                 try {
                     let result = Ext.decode(response.responseText);
@@ -331,8 +361,11 @@ function getEnumText(enumName, id) {
 /**
  * 获得枚举的文本值
  */
-function getEnumRecord(enumName, id) {
-    return getEnumDataStore(enumName).findRecord("id", id, 0, false, false, true);
+function getEnumRecord(enumName, id, attr) {
+    if (!attr) {
+        attr = "id";
+    }
+    return getEnumDataStore(enumName).findRecord(attr, id, 0, false, false, true);
 }
 
 
@@ -341,8 +374,8 @@ function getEnumRecord(enumName, id) {
  * @returns
  */
 function getPageDataStore(maxSize, iteration) {
-    if (!maxSize|| maxSize.length === 0) maxSize = 100;
-    if (!iteration|| iteration.length === 0) iteration = 10;
+    if (!maxSize || maxSize.length === 0) maxSize = 100;
+    if (!iteration || iteration.length === 0) iteration = 10;
     let dataArray = [];
     for (let i = 0; i < maxSize / 10; i++) {
         let text = ((i + 1) * iteration) + '条';
@@ -352,7 +385,7 @@ function getPageDataStore(maxSize, iteration) {
             "id": id
         });
     }
-    return  Ext.create('Ext.data.Store', {
+    return Ext.create('Ext.data.Store', {
         id: 'pageSizeDataStore',
         fields: ["id", "text"],
         data: dataArray
@@ -392,14 +425,14 @@ function getCompareDataStore() {
                 desc: '大于'
             },
             {
-                id: 5,
-                text: '<',
-                desc: '小于'
-            },
-            {
                 id: 6,
                 text: '>=',
                 desc: '大等于'
+            },
+            {
+                id: 5,
+                text: '<',
+                desc: '小于'
             },
             {
                 id: 7,
@@ -482,6 +515,25 @@ function getThemeDataStore() {
             {
                 'text': '清爽扁平',
                 "id": 'extjs/theme/fast-theme-flat'
+            }]
+    });
+}
+
+function getFontSizeDataStore() {
+    return Ext.create('Ext.data.Store', {
+        id: 'fontSizeDataStore',
+        fields: ["id", "text"],
+        data: [
+            {
+                'text': '14px',
+                "id": '14px'
+            },
+            {
+                'text': '16px',
+                "id": '16px'
+            }, {
+                'text': '18px',
+                "id": '18px'
             }]
     });
 }

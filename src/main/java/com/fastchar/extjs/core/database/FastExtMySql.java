@@ -3,7 +3,6 @@ package com.fastchar.extjs.core.database;
 import com.fastchar.annotation.AFastOverride;
 import com.fastchar.annotation.AFastPriority;
 import com.fastchar.core.FastChar;
-import com.fastchar.core.FastEntities;
 import com.fastchar.core.FastEntity;
 import com.fastchar.database.info.FastColumnInfo;
 import com.fastchar.database.info.FastSqlInfo;
@@ -12,7 +11,7 @@ import com.fastchar.database.sql.FastMySql;
 import com.fastchar.exception.FastSqlException;
 import com.fastchar.extjs.core.FastExtEntity;
 
-import com.fastchar.utils.FastClassUtils;
+import com.fastchar.extjs.core.FastExtLayerHelper;
 import com.fastchar.utils.FastStringUtils;
 
 import java.util.ArrayList;
@@ -260,24 +259,7 @@ public class FastExtMySql extends FastMySql {
             //配置权限字段
             FastExtColumnInfo layerColumn = extEntity.getLayerColumn();
             if (layerColumn != null && entity.isEmpty(layerColumn.getName())) {
-                String parentLayerCode = extEntity.getString("parentLayerCode");
-
-                if (FastStringUtils.isEmpty(parentLayerCode)) {
-                    FastExtColumnInfo layerLinkColumn = extEntity.getLayerLinkColumn();
-                    if (layerLinkColumn != null && entity.isNotEmpty(layerLinkColumn.getName())
-                            && layerLinkColumn.getLinkInfo() != null) {
-                        List<FastEntities.EntityInfo> entityInfo = FastChar.getEntities().getEntityInfo(layerLinkColumn.getLinkInfo().getTableName());
-                        FastEntity<?> fastEntity = FastClassUtils.newInstance(entityInfo.get(0).getTargetClass());
-                        if (fastEntity instanceof FastExtEntity) {
-                            FastExtEntity<?> linkExtEntity = (FastExtEntity<?>) fastEntity;
-                            fastEntity.set(layerLinkColumn.getLinkInfo().getKeyColumnName(), entity.get(layerLinkColumn.getName()));
-                            parentLayerCode = linkExtEntity.selectLayerValue(layerLinkColumn.getLinkInfo().getKeyColumnName());
-                        }
-                    }
-                }
-
-                String myLayerCode = extEntity.buildLayerCode(parentLayerCode);
-                entity.set(layerColumn.getName(), myLayerCode);
+                entity.set(layerColumn.getName(), FastExtLayerHelper.buildLayerValue(entity));
             }
         }
     }

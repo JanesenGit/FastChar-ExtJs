@@ -8,6 +8,7 @@ Ext.define("Fast.ext.EnumComboBox", {
     enumValue: 'id',
     enumText: 'text',
     exclude: [],//排除id
+    params: [],//扩展参数
     firstData: null,//插入到头部的数据
     lastData: null,//插入到尾部的数据
     initComponent: function () {
@@ -15,7 +16,7 @@ Ext.define("Fast.ext.EnumComboBox", {
         me.displayField = me.enumText;
         me.valueField = me.enumValue;
         me.editable = false;
-        me.store = getEnumDataStore(me.enumName, me.firstData, me.lastData);
+        me.store = getEnumDataStore(me.enumName, me.firstData, me.lastData, me.params);
         me.store.filterBy(function (record) {
             if (me.exclude.exists(record.get(me.enumValue))) {
                 return false;
@@ -82,6 +83,9 @@ Ext.define("Fast.ext.FastFile", {
                             }
                         }, true);
                         return;
+                    }else  if (me.fileModules[0].type === 'videos') {
+                        showVideo(this, me.getValue());
+                        return;
                     }
                 }
                 location.href = me.getValue();
@@ -121,6 +125,8 @@ Ext.define("Fast.ext.FastFiles", {
     fileModules: [],
     allowBlank: true,
     autoUpdate: true,
+    showFileName: false,
+    showFileLength: false,
     getMenu: function () {
         return this.up("menu");
     },
@@ -183,13 +189,17 @@ Ext.define("Fast.ext.Content", {
         let me = this;
         me.oldValue = me.getValue();
         if (!me.editorWin) {
+            let winWidth = parseInt((document.body.clientWidth * 0.4).toFixed(0));
+            let winHeight = parseInt((document.body.clientHeight * 0.6).toFixed(0));
             me.editorWin = Ext.create('Ext.window.Window', {
                 title: title,
                 iconCls: 'extIcon extEdit',
                 resizable: true,
                 maximizable: true,
-                height: 400,
-                width: 600,
+                height: winHeight,
+                width: winWidth,
+                minHeight: 500,
+                minWidth: 600,
                 layout: 'fit',
                 animateTarget: obj,
                 items: [me],
@@ -259,7 +269,7 @@ Ext.define("Fast.ext.Content", {
 Ext.define("Fast.ext.HtmlContent", {
     alias: ['widget.htmlcontent', 'widget.htmlcontentfield'],
     extend: 'Ext.form.FieldContainer',
-    height: 300,
+    height: 400,
     getName: function () {
         return this.name;
     },
@@ -267,13 +277,13 @@ Ext.define("Fast.ext.HtmlContent", {
     allowBlank: true,
     showEditor: function () {
         let me = this;
-        window["editorLoadDone"] = function () {
+        let frameId = "EditorFrame" + Ext.now();
+        window["editorLoadDone" + frameId] = function () {
             me.setValue(me.value);
             me.setPostImageUrl(system.formatUrl("upload?type=editor"));
         };
-        let frameId = "EditorFrame" + Ext.now();
         me.editorFrameId = frameId;
-        let url = system.formatUrlVersion("base/editor/index.html");
+        let url = system.formatUrlVersion("base/editor/index.html?id=" + frameId);
         let html = "<iframe id='" + frameId + "' " + " src='" + url + "' width='100%' height='100%'" +
             " frameborder='0' scrolling='no' style='border: 1px solid #d0d0d0;'/>";
         me.update(html);
@@ -368,13 +378,17 @@ Ext.define("Fast.ext.HtmlContent", {
         me.autoShowEditor = false;
         me.oldValue = me.value;
         if (!me.editorWin) {
+            let winWidth = parseInt((document.body.clientWidth * 0.4).toFixed(0));
+            let winHeight = parseInt((document.body.clientHeight * 0.6).toFixed(0));
             me.editorWin = Ext.create('Ext.window.Window', {
                 title: title,
                 iconCls: 'extIcon extEdit',
                 resizable: true,
                 maximizable: true,
-                height: 400,
-                width: 600,
+                height: winHeight,
+                width: winWidth,
+                minHeight: 500,
+                minWidth: 600,
                 layout: 'fit',
                 animateTarget: obj,
                 items: [me],
@@ -452,7 +466,7 @@ Ext.define("Fast.ext.Link", {
     entityId: null,
     entityText: null,
     entityCode: null,
-    linkValue: null,
+    linkValue: {},
     editable: false,
     allowBlank: true,
     layout: 'fit',
@@ -622,7 +636,7 @@ Ext.define("Fast.ext.Link", {
                     me.setValue(data.get(me.entityText));
                     me.setRawValue(data.get(me.entityId));
                     me.record = data;
-                }else if (result.length > 1) {
+                } else if (result.length > 1) {
                     me.records = result;
                     let newText = "";
                     let moreValues = [];
@@ -656,6 +670,16 @@ Ext.define("Fast.ext.Link", {
     },
     initComponent: function () {
         let me = this;
+        if (window["getLinkFieldDefaultValue"]) {
+            let defaultLinkValue = window["getLinkFieldDefaultValue"](me);
+            if (defaultLinkValue) {
+                if (me.linkValue) {
+                    me.linkValue = mergeJson(me.linkValue, defaultLinkValue);
+                }else{
+                    me.linkValue = defaultLinkValue;
+                }
+            }
+        }
         if (!me.linkValue) {
             me.linkValue = {};
             me.linkValue[me.entityId] = -1;
@@ -680,7 +704,7 @@ Ext.define("Fast.ext.Link", {
             {
                 xtype: 'fieldcontainer',
                 name: me.name + "MoreFields",
-                hidden:true,
+                hidden: true,
                 items: []
             },
             {
@@ -738,7 +762,7 @@ Ext.define("Fast.ext.Target", {
     targetTypeReadOnly: false,
     targetTypeEnum: null,
     targetId: null,
-    targetValue: null,
+    targetValue: {},
     targetFunction: 'getTargetEntity',
     getValue: function () {
         let me = this;
@@ -1233,20 +1257,22 @@ Ext.define("Fast.ext.PCA", {
     cityName: null,
     areaName: null,
     onAfterSelect: null,
+    level: null,//选择层次级别 1 只选择省份 2只选择城市 3只选择区
     selectType: 0,//选择类型 0 拼接省份城市区 1 不拼接只返回选择的对象值
-    setRecordValue: function (record) {
+    setRecordValue: function (record, autoClearData) {
         let me = this;
+        autoClearData = toBool(autoClearData, true);
         if (record) {
             if (record.store) {
                 record.store.holdUpdate = true;
             }
-            if (me.proName && me.name != me.proName && me.province) {
+            if (me.proName && me.name !== me.proName && me.province) {
                 record.set(me.proName, me.province.provinceName);
             }
-            if (me.cityName && me.name != me.cityName && me.city) {
+            if (me.cityName && me.name !== me.cityName && me.city) {
                 record.set(me.cityName, me.city.cityName);
             }
-            if (me.areaName && me.name != me.areaName && me.area) {
+            if (me.areaName && me.name !== me.areaName && me.area) {
                 record.set(me.areaName, me.area.areaName);
             }
             record.set(me.name, me.getValue());
@@ -1255,7 +1281,9 @@ Ext.define("Fast.ext.PCA", {
                 record.store.fireEvent("endupdate");
             }
         }
-        me.clearData();
+        if (autoClearData) {
+            me.clearData();
+        }
     },
     getMenu: function () {
         return this.up("menu");
@@ -1273,9 +1301,12 @@ Ext.define("Fast.ext.PCA", {
             });
             return;
         }
-
+        me.blur();
         window["selectPCA"](me, function (success, province, city, area) {
             if (!toBool(success, false)) {
+                if (me.getMenu()) {
+                    me.getMenu().holdShow = false;
+                }
                 return;
             }
             me.province = province;
@@ -1451,15 +1482,15 @@ Ext.define("Fast.ext.DateRange", {
                                 me.endDate = Ext.Date.format(new Date(), me.format);
                                 if (newValue === 6) {
                                     me.beginDate = Ext.Date.format(new Date(), me.format);
-                                }else if (newValue === 1) {
+                                } else if (newValue === 1) {
                                     me.beginDate = Ext.Date.format(Ext.Date.add(new Date(), Ext.Date.DAY, -7), me.format);
-                                }else if (newValue === 2) {
+                                } else if (newValue === 2) {
                                     me.beginDate = Ext.Date.format(Ext.Date.add(new Date(), Ext.Date.MONTH, -1), me.format);
-                                }else if (newValue === 3) {
+                                } else if (newValue === 3) {
                                     me.beginDate = Ext.Date.format(Ext.Date.add(new Date(), Ext.Date.MONTH, -3), me.format);
-                                }else if (newValue === 4) {
+                                } else if (newValue === 4) {
                                     me.beginDate = Ext.Date.format(Ext.Date.add(new Date(), Ext.Date.MONTH, -6), me.format);
-                                }else if (newValue === 5) {
+                                } else if (newValue === 5) {
                                     me.beginDate = Ext.Date.format(Ext.Date.add(new Date(), Ext.Date.YEAR, -1), me.format);
                                 }
                                 let error = me.refreshValue();

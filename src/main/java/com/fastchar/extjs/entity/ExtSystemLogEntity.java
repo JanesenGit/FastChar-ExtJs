@@ -17,6 +17,7 @@ public class ExtSystemLogEntity extends FastExtEntity<ExtSystemLogEntity> {
     public static ExtSystemLogEntity getInstance() {
         return FastChar.getOverrides().singleInstance(ExtSystemLogEntity.class);
     }
+
     @Override
     public String getTableName() {
         return "ext_system_log";
@@ -30,7 +31,19 @@ public class ExtSystemLogEntity extends FastExtEntity<ExtSystemLogEntity> {
     @Override
     public FastPage<ExtSystemLogEntity> showList(int page, int pageSize) {
         String sqlStr = "select t.*,a.managerName as a__managerName from ext_system_log as t " +
-                " left join ext_manager as a on a.managerId=t.managerId order by t.systemLogDateTime desc ";
+                " left join ext_manager as a on a.managerId=t.managerId" +
+                " where 1=1 ";
+
+        if (isNotEmpty("^search")) {
+            String search = getString("^search");
+            remove("^search");
+
+            sqlStr += " and (systemLogContent like '%" + search + "%'" +
+                    " or systemSendData like '%" + search + "%'" +
+                    " or systemResultData like '%" + search + "%' ) ";
+        }
+
+        sqlStr += " order by t.systemLogDateTime desc ";
         FastSqlInfo sqlInfo = toSelectSql(sqlStr);
         return selectBySql(page, pageSize, sqlInfo.getSql(), sqlInfo.toParams());
     }

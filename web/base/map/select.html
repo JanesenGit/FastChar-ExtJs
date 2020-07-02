@@ -68,18 +68,23 @@
                 resizeEnable: true
             });
 
-            map.plugin(["AMap.ToolBar", "AMap.OverView", "AMap.Scale","AMap.Geolocation","AMap.Geocoder"], function () {
-                //加载工具条
-                tool = new AMap.ToolBar({
-                    autoPosition: false
-                });
-                map.addControl(tool);
-                //加载鹰眼
-                view = new AMap.OverView();
-                map.addControl(view);
-                //加载比例尺
-                scale = new AMap.Scale();
-                map.addControl(scale);
+            map.plugin([
+                'AMap.ToolBar',
+                'AMap.Scale',
+                'AMap.HawkEye',
+                'AMap.MapType',
+                'AMap.Geolocation',
+                'AMap.PlaceSearch',
+                'AMap.Geocoder'
+            ], function () {
+                // 在图面添加工具条控件，工具条控件集成了缩放、平移、定位等功能按钮在内的组合控件
+                map.addControl(new AMap.ToolBar());
+                // 在图面添加比例尺控件，展示地图在当前层级和纬度下的比例尺
+                map.addControl(new AMap.Scale());
+                // 在图面添加鹰眼控件，在地图右下角显示地图的缩略图
+                map.addControl(new AMap.HawkEye({isOpen: true}));
+                // 在图面添加类别切换控件，实现默认图层与卫星图、实施交通图层之间切换的控制
+                map.addControl(new AMap.MapType());
 
                 geocoder = new AMap.Geocoder({
                     radius: 1000,
@@ -109,14 +114,14 @@
 
     function initMarker(position) {
         marker = new AMap.Marker({
+            map: map,
             position: position,
             draggable: true,
             cursor: 'move',
             raiseOnDrag: true
         });
         window.parent.closeMapMask();
-        AMap.event.addListener(marker, 'dragend', onMarkDragEnd);
-        marker.setMap(map);
+        marker.on('dragend', onMarkDragEnd);
     }
 
     //开始定位
@@ -124,7 +129,7 @@
         geolocation.getCityInfo(function (status, result) {
             if (status == "complete") {
                 window.parent.closeMapMask();
-                let position = new AMap.LngLat(result.center[0], result.center[1], true);
+                let position = new AMap.LngLat(result.position[0], result.position[1], true);
                 initMarker(position);
                 searchPosition(position);
                 map.setZoomAndCenter(14, position);

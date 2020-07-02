@@ -33,7 +33,7 @@ public final class FastExtConfig implements IFastConfig {
     private boolean attachLog;
     private boolean mergeAppJs;
     private FastExtEntities extEntities = new FastExtEntities();
-    private FastLayerType layerType = FastLayerType.Layer_Role;//权限级别，默认以当前管理角色为最高级别
+    private FastLayerType layerType = FastLayerType.None;//权限级别，默认以当前管理角色为最高级别
     private String menuPrefix = "fast-menus";
 
     /**
@@ -343,6 +343,16 @@ public final class FastExtConfig implements IFastConfig {
                             placeholder.put("frontColor" + i, ColorUtils.getLightColor(frontColor.getColorValue(), 1-FastNumberUtils.formatToDouble("0." + i)));
                             placeholder.put("frontColorDark" + i, ColorUtils.getDarkColor(frontColor.getColorValue(), 1-FastNumberUtils.formatToDouble("0." + i)));
                         }
+                    }
+                    FastHeadExtInfo fontSize = getExtInfo("font-size");
+                    int fontNumber = 14;
+                    if (fontSize != null) {
+                        fontNumber = FastNumberUtils.formatToInt(FastNumberUtils.getAllNumbers(fontSize.getValue()));
+                    }
+
+                    placeholder.put("fontSize", fontNumber + "px");
+                    for (int i = 0; i < 5; i++) {
+                        placeholder.put("fontSize" + (i + 1) * 2, (fontNumber + (i + 1) * 2) + "px");
                     }
 
                     String theme = replacePlaceholder(placeholder, themeContent);

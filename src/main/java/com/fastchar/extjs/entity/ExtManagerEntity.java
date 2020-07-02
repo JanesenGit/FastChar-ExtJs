@@ -3,9 +3,13 @@ package com.fastchar.extjs.entity;
 import com.fastchar.core.FastChar;
 import com.fastchar.database.FastPage;
 import com.fastchar.database.info.FastSqlInfo;
-import com.fastchar.extjs.core.FastExtEntity;
+import com.fastchar.extjs.FastExtConfig;
+import com.fastchar.extjs.core.FastLayerType;
 import com.fastchar.extjs.entity.abstracts.AbstractExtManagerEntity;
 import com.fastchar.utils.FastDateUtils;
+import com.fastchar.utils.FastStringUtils;
+
+import java.util.List;
 
 public class ExtManagerEntity extends AbstractExtManagerEntity {
     private static final long serialVersionUID = 1L;
@@ -33,11 +37,12 @@ public class ExtManagerEntity extends AbstractExtManagerEntity {
     }
 
     @Override
-    public FastPage<ExtManagerEntity> showLayerList(ExtManagerEntity managerEntity, int page, int pageSize) {
-        if (managerEntity.getManagerRole().getRoleType() != ExtManagerRoleEntity.RoleTypeEnum.系统角色) {
-            put(getLayerColumn().getName() + "?%", managerEntity.getLayerValue(1));
+    public void pullLayer(ExtManagerEntity managerEntity) {
+        if (getLayerColumn() != null && FastChar.getConfig(FastExtConfig.class).getLayerType() != FastLayerType.None) {
+            if (managerEntity.getManagerRole().getRoleType() != ExtManagerRoleEntity.RoleTypeEnum.系统角色) {
+                put(getLayerColumn().getName() + "?%", managerEntity.getLayerValue(1));
+            }
         }
-        return showList(page, pageSize);
     }
 
     @Override
@@ -139,13 +144,18 @@ public class ExtManagerEntity extends AbstractExtManagerEntity {
     }
 
 
-    public ExtManagerEntity getManagerByNoticeTitle(String noticeTitle) {
-        String sqlStr = "select * from ext_manager where managerNoticeTitle like '%" + noticeTitle + "%' ";
-        ExtManagerEntity result = selectFirstBySql(sqlStr);
-        if (result == null) {
-            return selectById(1);
+    public List<ExtManagerEntity> getManagerByNoticeTitle(String noticeTitle,String menuId) {
+        String sqlStr = "select * from ext_manager" +
+                " where managerNoticeTitle like '%" + noticeTitle + "%' ";
+        if (FastStringUtils.isNotEmpty(menuId)) {
+            sqlStr += " or managerMenuPower like '%" + menuId + "%' ";
         }
-        return result;
+
+        List<ExtManagerEntity> list = selectBySql(sqlStr);
+        if (list.size() == 0) {
+            list.add(selectById(1));
+        }
+        return list;
     }
 
 

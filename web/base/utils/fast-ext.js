@@ -321,7 +321,10 @@ function getProgressLine(toColor) {
  * 抖动控件
  * @param obj 待抖动的控件
  */
-function shakeComment(obj, callBack) {
+function shakeComment(obj, callBack,shakeCount) {
+    if(!shakeCount){
+        shakeCount = 1080;
+    }
     try {
         let interval, t = 0, z = 3, del = function () {
             clearInterval(interval);
@@ -339,7 +342,7 @@ function shakeComment(obj, callBack) {
 
                 obj.setX(currX + x);
                 obj.setY(currY + y);
-                if ((t += 90) > 1080) del();
+                if ((t += 90) > shakeCount) del();
             } catch (e) {
                 del();
             }
@@ -460,7 +463,7 @@ function runCallBack(fun, param) {
 function setRecordValue(record, dataIndex, field) {
     field.dataIndex = dataIndex;
     if (Ext.isFunction(field.setRecordValue)) {
-        field.setRecordValue(record);
+        field.setRecordValue(record, false);
     } else {
         let value = field.getValue();
         if (Ext.isDate(field.getValue())) {
@@ -518,3 +521,33 @@ function getOS() {
     } catch (e) {}
     return "Other";
 }
+
+/**
+ * 提取纯数字
+ * @param value
+ * @returns {undefined|void|*|string}
+ */
+function getNumberValue(value) {
+    return parseFloat(value.replace(/[^0-9]/ig, ""));
+}
+
+/**
+ * 数字补0
+ * @param num
+ * @param length
+ * @returns {string}
+ */
+function prefixInteger(num, length) {
+    return (Array(length).join('0') + num).slice(-length);
+}
+
+
+/**
+ * 获取系统默认的svg图标
+ * @param className 图标类名
+ */
+function getSVGIcon(className) {
+    return '<svg class="svgIcon" aria-hidden="true"><use xlink:href="#' + className + '"></use></svg>';
+}
+
+

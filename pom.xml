@@ -6,7 +6,7 @@
 
     <groupId>com.fastchar</groupId>
     <artifactId>fastchar-extjs</artifactId>
-    <version>1.2.0</version>
+    <version>1.5.0</version>
     <build>
         <plugins>
             <plugin>
@@ -16,9 +16,9 @@
                     <source>7</source>
                     <target>7</target>
                     <encoding>UTF-8</encoding>
-                    <compilerArgs>
-                        <arg>-parameters</arg>
-                    </compilerArgs>
+                    <!--                    <compilerArgs>-->
+                    <!--                        <arg>-parameters</arg>-->
+                    <!--                    </compilerArgs>-->
                     <compilerArguments>
                         <bootclasspath>${java.home}/lib/rt.jar:${java.home}/lib/jce.jar</bootclasspath>
                     </compilerArguments>
@@ -55,6 +55,7 @@
                                     <includes>
                                         <include>**/*</include>
                                     </includes>
+
                                 </resource>
                             </resources>
                         </configuration>
@@ -69,7 +70,7 @@
     <packaging>jar</packaging>
     <name>FastChar-ExtJs</name>
     <description>
-        FastChar-ExtJs is a Java Web framework that uses extjs libraries.
+        FastChar-ExtJs is a Java Web framework that uses extjs libraries.Quickly build a background management system
     </description>
     <url>http://www.fastchar.com</url>
 
@@ -288,6 +289,7 @@
             <version>4.2.1</version>
             <scope>compile</scope>
         </dependency>
+
 
     </dependencies>
 

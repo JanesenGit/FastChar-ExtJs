@@ -1,5 +1,6 @@
 package com.fastchar.extjs;
 
+import com.fastchar.core.FastChar;
 import com.fastchar.extjs.compress.YuiCompress;
 import com.fastchar.utils.FastFileUtils;
 
@@ -7,8 +8,7 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -45,25 +45,21 @@ final class JsBuilder {
     }
 
     public static void main(String[] args) throws Exception {
+        String projectLocalPath = "/Users/Janesen/工作/space_idea/FrameWork";
         //合并插件
-//        build("/Volumes/JanesenDisk_Work/WorkSpace/space_ij/CrosheWork/FastChar-ExtJs/web/extjs/ux",
-//                "/Volumes/JanesenDisk_Work/WorkSpace/space_ij/CrosheWork/FastChar-ExtJs/web/extjs");
+        build(projectLocalPath+"/FastChar-ExtJs/web/extjs/ux",
+                projectLocalPath+"/FastChar-ExtJs/web/extjs");
+        build(projectLocalPath+"/FastChar-ExtJs/web/base/utils",
+                projectLocalPath+"/FastChar-ExtJs/web/base/utils");
+        YuiCompress.compress(projectLocalPath+"/FastChar-ExtJs/web/base/login/login.js",
+                projectLocalPath+"/FastChar-ExtJs/web/base/login/login.min.js");
 
-//
-        build("/Volumes/JanesenDisk_Work/WorkSpace/space_ij/CrosheWork/FastChar-ExtJs/web/base/utils",
-                "/Volumes/JanesenDisk_Work/WorkSpace/space_ij/CrosheWork/FastChar-ExtJs/web/base/utils");
+        YuiCompress.compress(projectLocalPath+"/FastChar-ExtJs/web/base/index/index.js",
+                projectLocalPath+"/FastChar-ExtJs/web/base/index/index.min.js");
+        YuiCompress.compress(projectLocalPath+"/FastChar-ExtJs/web/base/welcome/welcome.js",
+                projectLocalPath+"/FastChar-ExtJs/web/base/welcome/welcome.min.js");
 
-        YuiCompress.compress("/Volumes/JanesenDisk_Work/WorkSpace/space_ij/CrosheWork/FastChar-ExtJs/web/base/login/login.js",
-                "/Volumes/JanesenDisk_Work/WorkSpace/space_ij/CrosheWork/FastChar-ExtJs/web/base/login/login.min.js");
-//
-
-        YuiCompress.compress("/Volumes/JanesenDisk_Work/WorkSpace/space_ij/CrosheWork/FastChar-ExtJs/web/base/index/index.js",
-                "/Volumes/JanesenDisk_Work/WorkSpace/space_ij/CrosheWork/FastChar-ExtJs/web/base/index/index.min.js");
-//
-//
-        YuiCompress.compress("/Volumes/JanesenDisk_Work/WorkSpace/space_ij/CrosheWork/FastChar-ExtJs/web/base/welcome/welcome.js",
-                "/Volumes/JanesenDisk_Work/WorkSpace/space_ij/CrosheWork/FastChar-ExtJs/web/base/welcome/welcome.min.js");
-
+        System.exit(0);
 
 //        String regStr = "([^/]*.svg)";
 //        Pattern compile = Pattern.compile(regStr);
@@ -71,6 +67,7 @@ final class JsBuilder {
 //        if (matcher.find()) {
 //            System.out.println(matcher.group(1));
 //        }
+
     }
 
 }
