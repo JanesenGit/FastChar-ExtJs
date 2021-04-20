@@ -1,3 +1,13 @@
+Ext.override(Ext.form.field.File, {
+    onRender: Ext.Function.createSequence(Ext.form.field.File.prototype.onRender, function () {
+        let me = this;
+        if (me.multiple) {
+            me.fileInputEl.dom.setAttribute("multiple", "multiple");
+        }
+    })
+});
+
+
 //定义fileModules
 const files = {
     formatLength: function (length) {
@@ -42,17 +52,35 @@ const files = {
         return {
             width: width,
             height: height,
-            reg: /\.(jpg|png|gif|jpeg)$/i,
+            reg: /\.(jpg|png|gif|jpeg|svg|bmp)$/i,
             tipMsg: '图片',
             type: 'images',
             renderer: renders.image(24)
         };
     },
-    mp4: function () {
+    mp4: function (maxDuration) {//maxDuration 最大时长，单位毫秒
         return {
             reg: /\.(mp4)$/i,
             tipMsg: 'mp4',
             type: 'videos',
+            maxDuration: maxDuration,
+            onFileSelect: function (filefield) {
+                let me = this;
+                return new Ext.Promise(function (resolve, reject) {
+                    if (Ext.isEmpty(me.maxDuration)) {
+                        resolve();
+                        return;
+                    }
+                    let video = filefield.fileInputEl.dom.files[0];
+                    let url = URL.createObjectURL(video);
+                    let audio = new Audio(url)
+                    audio.addEventListener("loadedmetadata", function (e) {
+                        if (audio.duration * 1000 > parseInt(me.maxDuration)) {
+                            resolve("视频最大时长不得超过" + me.maxDuration / 1000 + "秒！");
+                        }
+                    });
+                });
+            },
             renderer: renders.file()
         };
     },
@@ -112,12 +140,14 @@ const files = {
  * 弹出上传文件的对话框
  * @param obj 控件对象
  * @param fileModules 文件类型
+ * @param multiple 是否允许多选文件
+ * @param useEditUrl 是否允许手动编写文件url
  * @example
  * uploadFile(this,[file.image(),file.excel()])
  */
-function uploadFile(obj, fileModules) {
+function uploadFile(obj, fileModules, multiple, useEditUrl) {
     return new Ext.Promise(function (resolve, reject) {
-        let title = "上传文件", type = "files", width = -1, height = -1;
+        let title = "上传文件", type = "files", width = -1, height = -1, name = "file";
         if (!files.validate(fileModules, "fileModules")) {
             return;
         }
@@ -127,7 +157,17 @@ function uploadFile(obj, fileModules) {
             width = fileModules[0].width;
             height = fileModules[0].height;
         }
-
+        if (Ext.isEmpty(useEditUrl)) {
+            useEditUrl = true;
+        }
+        if (obj) {
+            if (obj.name) {
+                name = obj.name;
+            }
+            if (obj.dataIndex) {
+                name = obj.dataIndex;
+            }
+        }
         let formPanel = Ext.create('Ext.form.FormPanel', {
             url: 'upload',
             method: 'POST',
@@ -145,11 +185,12 @@ function uploadFile(obj, fileModules) {
                     labelAlign: 'right',
                     buttonText: '选择文件',
                     allowBlank: false,
-                    name: 'file',
+                    name: name,
+                    multiple: multiple,
                     columnWidth: 1,
                     listeners: {
                         change: function (obj, value, eOpts) {
-                            if (value != null && value.length != 0) {
+                            if (value != null && value.length !== 0) {
                                 let errorMsg = "";
                                 for (let i = 0; i < fileModules.length; i++) {
                                     let fileModule = fileModules[i];
@@ -188,20 +229,43 @@ function uploadFile(obj, fileModules) {
                         target: uploadWin
                     });
                     myMask.show();
-                    form.submit({
-                        success: function (form, action) {
-                            toast("文件上传成功！");
-                            if (!resolve.called) {
-                                resolve.called = true;
-                                resolve(action.result.data);
+                    let formSubmitRun = function () {
+                        form.submit({
+                            success: function (form, action) {
+                                toast("文件上传成功！");
+                                if (!resolve.called) {
+                                    resolve.called = true;
+                                    resolve(action.result.data);
+                                }
+                                uploadWin.close();
+                            },
+                            failure: function (form, action) {
+                                myMask.destroy();
+                                Ext.Msg.alert('系统提醒', "上传失败！" + action.result.message);
                             }
-                            uploadWin.close();
-                        },
-                        failure: function (form, action) {
-                            myMask.destroy();
-                            Ext.Msg.alert('系统提醒', "上传失败！" + action.result.message);
+                        });
+                    };
+                    let onFileSelectRun = function (i) {
+                        if (i >= fileModules.length) {
+                            formSubmitRun();
+                            return;
                         }
-                    });
+                        let fileModel = fileModules[i];
+                        if (Ext.isFunction(fileModel.onFileSelect)) {
+                            fileModel.onFileSelect(formPanel.getForm().findField(name)).then(function (error) {
+                                if (Ext.isEmpty(error)) {
+                                    onFileSelectRun(i + 1);
+                                }else{
+                                    myMask.destroy();
+                                    formPanel.form.reset();
+                                    Ext.Msg.alert('系统提醒', error);
+                                }
+                            });
+                        } else {
+                            onFileSelectRun(i + 1);
+                        }
+                    };
+                    onFileSelectRun(0);
                 }
             },
             listeners: {
@@ -225,6 +289,7 @@ function uploadFile(obj, fileModules) {
             layout: 'fit',
             resizable: false,
             scrollable: false,
+            width: 500,
             items: formPanel,
             modal: true,
             iconCls: 'extIcon extUpload',
@@ -232,13 +297,31 @@ function uploadFile(obj, fileModules) {
             constrain: true,
             buttons: [
                 {
+                    text: '使用地址',
+                    iconCls: 'extIcon extEdit',
+                    hidden: !useEditUrl,
+                    handler: function () {
+                        Ext.Msg.prompt('使用自定义的文件地址', '填写自定义的文件路径（http）：', function (btn, text) {
+                            if (btn === 'ok') {
+                                if (!Ext.isEmpty(text)) {
+                                    if (!resolve.called) {
+                                        resolve.called = true;
+                                        resolve({"url": text});
+                                    }
+                                    uploadWin.close();
+                                }
+                            }
+                        });
+                    }
+                },
+                {
                     text: '网络同步',
                     iconCls: 'extIcon extLink',
                     handler: function () {
-                        Ext.Msg.prompt('从网络中同步文件', '填写网络路径（http）：', function (btn, text) {
-                            if (btn == 'ok') {
+                        Ext.Msg.prompt('从网络中下载文件', '填写网络文件路径（http）：', function (btn, text) {
+                            if (btn === 'ok') {
                                 showWait("正在同步中，请稍后……");
-                                let params = {"url": text};
+                                let params = {"url": text, "__accept": "application/json"};
                                 $.post("upload", params, function (result) {
                                     hideWait();
                                     if (result.success) {
@@ -248,7 +331,7 @@ function uploadFile(obj, fileModules) {
                                             resolve(result.data);
                                         }
                                         uploadWin.close();
-                                    }else{
+                                    } else {
                                         Ext.Msg.alert('系统提醒', "上传失败！" + result.message);
                                     }
                                 });
@@ -276,7 +359,7 @@ function uploadFile(obj, fileModules) {
                 }],
             listeners: {
                 show: function (winObj, eOpts) {
-                    formPanel.getForm().findField('file').fileInputEl.dom.click();
+                    formPanel.getForm().findField(name).fileInputEl.dom.click();
                     Ext.getCmp(btnSubmitId).focus();
                 },
                 close: function (winObj, eOpts) {
@@ -299,16 +382,23 @@ function uploadFile(obj, fileModules) {
  * @param callBack 回调函数
  * @param fileModules 文件类型
  * @param defaultFiles 默认文件数据
+ * @param title
  * @example
  * showFiles(this,function(val){
  *
  * },[file.image(),file.excel()])
  */
-function showFiles(obj, callBack, fileModules, defaultFiles) {
+function showFiles(obj, callBack, fileModules, defaultFiles, title) {
     if (!files.validate(fileModules, "fileModules")) {
         return;
     }
-    let datas = [], renderer = renders.file(), title = "文件管理";
+    if (obj) {
+        obj.blur();
+    }
+    let datas = [], renderer = renders.file();
+    if (!title) {
+        title = "文件管理";
+    }
     if (!Ext.isEmpty(defaultFiles)) {
         let fileArray = defaultFiles;
         if (Ext.isString(defaultFiles)) {
@@ -350,7 +440,7 @@ function showFiles(obj, callBack, fileModules, defaultFiles) {
             align: 'center',
             field: {
                 xtype: 'textfield',
-                listeners:{
+                listeners: {
                     change: function () {
                         fileStore.modify = true;
                     }
@@ -376,6 +466,7 @@ function showFiles(obj, callBack, fileModules, defaultFiles) {
         autoLoad: true,
         data: datas
     });
+
     let dataGridFiles = Ext.create('Ext.grid.Panel', {
         selModel: getGridSelModel(),
         store: fileStore,
@@ -430,9 +521,15 @@ function showFiles(obj, callBack, fileModules, defaultFiles) {
                 text: '上传',
                 iconCls: 'extIcon extUpload',
                 handler: function () {
-                    uploadFile(this, fileModules).then(function (result) {
+                    uploadFile(this, fileModules, true).then(function (result) {
                         if (result) {
-                            fileStore.add(result);
+                            if (Ext.isArray(result)) {
+                                for (let i = 0; i < result.length; i++) {
+                                    fileStore.add(result[i]);
+                                }
+                            } else {
+                                fileStore.add(result);
+                            }
                             fileStore.modify = true;
                         }
                     });
@@ -460,23 +557,31 @@ function showFiles(obj, callBack, fileModules, defaultFiles) {
         iconCls: 'extIcon extFolder',
         animateTarget: obj,
         items: [dataGridFiles],
+        buttons: [{
+            text: '确定',
+            iconCls: 'extIcon extOk',
+            handler: function () {
+                let data = [];
+                fileStore.each(function (record, index) {
+                    let url = record.get("url");
+                    if (obj.showFileName) {
+                        url = url + "@" + record.get("name");
+                        if (obj.showFileLength) {
+                            url = url + "@" + record.get("length");
+                        }
+                    }
+                    data.push(url);
+                });
+                if (callBack != null) {
+                    callBack(Ext.encode(data));
+                }
+                win.close();
+            }
+        }],
         listeners: {
             close: function () {
                 if (fileStore.modify) {
-                    let data = [];
-                    fileStore.each(function (record, index) {
-                        let url = record.get("url");
-                        if (obj.showFileName) {
-                            url = url + "@" + record.get("name");
-                            if (obj.showFileLength) {
-                                url = url + "@" + record.get("length");
-                            }
-                        }
-                        data.push(url);
-                    });
-                    if (callBack != null) {
-                        callBack(Ext.encode(data));
-                    }
+
                 }
             }
         }

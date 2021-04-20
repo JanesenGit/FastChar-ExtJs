@@ -14,7 +14,7 @@ const renders = {
                 if (position === "right" || position === "r") {
                     val = val + append;
                 }
-            }else{
+            } else {
                 val = val + append;
             }
             if (details) {
@@ -42,7 +42,7 @@ const renders = {
             return "<span style='white-space: pre;'>" + val + "</span>";
         };
     },
-    file: function () {
+    file: function (fileNameAttr) {
         return function (val, m, record) {
             if (Ext.isEmpty(val) || val === "null") {
                 return "<span style='color: #ccc;'>暂无文件</span>";
@@ -53,16 +53,19 @@ const renders = {
             if (arrayInfo.length > 1) {
                 name = arrayInfo[1];
             }
-            let fileClassName = "extFile";
-            if (name.toLowerCase().endWith(".doc")||name.toLowerCase().endWith(".docx")) {
-                fileClassName = "extFileWord";
-            } else  if (name.toLowerCase().endWith(".xls")||name.toLowerCase().endWith(".xlsx")) {
-                fileClassName = "extFileExcel";
-            }else if (name.toLowerCase().endWith(".zip") || name.toLowerCase().endWith(".rar")) {
-                fileClassName = "extFileZIP";
-            }else if (name.toLowerCase().endWith(".apk")) {
-                fileClassName = "extFileAPK";
+            if (!Ext.isEmpty(fileNameAttr)) {
+                name = record.get(fileNameAttr);
             }
+            if (files.image().reg.test(name)) {
+                return renders.image()(val);
+            }
+            if (files.mp4().reg.test(name)) {
+                return renders.mp4()(val);
+            }
+            if (files.pdf().reg.test(name) || files.word().reg.test(name) || files.excel().reg.test(name) || files.ppt().reg.test(name)) {
+                return renders.office()(val);
+            }
+            let fileClassName = getSVGClassName(name);
             return "&nbsp;<a href=\"" + system.formatUrlVersion(url) + "\" target='_blank' >" + "<span style='margin-right: 5px;'>" + getSVGIcon(fileClassName) + "</span>" + name + "</a>&nbsp;";
         };
     },
@@ -89,12 +92,14 @@ const renders = {
                 let dataId = $.md5(JSON.stringify(data));
                 let detailsList = "";
                 for (let i = 0; i < data.length; i++) {
-                    detailsList += renders.file()(data[i]) + "<br/>";
+                    detailsList += "<div style='margin: 5px;'>"+renders.file()(data[i]) + "</div>";
                 }
                 if (details) {
                     return detailsList;
                 }
-                let html = "<span id='" + dataId + "' style='color: #4279fa;'>共有" + data.length + "个文件！</span>";
+                MemoryCache[dataId] = detailsList;
+                let functionStr = "showAlert('查看文件',MemoryCache['" + dataId + "'],null,false)";
+                let html = "&nbsp;<a href=\"javascript:" + functionStr + ";\">共有"+data.length+"个文件！</a>&nbsp;";
                 let detailsId = $.md5(html);
                 window[detailsId] = detailsList;
                 return html;
@@ -107,7 +112,7 @@ const renders = {
     image: function (height, width) {
         return function (val) {
             try {
-                let imageHeight = "16px";
+                let imageHeight = "14px";
                 let imageWidth = "auto";
                 if (Ext.isEmpty(val) || val === "null") {
                     return "<img style='object-fit: cover; border:1px solid #cccccc;height:" + imageHeight + ";'" +
@@ -130,7 +135,7 @@ const renders = {
                 let url = arrayInfo[0];
                 let dataId = $.md5(url);
                 window[dataId] = "<img  alt=''" +
-                    " style='object-fit: cover;border:1px solid #cccccc;width: 100px; min-height:16px;  ' " +
+                    " style='object-fit: cover;border:1px solid #cccccc;width: 100px; min-height:14px;  ' " +
                     " width='100' " +
                     " class='lazyload'" +
                     " onerror=\"javascript:this.src = 'images/default_img.png';\"" +
@@ -138,13 +143,14 @@ const renders = {
                 return "<img class='lazyload' " +
                     " alt=''" +
                     " details-id='" + dataId + "' " +
-                    " style='object-fit: cover;border:1px solid #cccccc;height:" + imageHeight + ";width: " + imageWidth + "; min-width:16px; min-height:16px; '" +
+                    " style='object-fit: cover;border:1px solid #cccccc;height:" + imageHeight + ";width: " + imageWidth + "; min-width:14px; min-height:14px; '" +
                     " width='" + imageWidth.replace("px", "") + "'" +
                     " height='" + imageHeight.replace("px", "") + "' " +
-                    " onclick=\"showImage(this,'" + system.formatUrlVersion(url) + "')\"  " +
+                    " onclick=\"showImage(this,'" + url + "')\"  " +
                     " onerror=\"javascript:this.src = 'images/default_img.png';\"" +
-                    " src='" + system.formatUrlVersion(url) + "' " +
+                    " src='" + url + "' " +
                     " />";
+                // return "<img height='10px' width='10px' src='" + url + "'/>";
             } catch (e) {
                 console.error(e);
                 return "<span style='color: #ccc;'>暂无图片</span>";
@@ -172,13 +178,17 @@ const renders = {
                 }
                 let dataId = $.md5(JSON.stringify(data));
                 let detailsList = "";
+                let urlArray = [];
                 for (let i = 0; i < data.length; i++) {
                     detailsList += renders.image(24)(data[i]) + "&nbsp;&nbsp;";
+                    urlArray.push({url: data[i]});
                 }
                 if (details) {
                     return detailsList;
                 }
-                let html = "<span details-id='" + dataId + "' style='color: #4279fa;'>共有" + data.length + "张图片！</span>";
+                MemoryCache[dataId] = urlArray;
+                let functionStr = "showImage(null,MemoryCache['" + dataId + "'])";
+                let html = "<a href=\"javascript:" + functionStr + ";\" details-id='" + dataId + "' style='color: #4279fa;'>共有" + data.length + "张图片！</a>";
                 window[dataId] = detailsList;
                 return html;
             } catch (e) {
@@ -192,7 +202,30 @@ const renders = {
             if (Ext.isEmpty(val) || val === "null") {
                 return "<span style='color: #ccc;'>暂无文件</span>";
             }
-            return "&nbsp;<a href=\"javascript:showVideo(this,'" + system.formatUrlVersion(val) + "');\" >" + "<span style='margin-right: 5px;'>"+getSVGIcon("extFileMP4")+"</span>" +val.substring(val.lastIndexOf("/") + 1) + "</a>&nbsp;";
+            let arrayInfo = val.split("@");
+            let url = arrayInfo[0];
+            let name = url.substring(url.lastIndexOf("/") + 1);
+            if (arrayInfo.length > 1) {
+                name = arrayInfo[1];
+            }
+            return "&nbsp;<a href=\"javascript:showVideo(this,'" + system.formatUrlVersion(url) + "');\" >" + "<span style='margin-right: 5px;'>" + getSVGIcon("extFileMP4") + "</span>" + name + "</a>&nbsp;";
+        };
+    },
+    office: function () {
+        return function (val, m, record) {
+            if (Ext.isEmpty(val) || val === "null") {
+                return "<span style='color: #ccc;'>暂无文件</span>";
+            }
+            let arrayInfo = val.split("@");
+            let url = arrayInfo[0];
+            let name = url.substring(url.lastIndexOf("/") + 1);
+            if (arrayInfo.length > 1) {
+                name = arrayInfo[1];
+            }
+            let fileClassName = getSVGClassName(name);
+            let viewerUrl = "https://view.officeapps.live.com/op/view.aspx?src=" + system.formatUrlVersion(url);
+            let viewStr = "&nbsp;<a href=\"" + viewerUrl + "\" target='_blank' >在线预览</a>&nbsp;";
+            return viewStr + "&nbsp;<a href=\"" + system.formatUrlVersion(url) + "\" target='_blank' >" + "<span style='margin-right: 5px;'>" + getSVGIcon(fileClassName) + "</span>" + name + "</a>&nbsp;";
         };
     },
     html: function () {
@@ -238,6 +271,7 @@ const renders = {
             }
         };
     },
+
     target: function (targetId, targetType, targetFunction) {
         return function (val, m, record) {
             try {
@@ -264,7 +298,7 @@ const renders = {
             }
         };
     },
-    map: function (lngName, latName) {
+    map: function (lngName, latName, titleName) {
         return function (val, m, record) {
             try {
                 if (Ext.isEmpty(val) || val === "null") {
@@ -272,9 +306,33 @@ const renders = {
                 }
                 let lng = record.get(lngName);
                 let lat = record.get(latName);
+                let mapTitle = record.get(titleName);
                 if (lng && lat) {
                     let lnglat = lng + "," + lat;
-                    let functionStr = "showAddressInMap(null,'" + lnglat + "')";
+                    let functionStr = "showAddressInMap(null,'" + lnglat + "','')";
+                    if (mapTitle) {
+                        functionStr = "showAddressInMap(null,'" + lnglat + "','" + mapTitle + "')";
+                    }
+                    return "&nbsp;<a href=\"javascript:" + functionStr + ";\" >" + val + "</a>&nbsp;";
+                }
+                return val;
+            } catch (e) {
+                return "<span style='color: #ccc;'>无</span>";
+            }
+        };
+    },
+    mapImgLayer: function (imgUrlName,southWestLngLatName, northEastLngLatName) {
+        return function (val, m, record) {
+            try {
+                if (Ext.isEmpty(val) || val === "null") {
+                    return "<span style='color: #ccc;'>无</span>";
+                }
+                let imgUrl = record.get(imgUrlName);
+                let southWestLngLat = record.get(southWestLngLatName);
+                let northEastLngLat = record.get(northEastLngLatName);
+
+                if (imgUrl && southWestLngLat && northEastLngLat) {
+                    let functionStr = "showImgLayer(null,'" + imgUrl + "','" + southWestLngLat + "','" + northEastLngLat + "')";
                     return "&nbsp;<a href=\"javascript:" + functionStr + ";\" >" + val + "</a>&nbsp;";
                 }
                 return val;
@@ -321,16 +379,16 @@ const renders = {
             }
         };
     },
-    duration:function(){
+    duration: function () {
         return function (val, m, record) {
             try {
                 if (Ext.isEmpty(val) || val === "null") {
                     return "<span style='color: #ccc;'>无</span>";
                 }
                 let seconds = parseInt(val) / 1000;
-                let hour = (seconds / (60 * 60)).toFixed(0);
-                let minute = ((seconds / 60) % 60).toFixed(0);
-                let second = (seconds % 60).toFixed(0);
+                let hour = parseInt((seconds / (60 * 60)).toString());
+                let minute = parseInt(((seconds / 60) % 60).toString());
+                let second = parseInt((seconds % 60).toString());
                 if (hour > 0) {
                     return hour + "时" + minute + "分" + second + "秒";
                 }
@@ -341,6 +399,23 @@ const renders = {
             } catch (e) {
                 console.error(e);
                 return "<span style='color: #ccc;'>无</span>";
+            }
+        };
+    },
+    dateFormat: function (format) {
+        return function (val, m, record) {
+            try {
+                if (Ext.isEmpty(val) || val === "null") {
+                    return "<span style='color: #ccc;'>无</span>";
+                }
+                if (Ext.isEmpty(format)) {
+                    format = "Y-m-d H:i:s";
+                }
+                let dateFormat = guessDateFormat(val);
+                return Ext.Date.format(Ext.Date.parse(val, dateFormat), format);
+            } catch (e) {
+                console.error(e);
+                return val;
             }
         };
     }
@@ -367,3 +442,22 @@ renders["enum"] = function (enumName, enumValue) {
         }
     }
 };
+
+
+function guessUrlType(aTag) {
+    let url = aTag.href;
+    if (!url) {
+        url = aTag.getAttribute("data-url");
+    }
+    getUrlContentType(url, function (contentType) {
+        try {
+            let className = getSVGClassName(contentType);
+            if (className) {
+                aTag.innerHTML = "<span style='margin-right: 5px;'>" + getSVGIcon(className) + "</span>" + aTag.innerText;
+            }
+        } catch (e) {
+        }
+    });
+
+}
+

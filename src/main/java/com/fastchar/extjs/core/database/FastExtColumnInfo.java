@@ -21,7 +21,8 @@ import java.util.List;
 @AFastOverride
 public class FastExtColumnInfo extends FastColumnInfo<FastExtColumnInfo> {
     private static final long serialVersionUID = -7287875560648608769L;
-    private static String[] BIND_VALUES = new String[]{"layer"};
+    //绑定关联表格的：layer 层级编号 same 相同字段
+    private static String[] BIND_VALUES = new String[]{"layer", "same"};
 
     private String layer;
     private String bind;
@@ -38,7 +39,16 @@ public class FastExtColumnInfo extends FastColumnInfo<FastExtColumnInfo> {
 
     public boolean isBindLayer() {
         if (FastStringUtils.isNotEmpty(bind)) {
-            return bind.equalsIgnoreCase("layer");
+            String[] bindArray = bind.split(",");
+            return FastArrayUtils.contains(bindArray, "layer");
+        }
+        return false;
+    }
+
+    public boolean isBindSame() {
+        if (FastStringUtils.isNotEmpty(bind)) {
+            String[] bindArray = bind.split(",");
+            return FastArrayUtils.contains(bindArray, "same");
         }
         return false;
     }
@@ -100,15 +110,23 @@ public class FastExtColumnInfo extends FastColumnInfo<FastExtColumnInfo> {
     public void validate() throws FastDatabaseException {
         super.validate();
         if (FastStringUtils.isNotEmpty(bind)) {
-            if (!FastArrayUtils.contains(BIND_VALUES, bind)) {
-                throw new FastDatabaseException(FastChar.getLocal().getInfo("Db_Column_Error8", "'" + bind + "'", FastStringUtils.join(BIND_VALUES, ","))
-                        + "\n\tat " + getStackTrace("bind"));
-            }
-
-            if (bind.equalsIgnoreCase("layer")) {
-                if (FastStringUtils.isEmpty(link)) {
-                    throw new FastDatabaseException(FastChar.getLocal().getInfo("Db_Column_Error3", "'" + getName()+ "'")
-                            + "\n\tat " + getStackTrace("link"));
+            String[] bindArray = bind.split(",");
+            for (String bindValue : bindArray) {
+                if (!FastArrayUtils.contains(BIND_VALUES, bindValue)) {
+                    throw new FastDatabaseException(FastChar.getLocal().getInfo("Db_Column_Error8", "'" + bind + "'", FastStringUtils.join(BIND_VALUES, ","))
+                            + "\n\tat " + getStackTrace("bind"));
+                }
+                if (bindValue.equalsIgnoreCase("layer")) {
+                    if (FastStringUtils.isEmpty(link)) {
+                        throw new FastDatabaseException(FastChar.getLocal().getInfo("Db_Column_Error3", "上级层级字段'" + getName() + "'")
+                                + "\n\tat " + getStackTrace("link"));
+                    }
+                }
+                if (bindValue.equalsIgnoreCase("same")) {
+                    if (FastStringUtils.isEmpty(link)) {
+                        throw new FastDatabaseException(FastChar.getLocal().getInfo("Db_Column_Error3", "绑定相同字段'" + getName() + "'")
+                                + "\n\tat " + getStackTrace("link"));
+                    }
                 }
             }
         }
@@ -123,6 +141,7 @@ public class FastExtColumnInfo extends FastColumnInfo<FastExtColumnInfo> {
                 throw new FastDatabaseException(FastChar.getLocal().getInfo("Db_Column_Error4", "'" + linkInfo.getTableName() + "'")
                         + "\n\tat " + getStackTrace("link"));
             }
+            linkInfo.setTableInfo(tableInfo);
 
             if (tableInfo.getPrimaries().size() > 0) {
                 linkInfo.setKeyColumnName(tableInfo.getPrimaries().get(0).getName());
@@ -140,7 +159,7 @@ public class FastExtColumnInfo extends FastColumnInfo<FastExtColumnInfo> {
             if (linkColumnInfo == null) {
                 throw new FastDatabaseException(FastChar.getLocal().getInfo("Db_Column_Error5", "'" + linkInfo.getTableName() + "'", "'" + linkInfo.getKeyColumnName() + "'")
                         + "\n\tat " + getStackTrace("link"));
-            }else{
+            } else {
                 linkInfo.setKeyColumn(linkColumnInfo);
             }
 
@@ -153,11 +172,10 @@ public class FastExtColumnInfo extends FastColumnInfo<FastExtColumnInfo> {
                 if (textColumnInfo == null) {
                     throw new FastDatabaseException(FastChar.getLocal().getInfo("Db_Column_Error7", "'" + linkInfo.getTableName() + "'", "'" + textColumnName + "'")
                             + "\n\tat " + getStackTrace("link"));
-                }else{
+                } else {
                     linkInfo.putTextColumnInfo(textColumnName, textColumnInfo);
                 }
             }
-
 
             linkInfo.fromProperty();
             setLinkInfo(linkInfo);

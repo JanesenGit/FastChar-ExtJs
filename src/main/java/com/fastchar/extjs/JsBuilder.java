@@ -1,7 +1,9 @@
 package com.fastchar.extjs;
 
 import com.fastchar.core.FastChar;
+import com.fastchar.extjs.compress.UglifyJsCompress;
 import com.fastchar.extjs.compress.YuiCompress;
+import com.fastchar.extjs.utils.ExtFileUtils;
 import com.fastchar.utils.FastFileUtils;
 
 import java.io.File;
@@ -35,9 +37,9 @@ final class JsBuilder {
                 System.out.println("合并文件：" + lines.get(i));
                 listFile.add(new File(targetPath, lines.get(i)));
             }
-            YuiCompress.merge(targetFile, listFile.toArray(new File[]{}));
+            ExtFileUtils.merge(targetFile, listFile.toArray(new File[]{}));
             if (file.getName().contains("compress")) {
-                YuiCompress.compress(targetFile.getPath());
+                UglifyJsCompress.compress(targetFile.getPath());
                 System.out.println("正在压缩中……");
             }
             System.out.println("构建成功！" + targetFile);
@@ -46,27 +48,23 @@ final class JsBuilder {
 
     public static void main(String[] args) throws Exception {
         String projectLocalPath = "/Users/Janesen/工作/space_idea/FrameWork";
-        //合并插件
-        build(projectLocalPath+"/FastChar-ExtJs/web/extjs/ux",
-                projectLocalPath+"/FastChar-ExtJs/web/extjs");
-        build(projectLocalPath+"/FastChar-ExtJs/web/base/utils",
-                projectLocalPath+"/FastChar-ExtJs/web/base/utils");
-        YuiCompress.compress(projectLocalPath+"/FastChar-ExtJs/web/base/login/login.js",
-                projectLocalPath+"/FastChar-ExtJs/web/base/login/login.min.js");
+        FastChar.getConfig(FastExtConfig.class).setUglifyJsPath("/Users/Janesen/node_modules/uglify-js");
 
-        YuiCompress.compress(projectLocalPath+"/FastChar-ExtJs/web/base/index/index.js",
-                projectLocalPath+"/FastChar-ExtJs/web/base/index/index.min.js");
-        YuiCompress.compress(projectLocalPath+"/FastChar-ExtJs/web/base/welcome/welcome.js",
-                projectLocalPath+"/FastChar-ExtJs/web/base/welcome/welcome.min.js");
+        //合并插件
+        build(projectLocalPath + "/FastChar-ExtJs/web/extjs/ux",
+                projectLocalPath + "/FastChar-ExtJs/web/extjs");
+        build(projectLocalPath + "/FastChar-ExtJs/web/base/utils",
+                projectLocalPath + "/FastChar-ExtJs/web/base/utils");
+        UglifyJsCompress.compress(projectLocalPath + "/FastChar-ExtJs/web/base/login/login.js",
+                projectLocalPath + "/FastChar-ExtJs/web/base/login/login.min.js");
+
+
+        UglifyJsCompress.compress(projectLocalPath + "/FastChar-ExtJs/web/base/index/index.js",
+                projectLocalPath + "/FastChar-ExtJs/web/base/index/index.min.js");
+        UglifyJsCompress.compress(projectLocalPath + "/FastChar-ExtJs/web/base/welcome/welcome.js",
+                projectLocalPath + "/FastChar-ExtJs/web/base/welcome/welcome.min.js");
 
         System.exit(0);
-
-//        String regStr = "([^/]*.svg)";
-//        Pattern compile = Pattern.compile(regStr);
-//        Matcher matcher = compile.matcher("icon?path=icons/icon_manage_eye.svg&color=2aa167");
-//        if (matcher.find()) {
-//            System.out.println(matcher.group(1));
-//        }
 
     }
 

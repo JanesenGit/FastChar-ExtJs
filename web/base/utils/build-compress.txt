@@ -14,3 +14,4 @@ fast-ext-renderer.js
 fast-ext-server.js
 fast-ext-store.js
 fast-ext-window.js
+fast-ext-random-data.js

@@ -7,7 +7,7 @@
     <script src="../../js/jquery.js"></script>
     <script src="js/bootstrap.js"></script>
     <link href="css/summernote.css" rel="stylesheet">
-    <script src="js/summernote.js"></script>
+    <script src="js/summernote.js?v=2"></script>
     <script src="js/summernote-zh-CN.js"></script>
     <style>
         .panel {
@@ -67,30 +67,54 @@
                     let data = new FormData();
                     data.append("__accept", "application/json");
                     for (let i = 0; i < files.length; i++) {
-                        data.append('file_' + i, files[0]);
+                        data.append('file_' + i, files[i]);
                     }
+                    try {
+                        window.parent.showWait("正在上传图片中，请稍后……");
+                    } catch (e) {}
                     $.ajax(postImageUrl, {
                         method: 'POST',
                         data: data,
                         processData: false,
                         contentType: false,
                         success: function (result) {
-                            if (result.success) {
+                            try {
+                                window.parent.hideWait();
+                            } catch (e) {}
+                            let insertImage=function (obj) {
                                 let imageElement = document.createElement("img");
-                                if (result.data.url.startWith("http://") || result.data.url.startWith("https://")) {
-                                    imageElement.src = result.data.url;
-                                }else{
-                                    imageElement.src = result.data.http + result.data.url;
+                                if (obj.url.startWith("http://") || obj.url.startWith("https://")) {
+                                    imageElement.src = obj.url;
+                                } else {
+                                    imageElement.src = obj.http + obj.url;
                                 }
                                 imageElement.setAttribute("from", "editor");
                                 imageElement.setAttribute("style", "width:100%;");
                                 $('#summernote').summernote('insertNode', imageElement);
+                            }
+                            if (result.success) {
+                                let data=result.data;
+                                if (Array.isArray(data)) {
+                                    for (let i = 0; i < data.length; i++) {
+                                        insertImage(data[i]);
+                                    }
+                                }else{
+                                    insertImage(data);
+                                }
                             }else{
-                                alert(result.message);
+                                try {
+                                    window.parent.showAlert("系统提醒", result.message);
+                                } catch (e) {
+                                    alert(result.message);
+                                }
                             }
                         },
                         error: function (event, xhr) {
-                            alert(xhr.responseText);
+                            try {
+                                window.parent.showAlert("系统提醒", result.message);
+                            } catch (e) {
+                                alert(xhr.responseText);
+                            }
                         }
                     });
                 }

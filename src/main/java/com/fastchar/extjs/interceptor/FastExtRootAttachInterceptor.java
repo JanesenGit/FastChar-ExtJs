@@ -15,9 +15,14 @@ public class FastExtRootAttachInterceptor implements IFastRootInterceptor {
         String contentUrl = dispatcher.getContentUrl();
         if (contentUrl.startsWith("/attach/")) {//统一拦截附件目录
             String[] split = contentUrl.split("attach/");
-            File file = new File(FastChar.getConstant().getAttachDirectory(), split[1]);
+            String child = split[1];
+            File file = new File(FastChar.getConstant().getAttachDirectory(), child);
+            String path = file.getAbsolutePath();
+            if (child.startsWith("http://") || child.startsWith("https://")) {
+                path = child;
+            }
             boolean disposition = FastBooleanUtils.formatToBoolean(request.getParameter("disposition"), false);
-            dispatcher.setContentUrl("/attach?disposition=" + disposition + "&path=" + file.getAbsolutePath());
+            dispatcher.setContentUrl("/attach?disposition=" + disposition + "&path=" + path);
         }
         dispatcher.invoke();
     }

@@ -23,6 +23,12 @@ public class ExtManagerAction extends FastAction {
         return "/manager";
     }
 
+    /**
+     * 后台管理员登录
+     * 参数：
+     * loginName 登录名{String}
+     * loginPassword 登录密码【MD5加密后提交】 {String}
+     */
     @AFastLog(value = "${managerRole}【${managerName}】进行了登录！", type = "管理员登录")
     public void login() {
         String loginName = getParam("loginName", true);
@@ -85,6 +91,14 @@ public class ExtManagerAction extends FastAction {
     }
 
 
+    /**
+     * 后台操作功能时进行安全验证
+     * 参数：
+     * loginName 登录名{String}
+     * loginPassword 登录密码【MD5加密后提交】 {String}
+     * operate 操作的功能介绍
+     * timeout 验证的有效期，单位毫秒 默认：24小时，
+     */
     @AFastLog(value = "${managerRole}【${managerName}】进行了操作【${operate}】验证！", type = "安全验证")
     public void valid() {
         String loginName = getParam("loginName", true);
@@ -143,6 +157,9 @@ public class ExtManagerAction extends FastAction {
         }
     }
 
+    /**
+     * 退出后台登录
+     */
     @AFastLog(value = "${managerRole}【${managerName}】退出了登录！", type = "管理员退出")
     public void logout() {
         ExtManagerEntity managerEntity = getSession("manager");
@@ -156,7 +173,10 @@ public class ExtManagerAction extends FastAction {
 
 
     /**
-     * 重置密码
+     * 重置管理员账户密码
+     * 参数：
+     * managerId 管理员Id
+     * newPassword 新的登录密码【明文】
      */
     @AFastSession
     @AFastLog(value = "${managerRole}【${managerName}】重置了登录密码！", type = "密码重置")
@@ -177,7 +197,12 @@ public class ExtManagerAction extends FastAction {
 
 
     /**
-     * 修改密码
+     * 修改管理员密码
+     * 参数：
+     * managerId 管理员Id
+     * managerPassword 当前登录密码【明文】
+     * newPassword 新的登录密码【明文】
+     * reNewPassword 确认新的登录密码【明文】
      */
     @AFastSession
     @AFastLog(value = "${managerRole}【${managerName}】修改了登录密码！", type = "密码重置")
@@ -219,13 +244,26 @@ public class ExtManagerAction extends FastAction {
 
 
     /**
-     * 更新权限与角色权限相同
+     * 更新管理员权限与角色权限相同
+     * 参数：
+     * managerId 管理员Id
      */
+    @AFastSession
+    @AFastLog(value = "${managerRole}【${managerName}】同步了管理的角色权限！", type = "权限同步")
     public void updatePower() {
+        ExtManagerEntity sessionUser = getSession("manager");
+        setRequestAttr("managerName", sessionUser.getString("managerName"));
+
+        ExtManagerRoleEntity extManagerRoleEntity = sessionUser.getObject("role");
+        setRequestAttr("managerRole", extManagerRoleEntity.getRoleName());
+
         List<Integer> managerIds = getParamToIntList("managerId");
         for (Integer managerId : managerIds) {
-            ExtManagerEntity byId = ExtManagerEntity.dao().getById(managerId);
-            ExtManagerRoleEntity managerRole = byId.getManagerRole();
+            ExtManagerEntity byId = ExtManagerEntity.dao().selectById(managerId);
+            if (byId == null) {
+                continue;
+            }
+            ExtManagerRoleEntity managerRole = ExtManagerRoleEntity.dao().selectById(byId.getRoleId());
             if (managerRole != null) {
                 byId.set("managerMenuPower", managerRole.getRoleMenuPower());
                 byId.set("managerExtPower", managerRole.getRoleExtPower());
@@ -237,7 +275,9 @@ public class ExtManagerAction extends FastAction {
 
 
     /**
-     * 待办事项
+     * 获取系统待办事项
+     * 参数：
+     * noticeId 获取指定的noticeId之后的数据
      */
     @AFastSession
     public void waitNotice() throws Exception {
@@ -251,6 +291,8 @@ public class ExtManagerAction extends FastAction {
 
     /**
      * 更新待办事项
+     * 参数：
+     * noticeId 事务Id
      */
     @AFastSession
     public void doneNotice() {

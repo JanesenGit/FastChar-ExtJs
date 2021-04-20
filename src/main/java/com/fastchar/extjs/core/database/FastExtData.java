@@ -5,6 +5,7 @@ import com.fastchar.annotation.AFastPriority;
 import com.fastchar.core.FastChar;
 import com.fastchar.core.FastEntity;
 import com.fastchar.database.FastData;
+import com.fastchar.database.info.FastColumnInfo;
 import com.fastchar.database.info.FastSqlInfo;
 import com.fastchar.database.sql.FastSql;
 import com.fastchar.exception.FastSqlException;
@@ -27,13 +28,23 @@ public class FastExtData<T extends FastEntity<?>> extends FastData<T> {
         try {
             FastSql fastSql = FastSql.getInstance(getDatabaseType());
             if (fastSql instanceof FastExtMySql) {
-                FastSqlInfo sqlInfo = ((FastExtMySql) fastSql).toSelectLayerValueSql(target, checks);
-                if (sqlInfo == null) {
-                    return null;
-                }
-                FastEntity<?> fastEntity = FastChar.getDb().selectFirst(sqlInfo.getSql(), sqlInfo.toParams());
-                if (fastEntity != null) {
-                    return fastEntity.getString("layer");
+
+                if (target instanceof FastExtEntity) {
+                    FastExtEntity<?> extEntity = (FastExtEntity<?>) target;
+
+                    FastColumnInfo<?> layerColumn = extEntity.getLayerColumn();
+                    if (layerColumn == null) {
+                        return null;
+                    }
+                    String column = layerColumn.getName() + " as layer";
+                    FastSqlInfo sqlInfo = ((FastExtMySql) fastSql).toSelectValueSql(target, new String[]{column}, checks);
+                    if (sqlInfo == null) {
+                        return null;
+                    }
+                    FastEntity<?> fastEntity = FastChar.getDb().selectFirst(sqlInfo.getSql(), sqlInfo.toParams());
+                    if (fastEntity != null) {
+                        return fastEntity.getString("layer");
+                    }
                 }
                 return null;
             }
@@ -43,6 +54,27 @@ public class FastExtData<T extends FastEntity<?>> extends FastData<T> {
         }
         throw new FastSqlException("暂未支持" + getDatabaseType() + "层级权限配置！");
     }
+
+
+    public T selectFirstValue(String[] columns, String... checks) {
+        try {
+            FastSql fastSql = FastSql.getInstance(getDatabaseType());
+            if (fastSql instanceof FastExtMySql) {
+
+                FastSqlInfo sqlInfo = ((FastExtMySql) fastSql).toSelectValueSql(target, columns, checks);
+                if (sqlInfo == null) {
+                    return null;
+                }
+                return (T) target.selectFirstBySql(sqlInfo.getSql(), sqlInfo.toParams());
+            }
+        } catch (Exception e) {
+            setError(e);
+            throw new FastSqlException(e);
+        }
+        throw new FastSqlException("暂未支持" + getDatabaseType() + "层级权限配置！");
+    }
+
+
 
 
     public boolean copyRecycle(String... checks) {

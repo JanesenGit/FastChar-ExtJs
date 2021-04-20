@@ -16,25 +16,6 @@ import java.util.ArrayList;
 public class YuiCompress {
 
     /**
-     * 合并文件
-     */
-    public static void merge(File targetFile, File... files) {
-        try {
-            StringBuilder builder = new StringBuilder();
-            for (File file : files) {
-                if (file.exists()) {
-                    String jsContent = FastFileUtils.readFileToString(file, StandardCharsets.UTF_8);
-                    builder.append(jsContent);
-                }
-            }
-            FastFileUtils.writeStringToFile(targetFile, builder.toString(), StandardCharsets.UTF_8);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-
-    /**
      * 压缩js代码
      * @param path 可为目录或文件
      */
@@ -67,10 +48,12 @@ public class YuiCompress {
         try (Reader in = new InputStreamReader(new ByteArrayInputStream(code.getBytes()))) {
             if (in.ready()) {
                 JavaScriptCompressor compressor = new JavaScriptCompressor(in, new ErrorReporter() {
+                    @Override
                     public void warning(String message, String sourceName,
                                         int line, String lineSource, int lineOffset) {
                     }
 
+                    @Override
                     public void error(String message, String sourceName,
                                       int line, String lineSource, int lineOffset) {
                         if (line > 0) {
@@ -78,6 +61,7 @@ public class YuiCompress {
                         }
                     }
 
+                    @Override
                     public EvaluatorException runtimeError(String message, String sourceName,
                                                            int line, String lineSource, int lineOffset) {
 
@@ -111,7 +95,6 @@ public class YuiCompress {
                 } catch (Exception ignored) {}
             }
         }
-
     }
 
 

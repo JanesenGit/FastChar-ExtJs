@@ -1,81 +1,31 @@
-
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8" />
+    <meta charset="utf-8"/>
     <title>视频播放器</title>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <link href="skin/pink.flag/css/jplayer.pink.flag.min.css" rel="stylesheet" type="text/css" />
-    <script src="../../js/jquery.js"></script>
-    <script type="text/javascript" src="jplayer/jquery.jplayer.min.js"></script>
-    <script type="text/javascript">
-
-        $(document).ready(function(){
-            let url = window.parent.getVideoUrl();
-            $("#jquery_jplayer_1").jPlayer({
-                ready: function () {
-                    $(this).jPlayer("setMedia", {
-                        m4v: url
-                    });
-                },
-                swfPath: "jplayer",
-                solution: "flash, html",
-                supplied: "webmv, ogv, m4v",
-                size: {
-                    width: "640px",
-                    height: "360px",
-                    cssClass: "jp-video-360p"
-                },
-                useStateClassSkin: true,
-                autoBlur: false,
-                smoothPlayBar: true,
-                keyEnabled: true,
-                remainingDuration: true,
-                toggleDuration: true
-            });
-        });
-    </script>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+    </style>
 </head>
 <body>
-<div id="jp_container_1" class="jp-video jp-video-360p" role="application" aria-label="media player">
-    <div class="jp-type-single">
-        <div id="jquery_jplayer_1" class="jp-jplayer"></div>
-        <div class="jp-gui">
-            <div class="jp-video-play">
-                <button class="jp-video-play-icon" role="button" tabindex="0">play</button>
-            </div>
-            <div class="jp-interface">
-                <div class="jp-progress">
-                    <div class="jp-seek-bar">
-                        <div class="jp-play-bar"></div>
-                    </div>
-                </div>
-                <div class="jp-current-time" role="timer" aria-label="time">&nbsp;</div>
-                <div class="jp-duration" role="timer" aria-label="duration">&nbsp;</div>
-                <div class="jp-details">
-                    <div class="jp-title" aria-label="title">&nbsp;</div>
-                </div>
-                <div class="jp-controls-holder">
-                    <div class="jp-volume-controls">
-                        <button class="jp-mute" role="button" tabindex="0">mute</button>
-                        <button class="jp-volume-max" role="button" tabindex="0">max volume</button>
-                        <div class="jp-volume-bar">
-                            <div class="jp-volume-bar-value"></div>
-                        </div>
-                    </div>
-                    <div class="jp-controls">
-                        <button class="jp-play" role="button" tabindex="0">play</button>
-                        <button class="jp-stop" role="button" tabindex="0">stop</button>
-                    </div>
-                    <div class="jp-toggles">
-                        <button class="jp-repeat" role="button" tabindex="0">repeat</button>
-                        <button class="jp-full-screen" role="button" tabindex="0">full screen</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+<div id="player" style="width: 700px;height: 560px;padding: 0;margin: 0;"></div>
 </body>
+<script src="player.min.js"></script>
+
+<script type="text/javascript">
+    let url = window.parent.getVideoUrl();
+    new DPlayer({
+        container: document.getElementById('player'),
+        contextmenu: [],
+        video: {
+            url: url,
+            lang: 'zh-cn'
+        }
+    });
+</script>
 
 </html>

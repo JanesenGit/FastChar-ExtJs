@@ -34,6 +34,7 @@ pre.prettyprint {
     -moz-transition: box-shadow 500ms ease,; /* Firefox 4 */
     -webkit-transition: box-shadow 500ms ease; /* Safari 和 Chrome */
     -o-transition:  box-shadow 500ms ease; /* Opera */
+    background:#ffffff;
 }
 .loginLogo:hover {
     -moz-box-shadow: 0 0 20px ${color};
@@ -69,6 +70,7 @@ pre.prettyprint {
   box-shadow:0 0 4px #fefefe !important;
   -moz-box-shadow: 0 0 4px #fefefe;
   -webkit-box-shadow: 0 0 4px #fefefe;
+    background:#ffffff;
 }
 
 .headLogo:hover{
@@ -759,4 +761,49 @@ body>.x-mask {
 
 .x-mask-msg-text{
     color:#000000;
+}
+
+.x-fieldset-default{
+    border-radius: 8px;
+    -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.075);
+    box-shadow: inset 0 1px 1px rgba(0,0,0,.075);
+}
+
+.validCodeImg{
+    border-width: 1px;
+    border-style: solid;
+    border-color: #d0d0d0;
+    border-radius: 3px;
+    box-shadow:0 0 3px #cccccc;
+}
+
+.bgImage{
+ background-image: linear-gradient(45deg, #ffffff 50%, #f6f6f6 0);
+ background-size: 30px 30px;
+}
+.bgNull{
+     background:transparent !important;
+}
+
+
+.x-tree-elbow-img {
+    height: 33px !important;
+    line-height: 33px !important;
+}
+
+.x-fieldset-header-default>.x-fieldset-header-text {
+    position: unset;
+}
+
+.x-mask.x-focus{
+    border-color:$[color];
+}
+
+.x-grid-group-hd {
+    border-color: #e9e9e9;
+   background-color:#da930017;
+}
+
+.x-grid-group-title {
+    color: #aaaaaa;
 }

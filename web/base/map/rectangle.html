@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>地图图层选址</title>
+    <style>
+        #container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body onload="onPageLoad();">
+<div id="container"></div>
+</body>
+
+<script type="text/javascript">
+    let map = null, geolocation = null, geocoder, rectangle, rectangleEditor, imageLayer, imgUrl,
+        anchors = [];
+
+    function getQueryString(name) {
+        let reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)");
+        let r = window.location.search.substr(1).match(reg);
+        if (r != null) return unescape(r[2]);
+        return null;
+    }
+
+    function addScript(script, callBack) {
+        if (script == null) return;
+        let oHead = document.getElementsByTagName('head').item(0);
+        let oScript = document.createElement("script");
+        oScript.type = "text/javascript";
+        oScript.src = script.src;
+        oScript.onload = oScript.readystatechange = function () {
+            if (callBack != null) {
+                callBack();
+            }
+        };
+        oScript.onerror = function () {
+            alert("脚本文件" + script.src + "加载失败，请您稍后重试！");
+        };
+        oHead.appendChild(oScript);
+    }
+
+    function onPageLoad() {
+        let mapVersion = "1.4.14";
+        let mapKey = "33eafcd2e5c636e3d527f14e0f3b8cb1";
+
+        if (getQueryString("mapVersion")) {
+            mapVersion = getQueryString("mapVersion");
+        }
+        if (getQueryString("mapKey")) {
+            mapKey = getQueryString("mapKey");
+        }
+        let srcUrl = "https://webapi.amap.com/maps?v=" + mapVersion + "&key=" + mapKey + "&plugin=AMap.Autocomplete";
+        addScript({src: srcUrl}, function () {
+            initMap();
+        });
+    }
+
+    function initMap() {
+        try {
+            map = new AMap.Map("container", {
+                resizeEnable: true
+            });
+
+            map.plugin([
+                'AMap.ToolBar',
+                'AMap.Scale',
+                'AMap.HawkEye',
+                'AMap.MapType',
+                'AMap.Geolocation',
+                'AMap.PlaceSearch',
+                'AMap.Geocoder',
+                'AMap.MouseTool',
+                'AMap.RectangleEditor'
+            ], function () {
+                // 在图面添加工具条控件，工具条控件集成了缩放、平移、定位等功能按钮在内的组合控件
+                map.addControl(new AMap.ToolBar());
+                // 在图面添加比例尺控件，展示地图在当前层级和纬度下的比例尺
+                map.addControl(new AMap.Scale());
+                // 在图面添加类别切换控件，实现默认图层与卫星图、实施交通图层之间切换的控制
+                map.addControl(new AMap.MapType());
+
+                geocoder = new AMap.Geocoder({
+                    radius: 1000,
+                    extensions: "all"
+                });
+
+                geolocation = new AMap.Geolocation({
+                    enableHighAccuracy: true,//是否使用高精度定位，默认:true
+                    timeout: 10000,          //超过10秒后停止定位，默认：无穷大
+                    buttonOffset: new AMap.Pixel(10, 20),//定位按钮与设置的停靠位置的偏移量，默认：Pixel(10, 20)
+                    zoomToAccuracy: true,      //定位成功后调整地图视野范围使定位位置及精度范围视野内可见，默认：false
+                    buttonPosition: 'RB'
+                });
+
+                window.parent.onMapLoadDone();
+            });
+        } catch (e) {
+            console.error(e);
+            alert("高德地图初始化失败！请检查您配置的key和version是否正确！");
+        }
+    }
+
+    //搜索地址
+    function searchAddress(address) {
+        window.parent.showMapMask("正在搜索位置：" + address);
+        geocoder.getLocation(address, function (status, result) {
+            window.parent.closeMapMask();
+            if (status === 'complete' && result.info === 'OK') {
+                let position = result.geocodes[0].location;
+                map.setCenter(position);
+                showRectangleFromCenter(position);
+            } else if (status === 'no_data') {
+                window.parent.alert("未检索到位置信息！");
+            }
+        });
+    }
+
+
+    //清除在地图上选取矩形框
+    function clearSelectRectangle() {
+        if (rectangle) {
+            map.remove(rectangle);
+        }
+        if (rectangleEditor) {
+            rectangleEditor.close();
+        }
+    }
+
+
+    //开始在地图上选取矩形框
+    function selectRectangle(southWestLngLat, northEastLngLat, imgUrlValue) {
+        clearSelectRectangle();
+        if (southWestLngLat && northEastLngLat) {
+            imgUrl = imgUrlValue;
+            let bounds = new AMap.Bounds(
+                new AMap.LngLat(southWestLngLat.split(",")[0], southWestLngLat.split(",")[1]),
+                new AMap.LngLat(northEastLngLat.split(",")[0], northEastLngLat.split(",")[1])
+            );
+            showRectangle(bounds);
+            map.setBounds(bounds);
+            let firstZoomEvent = function () {
+                map.off("zoomend", firstZoomEvent);
+                callParentSetSelectBounds(bounds);
+            };
+            map.on("zoomend", firstZoomEvent);
+        } else {
+            let mouseTool = new AMap.MouseTool(map);
+            mouseTool.rectangle({
+                fillColor: '#00b0ff',
+                strokeColor: '#80d8ff'
+            });
+            mouseTool.on('draw', function (e) {
+                mouseTool.close(true);
+                showRectangle(e.obj.ir);
+                callParentSetSelectBounds(e.obj.ir);
+            });
+        }
+    }
+
+    //显示矩形编辑框
+    function showRectangle(bounds) {
+        rectangle = new AMap.Rectangle({
+            bounds: bounds,
+            cursor: 'move'
+        });
+        rectangle.on("mouseup", function (e) {
+            callParentSetSelectBounds(rectangle.getBounds());
+        });
+        map.add(rectangle);
+
+        rectangleEditor = new AMap.RectangleEditor(map, rectangle);
+        rectangleEditor.on("adjust", function (e) {
+            callParentSetSelectBounds(e.target.ir);
+        });
+        rectangleEditor.open();
+    }
+
+
+    //计算矩形边界的宽高
+    function computeSize(bounds) {
+        let southWestPX = map.lngLatToContainer(bounds.southWest);
+        let northEastPX = map.lngLatToContainer(bounds.northEast);
+        let height = Math.abs(southWestPX.round().y - northEastPX.round().y);
+        let width = Math.abs(northEastPX.round().x - southWestPX.round().x);
+        return {"width": width, "height": height};
+    }
+
+    //回调给父类
+    function callParentSetSelectBounds(bounds) {
+        window.parent.setSelectBounds(bounds.southWest, bounds.northEast, computeSize(bounds));
+        showImgLayer(bounds);
+    }
+
+
+    //根据中心点 回显矩形编辑框
+    function showRectangleFromCenter(lnglat) {
+        if (rectangle) {
+            let size = computeSize(rectangle.getBounds());
+            let centerPX = map.lngLatToContainer(lnglat);
+            let southWestX = centerPX.round().x - size.width / 2;
+            let southWestY = centerPX.round().y + size.height / 2;
+
+            let northEastX = centerPX.round().x + size.width / 2;
+            let northEastY = centerPX.round().y - size.height / 2;
+
+            let southWestLngLat = map.containerToLngLat(new AMap.Pixel(southWestX, southWestY));
+            let northEastLngLat = map.containerToLngLat(new AMap.Pixel(northEastX, northEastY));
+
+            let bounds = new AMap.Bounds(
+                southWestLngLat,
+                northEastLngLat
+            );
+            clearSelectRectangle();
+            showRectangle(bounds);
+            callParentSetSelectBounds(bounds);
+        }
+    }
+
+
+    //刷新或显示图层
+    function showImgLayer(bounds) {
+        if (!imgUrl) {
+            return;
+        }
+        if (!imageLayer) {
+            imageLayer = new AMap.ImageLayer({
+                url: imgUrl,
+                bounds: bounds,
+                zooms: [0, 50]
+            });
+            map.add(imageLayer);
+        }
+        imageLayer.setBounds(bounds);
+    }
+
+
+    //设置图片的地址
+    function setImgLayerUrl(url) {
+        imgUrl = url;
+    }
+
+
+    //设置锚点坐标
+    function setAnchorPoints(points,fitView) {
+        if (!points) {
+            return;
+        }
+        map.remove(anchors);
+        for (let i = 0; i < points.length; i++) {
+            let data = points[i];
+            let marker = new AMap.Marker({
+                map: map,
+                position: data.toString().split(","),
+            });
+            anchors.push(marker);
+        }
+        if (points.length > 0 && fitView) {
+            let center = points[0].toString().split(",");
+            showRectangleFromCenter(new AMap.LngLat(center[0], center[1]));
+            map.setFitView(null, false, [50, 50, 50, 50]);
+        }
+    }
+
+
+</script>
+</html>

@@ -1,15 +1,14 @@
 package com.fastchar.extjs.core;
 
 import com.fastchar.annotation.AFastPriority;
-import com.fastchar.asm.FastMethodRead;
 import com.fastchar.core.FastChar;
 import com.fastchar.core.FastEntities;
 import com.fastchar.database.info.FastColumnInfo;
 import com.fastchar.database.info.FastTableInfo;
 import com.fastchar.extjs.core.database.FastExtTableInfo;
 import com.fastchar.extjs.exception.FastExtEntityException;
+import com.fastchar.interfaces.IFastMethodRead;
 import com.fastchar.utils.FastClassUtils;
-import org.apache.poi.xddf.usermodel.text.TabAlignment;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -40,7 +39,7 @@ public class FastExtEntities {
                 int existPriority = 0;
                 int currPriority = 0;
 
-                FastMethodRead fastMethodRead = new FastMethodRead();
+                IFastMethodRead fastMethodRead = FastChar.getOverrides().newInstance(IFastMethodRead.class);
 
 
                 Class<? extends FastExtEntity<?>> existClass = entityMap.get(entityCode);
@@ -50,8 +49,8 @@ public class FastExtEntities {
                     return this;
                 }
 
-                List<FastMethodRead.MethodLine> existLineNumber = fastMethodRead.getMethodLineNumber(existClass, "getEntityCode");
-                List<FastMethodRead.MethodLine> targetLineNumber = fastMethodRead.getMethodLineNumber(targetClass, "getEntityCode");
+                List<IFastMethodRead.MethodLine> existLineNumber = fastMethodRead.getMethodLineNumber(existClass, "getEntityCode");
+                List<IFastMethodRead.MethodLine> targetLineNumber = fastMethodRead.getMethodLineNumber(targetClass, "getEntityCode");
 
                 StackTraceElement existStack = new StackTraceElement(existClass.getName(), "getEntityCode",
                         existClass.getSimpleName() + ".java", existLineNumber.get(0).getLastLine());

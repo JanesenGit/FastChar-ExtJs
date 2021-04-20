@@ -17,6 +17,7 @@
 </head>
 <body onload="onPageLoad();">
 <div id="container"></div>
+
 </body>
 
 <script type="text/javascript">
@@ -25,12 +26,13 @@
     let infoWindow;
     let position;
     let map;
+    let mapTitle;
 
 
     function getQueryString(name) {
         let reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)");
         let r = window.location.search.substr(1).match(reg);
-        if (r != null) return unescape(r[2]);
+        if (r != null) return r[2];
         return null;
     }
 
@@ -61,6 +63,7 @@
         if (getQueryString("mapKey")) {
             mapKey = getQueryString("mapKey");
         }
+        mapTitle = decodeURI(getQueryString("mapTitle"));
         let srcUrl = "https://webapi.amap.com/maps?v=" + mapVersion + "&key=" + mapKey + "&plugin=AMap.Autocomplete,AMap.Geocoder,AMap.PlaceSearch";
         addScript({src: srcUrl}, function () {
             initMap();
@@ -79,7 +82,7 @@
                 'AMap.Scale',
                 'AMap.MapType',
                 'AMap.PlaceSearch'
-            ], function(){
+            ], function () {
                 // 在图面添加工具条控件，工具条控件集成了缩放、平移、定位等功能按钮在内的组合控件
                 map.addControl(new AMap.ToolBar());
                 // 在图面添加比例尺控件，展示地图在当前层级和纬度下的比例尺
@@ -87,6 +90,8 @@
                 // 在图面添加类别切换控件，实现默认图层与卫星图、实施交通图层之间切换的控制
                 map.addControl(new AMap.MapType());
                 regeocoder();
+
+                addScript({src: "fast-img-layer.js"});
             });
         } catch (e) {
             console.error(e);
@@ -123,8 +128,12 @@
         window.parent.closeMapMask();
         let address = data.regeocode.formattedAddress; //返回地址描述
 
+        if (mapTitle && mapTitle.length > 0) {
+            address = "<b>" + mapTitle + "</b><hr/>" + address;
+        }
+
         infoWindow = new AMap.InfoWindow({
-            content: address,
+            content: address + "【" + lngLat + "】",
             offset: new AMap.Pixel(0, -30)
         });
         infoWindow.open(map, marker.getPosition());

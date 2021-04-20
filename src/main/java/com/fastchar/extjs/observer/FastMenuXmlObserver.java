@@ -4,6 +4,7 @@ import com.fastchar.core.FastChar;
 import com.fastchar.core.FastInterceptors;
 import com.fastchar.extjs.FastExtConfig;
 import com.fastchar.extjs.core.menus.FastMenuInfo;
+import com.fastchar.extjs.interfaces.IFastMenuListener;
 import com.fastchar.utils.FastMD5Utils;
 import com.fastchar.utils.FastStringUtils;
 import org.xml.sax.Attributes;
@@ -76,6 +77,9 @@ public class FastMenuXmlObserver {
         SAXParserFactory factory = SAXParserFactory.newInstance();
         SAXParser parser = factory.newSAXParser();
         for (File file : files) {
+            if (FastChar.getConfig(FastExtConfig.class).isExcludeMenuFile(file.getName())) {
+                continue;
+            }
             FILE_MODIFY_TICK.put(file.getAbsolutePath(), file.lastModified());
             MenuInfoHandler databaseInfoHandler = new MenuInfoHandler(file);
             parser.parse(file, databaseInfoHandler);
@@ -83,6 +87,7 @@ public class FastMenuXmlObserver {
 
         pullDefault(menus);
         sortMenus(menus);
+        notifyListener(menus);
     }
 
 
@@ -115,6 +120,24 @@ public class FastMenuXmlObserver {
             sortMenus(child);
             Collections.sort(child.getChildren(), comparator);
         }
+    }
+
+    private void notifyListener(FastMenuInfo menuInfo) {
+        List<IFastMenuListener> iFastMenuListeners = FastChar.getOverrides().singleInstances(false, IFastMenuListener.class);
+        List<FastMenuInfo> waitRemoveMenu = new ArrayList<>();
+        for (FastMenuInfo child : menuInfo.getChildren()) {
+            for (IFastMenuListener iFastMenuListener : iFastMenuListeners) {
+                if (iFastMenuListener == null) {
+                    continue;
+                }
+                if (!iFastMenuListener.onAddMenu(child)) {
+                    waitRemoveMenu.add(child);
+                }
+            }
+            notifyListener(child);
+        }
+        menuInfo.getChildren().removeAll(waitRemoveMenu);
+
     }
 
 

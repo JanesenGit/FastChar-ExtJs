@@ -4,7 +4,6 @@ import com.fastchar.core.FastChar;
 import com.fastchar.core.FastEntity;
 import com.fastchar.database.FastPage;
 import com.fastchar.database.info.FastColumnInfo;
-import com.fastchar.database.info.FastDatabaseInfo;
 import com.fastchar.database.info.FastSqlInfo;
 import com.fastchar.database.info.FastTableInfo;
 import com.fastchar.extjs.FastExtConfig;
@@ -13,6 +12,7 @@ import com.fastchar.extjs.core.database.FastExtData;
 import com.fastchar.extjs.core.database.FastExtTableInfo;
 import com.fastchar.extjs.entity.ExtManagerEntity;
 import com.fastchar.extjs.entity.ExtManagerRoleEntity;
+import com.fastchar.extjs.interfaces.IFastLayerListener;
 import com.fastchar.utils.FastMD5Utils;
 import com.fastchar.utils.FastStringUtils;
 
@@ -20,14 +20,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 public abstract class FastExtEntity<E extends FastEntity<?>> extends FastEntity<E> {
+    //上级层级编号的属性名
+    public static final String EXTRA_PARENT_CODE = "parentLayerCode";
 
     private static final long serialVersionUID = 3922925004072340430L;
-
     private boolean autoUpdateLayerValue = true;
 
     /**
      * 获得关联的表格名称
      */
+    @Override
     public abstract String getTableName();
 
 
@@ -44,6 +46,13 @@ public abstract class FastExtEntity<E extends FastEntity<?>> extends FastEntity<
      */
     public void pullLayer(ExtManagerEntity managerEntity) {
         if (getLayerColumn() != null && FastChar.getConfig(FastExtConfig.class).getLayerType() != FastLayerType.None) {
+
+            IFastLayerListener iFastLayerListener = FastChar.getOverrides().singleInstance(false, IFastLayerListener.class);
+            if (iFastLayerListener != null) {
+                if (iFastLayerListener.onPullLayer(this, managerEntity)) {
+                    return;
+                }
+            }
             if (managerEntity.getManagerRole().getRoleType() != ExtManagerRoleEntity.RoleTypeEnum.系统角色) {
                 //此处修改去除'@'符号，包含了自己的数据
                 if (FastChar.getConfig(FastExtConfig.class).getLayerType() == FastLayerType.Layer_Manager) {
@@ -65,6 +74,7 @@ public abstract class FastExtEntity<E extends FastEntity<?>> extends FastEntity<
     /**
      * 设置字段默认值
      */
+    @Override
     public abstract void setDefaultValue();
 
     @Override
@@ -77,8 +87,9 @@ public abstract class FastExtEntity<E extends FastEntity<?>> extends FastEntity<
 
     @Override
     public boolean update() {
+        boolean modifiedLayer = isModifyLayerColumn();
         boolean update = super.update();
-        if (update && isAutoUpdateLayerValue()) {
+        if (update && isAutoUpdateLayerValue() && modifiedLayer) {
             this.autoUpdateLayerCode();
         }
         return update;
@@ -86,8 +97,9 @@ public abstract class FastExtEntity<E extends FastEntity<?>> extends FastEntity<
 
     @Override
     public boolean update(String... checks) {
+        boolean modifiedLayer = isModifyLayerColumn();
         boolean update = super.update(checks);
-        if (update && isAutoUpdateLayerValue()) {
+        if (update && isAutoUpdateLayerValue() && modifiedLayer) {
             this.autoUpdateLayerCode(checks);
         }
         return update;
@@ -114,6 +126,14 @@ public abstract class FastExtEntity<E extends FastEntity<?>> extends FastEntity<
     }
 
 
+    private boolean isModifyLayerColumn() {
+        FastExtColumnInfo layerLinkColumn = getLayerLinkColumn();
+        if (layerLinkColumn != null) {
+            return isModified(layerLinkColumn.getName());
+        }
+        return false;
+    }
+
     public void autoUpdateLayerCode(String... checks) {
         try {
             FastExtColumnInfo layerLinkColumn = getLayerLinkColumn();
@@ -121,7 +141,7 @@ public abstract class FastExtEntity<E extends FastEntity<?>> extends FastEntity<
                 //如果更新了层级编号的字段值
                 if (isNotEmpty(layerLinkColumn.getName()) &&
                         !getString(layerLinkColumn.getName()).equalsIgnoreCase("<null>")) {
-                    updateLayerValue(selectLayerValue(checks), FastExtLayerHelper.buildLayerValue(this));
+                    updateLayerValue(selectLayerValue(checks), FastExtBindHelper.buildLayerValue(this));
                 }
             }
         } catch (Exception e) {
@@ -203,8 +223,8 @@ public abstract class FastExtEntity<E extends FastEntity<?>> extends FastEntity<
      * @return 字符串
      */
     public String getParentLayerCode() {
-        if (isNotEmpty("parentLayerCode")) {
-            return getString("parentLayerCode");
+        if (isNotEmpty(FastExtEntity.EXTRA_PARENT_CODE)) {
+            return getString(FastExtEntity.EXTRA_PARENT_CODE);
         }
         return getLayerValue(1);
     }
@@ -232,7 +252,7 @@ public abstract class FastExtEntity<E extends FastEntity<?>> extends FastEntity<
      * @param layerCode 权限编号
      */
     public void setParentLayerCode(String layerCode) {
-        put("parentLayerCode", layerCode);
+        put(FastExtEntity.EXTRA_PARENT_CODE, layerCode);
     }
 
     /**
@@ -281,10 +301,7 @@ public abstract class FastExtEntity<E extends FastEntity<?>> extends FastEntity<
         if (table == null) {
             return false;
         }
-        if (table.isRecycle()) {
-            return true;
-        }
-        return false;
+        return table.isRecycle();
     }
 
 
@@ -307,9 +324,23 @@ public abstract class FastExtEntity<E extends FastEntity<?>> extends FastEntity<
         return null;
     }
 
+    public FastExtColumnInfo getSameLinkColumn() {
+        FastTableInfo<?> tableInfo = FastChar.getDatabases().get(getDatabase()).getTableInfo(getTableName());
+        if (tableInfo instanceof FastExtTableInfo) {
+            FastExtTableInfo extTableInfo = (FastExtTableInfo) tableInfo;
+            return extTableInfo.getSameLinkColumn();
+        }
+        return null;
+    }
+
 
     public String selectLayerValue(String... checks) {
-        return ((FastExtData<?>) getFastData()).selectLayerValue(checks);
+        return ((FastExtData<E>) getFastData()).selectLayerValue(checks);
+    }
+
+
+    public E selectFirstValue(String[] columns, String... checks) {
+        return ((FastExtData<E>) getFastData()).selectFirstValue(columns,checks);
     }
 
     public String selectLayerValue(Object... idValues) {
@@ -342,8 +373,8 @@ public abstract class FastExtEntity<E extends FastEntity<?>> extends FastEntity<
      * @param newLayerValue 新的权限编号
      */
     public void updateLayerValue(String oldLayerValue, String newLayerValue) throws Exception {
-        List<String> sqlList = FastExtLayerHelper.buildUpdateLayerValueSql(this, oldLayerValue, newLayerValue);
-        if (sqlList.size() > 0) {
+        List<String> sqlList = FastExtBindHelper.buildUpdateLayerValueSql(this, oldLayerValue, newLayerValue);
+        if (sqlList != null && sqlList.size() > 0) {
             FastChar.getDb().setLog(false).batch(sqlList, sqlList.size());
         }
     }

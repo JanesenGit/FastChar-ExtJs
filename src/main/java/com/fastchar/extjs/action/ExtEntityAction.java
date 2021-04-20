@@ -45,9 +45,14 @@ public class ExtEntityAction extends FastAction {
 
 
     /**
-     * 获取数据
-     *
-     * @return FastPage
+     * 获取实体的列表数据
+     * 参数：
+     * page 页数 {int}
+     * limit 每页大小 {int}
+     * entityCode 实体编号 {String}
+     * where 列表sql的where判断语句 ,例如：where['t.userId'] = 1
+     * indexSort 指定排序列 json数组，例如：[{"property":"serviceNickName","direction":"DESC"}]
+     * power 是否需要权限层级筛选，默认：true
      */
     public FastPage<?> list() {
 
@@ -78,7 +83,9 @@ public class ExtEntityAction extends FastAction {
                     new TypeToken<List<Map<String, String>>>() {
                     }.getType());
             for (Map<String, String> map : sortList) {
-                if (map.get("property").startsWith("@")) continue;
+                if (map.get("property").startsWith("@")) {
+                    continue;
+                }
                 entity.put(FastNumberUtils.formatToInt(index.get(map.get("property"))) + map.get("property") + ":sort", map.get("direction"));
             }
         }
@@ -86,7 +93,7 @@ public class ExtEntityAction extends FastAction {
         if (getParamToBoolean("power", Boolean.TRUE)) {
             entity.pullLayer(managerEntity);
         }
-        FastPage<?>  fastPage = entity.showList(page, pageSize);
+        FastPage<?> fastPage = entity.showList(page, pageSize);
         if (fastPage.getSqlInfo() != null) {
             managerEntity.put("Sql" + entityCode + "_" + entity.getBoolean("^fromRecycle"), fastPage.getSqlInfo().getSql());
         }
@@ -95,7 +102,12 @@ public class ExtEntityAction extends FastAction {
 
 
     /**
-     * 保存数据
+     * 添加实体数据
+     * 参数：
+     * entityCode 实体编号 {String}
+     * menu 操作的菜单名称，用作记录日志 {String}
+     * data 以data为前缀的参数，提交实体数据，例如：data.topicError=无,data.topicState=1,data.topicTitle=我的话题
+     * method 执行实体的方法名，默认为：save方法
      */
     @AFastLog(value = "页面【${menu}】添加了一条数据！", type = "添加数据")
     public void save() {
@@ -123,7 +135,7 @@ public class ExtEntityAction extends FastAction {
                 if (saveEntity.getTable() instanceof FastExtTableInfo) {
                     FastExtTableInfo extTableInfo = saveEntity.getTable();
                     if (extTableInfo.isBindSessionLayer()) {
-                        saveEntity.put("parentLayerCode", managerEntity.getLayerValue());
+                        saveEntity.put(FastExtEntity.EXTRA_PARENT_CODE, managerEntity.getLayerValue());
                     }
                 }
             }
@@ -186,23 +198,28 @@ public class ExtEntityAction extends FastAction {
         List<FastExtColumnInfo> columns = entity.getTable().getColumns();
         boolean hasArray = false;
         for (FastExtColumnInfo column : columns) {
-            if (column.isLink()) {
-                Object values = entity.get(column.getName());
-                if (values == null || FastStringUtils.isEmpty(values.toString())) {
-                    continue;
-                }
-                if (values.getClass().isArray()) {
-                    hasArray = true;
-                    for (int i = 0; i < Array.getLength(values); i++) {
-                        Object singleValue = Array.get(values, i);
-                        if (singleValue == null || FastStringUtils.isEmpty(singleValue.toString())) {
-                            continue;
-                        }
-                        FastEntity<?> newEntity = FastChar.getOverrides().newInstance(entity.getClass());
-                        newEntity.setAll(entity);
-                        newEntity.set(column.getName(), singleValue);
-                        pluckArrayValue(newEntity, entities);
+            Object values = entity.get(column.getName());
+            if (values == null || FastStringUtils.isEmpty(values.toString())) {
+                continue;
+            }
+
+            if (entity.getBoolean(column.getName() + "@JsonArray")) {
+                entity.remove(column.getName());
+                entity.remove(column.getName() + "@JsonArray");
+                values = FastChar.getJson().fromJson(values.toString(), List.class).toArray();
+            }
+
+            if (values.getClass().isArray()) {
+                hasArray = true;
+                for (int i = 0; i < Array.getLength(values); i++) {
+                    Object singleValue = Array.get(values, i);
+                    if (singleValue == null || FastStringUtils.isEmpty(singleValue.toString())) {
+                        continue;
                     }
+                    FastEntity<?> newEntity = FastChar.getOverrides().newInstance(entity.getClass());
+                    newEntity.setAll(entity);
+                    newEntity.set(column.getName(), singleValue);
+                    pluckArrayValue(newEntity, entities);
                 }
             }
         }
@@ -213,7 +230,12 @@ public class ExtEntityAction extends FastAction {
 
 
     /**
-     * 删除数据
+     * 删除实体数据
+     * 参数：
+     * entityCode 实体编号 {String}
+     * menu 操作的菜单名称，用作记录日志 {String}
+     * where 用作sql的where判断语句 ,例如：where['t.userId'] = 1
+     * data 以data为前缀的参数，提交实体数据，例如：data.topicError=无,data.topicState=1,data.topicTitle=我的话题
      */
     @AFastLog(value = "页面【${menu}】进行删除数据！", type = "删除数据")
     public void delete() throws Exception {
@@ -262,13 +284,15 @@ public class ExtEntityAction extends FastAction {
 
                 String sqlStr = "select t." + keyName + " " + showListSql.substring(fromIndex, whereIndex);
                 FastSqlInfo sqlInfo = extEntity.getSql().appendWhere(sqlStr, extEntity);
-                String deleteSql = "delete from " + tableName+ " where " +
+                String deleteSql = "delete from " + tableName + " where " +
                         keyName + " in ( select * from ( " + sqlInfo.getSql() + ") as tmp ) ";
-                if (FastChar.getDb().update(deleteSql, sqlInfo.toParams()) > 0) {
-                    responseJson(0, "删除成功！");
+                int update = FastChar.getDb().update(deleteSql, sqlInfo.toParams());
+                if (update > 0) {
+                    responseJson(0, "删除成功！共删除了" + update + "条数据！");
                 }
             }
         } else {
+            int count = 0;
             List<? extends FastExtEntity<?>> entity = getParamToEntityList("data", extEntityClass);
             for (FastEntity<?> fastEntity : entity) {
                 if (FastStringUtils.isEmpty(menu)) {
@@ -278,17 +302,25 @@ public class ExtEntityAction extends FastAction {
 
                 fastEntity.put("fromWeb", true);
                 if (!fastEntity.delete()) {
+                    if (count > 0) {
+                        responseJson(-1, "已成功删除" + count + "条数据后发生错误！" + fastEntity.getError());
+                    }
                     responseJson(-1, fastEntity.getError());
                 }
+                count++;
             }
-            responseJson(0, "删除成功！", entity);
+            responseJson(0, "删除成功！共删除了" + count + "条数据！", entity);
         }
         responseJson(-1, "删除失败！");
     }
 
 
     /**
-     * 修改数据
+     * 修改实体数据
+     * 参数：
+     * entityCode 实体编号 {String}
+     * menu 操作的菜单名称，用作记录日志 {String}
+     * data 以data为前缀的参数，提交实体数据，例如：data.topicError=无,data.topicState=1,data.topicTitle=我的话题
      */
     @AFastLog(value = "页面【${menu}】进行修改数据！", type = "修改数据")
     public void update() throws Exception {
@@ -318,7 +350,11 @@ public class ExtEntityAction extends FastAction {
 
 
     /**
-     * 复制数据
+     * 复制实体数据
+     * 参数：
+     * entityCode 实体编号 {String}
+     * menu 操作的菜单名称，用作记录日志 {String}
+     * data 以data为前缀的参数，提交实体数据，例如：data.topicError=无,data.topicState=1,data.topicTitle=我的话题
      */
     @AFastLog(value = "页面【${menu}】进行复制数据！", type = "复制数据")
     public void copy() {
@@ -345,6 +381,10 @@ public class ExtEntityAction extends FastAction {
 
     /**
      * 清除某个属性为空的所有数据
+     * 参数：
+     * entityCode 实体编号 {String}
+     * menu 操作的菜单名称，用作记录日志 {String}
+     * where 用作sql的where判断语句 ,例如：where['t.userId'] = 1
      */
     @AFastLog(value = "页面【${menu}】进行清理数据！", type = "清理数据")
     public void clear() throws Exception {
@@ -417,7 +457,11 @@ public class ExtEntityAction extends FastAction {
 
 
     /**
-     * 从回收站中还原数据
+     * 从回收站中还原实体数据
+     * 参数：
+     * entityCode 实体编号 {String}
+     * menu 操作的菜单名称，用作记录日志 {String}
+     * data 以data为前缀的参数，提交实体数据，例如：data.topicError=无,data.topicState=1,data.topicTitle=我的话题
      */
     @AFastLog(value = "页面【${menu}】进行还原数据！", type = "数据还原")
     public void reback() {
@@ -445,7 +489,12 @@ public class ExtEntityAction extends FastAction {
 
 
     /**
-     * 计算
+     * 计算实体指定属性的值
+     * 参数：
+     * entityCode 实体编号 {String}
+     * menu 操作的菜单名称，用作记录日志 {String}
+     * type 计算类型，为sql的计算函数，例如：sum、avg
+     * field 需要计算的字段名
      */
     public void compute() throws Exception {
         String entityCode = getParam("entityCode", true);
@@ -491,7 +540,13 @@ public class ExtEntityAction extends FastAction {
     }
 
     /**
-     * 导出数据excel
+     * 导出实体数据excel
+     * 参数：
+     * entityCode 实体编号 {String}
+     * menu 操作的菜单名称，用作记录日志 {String}
+     * where 列表sql的where判断语句 ,例如：where['t.userId'] = 1
+     * indexSort 指定排序列 json数组，例如：[{"property":"serviceNickName","direction":"DESC"}]
+     * column 需要导出的列 json数组
      */
     @AFastLog(value = "导出了【${entityDetails}】数据！", type = "数据导出")
     public void export() throws Exception {
@@ -523,7 +578,9 @@ public class ExtEntityAction extends FastAction {
                     new TypeToken<List<Map<String, String>>>() {
                     }.getType());
             for (Map<String, String> map : sortList) {
-                if (map.get("property").startsWith("@")) continue;
+                if (map.get("property").startsWith("@")) {
+                    continue;
+                }
                 entity.put(FastNumberUtils.formatToInt(index.get(map.get("property"))) + map.get("property") + ":sort", map.get("direction"));
             }
         }
@@ -577,7 +634,11 @@ public class ExtEntityAction extends FastAction {
             HSSFCell cell = titleRow.createCell(i);
             cell.setCellStyle(cellStyle);
             cell.setCellValue(String.valueOf(column.get("text")));
-            sheet.setColumnWidth(i, FastNumberUtils.formatToInt(column.get("width"), 100) * 30);
+            if (column.containsKey("groupHeaderText") && FastStringUtils.isNotEmpty(column.get("groupHeaderText").toString())) {
+                cell.setCellValue("【" + column.get("groupHeaderText") + "】" + column.get("text"));
+            }
+//            sheet.autoSizeColumn(i, true); 列宽自动计算有误
+            sheet.setColumnWidth(i, Math.max(FastNumberUtils.formatToInt(column.get("width"), 150), 150) * 50);
         }
 
         HSSFCellStyle cellStyle_child = workBook.createCellStyle();
@@ -585,6 +646,7 @@ public class ExtEntityAction extends FastAction {
         font_child.setFontHeightInPoints((short) 14);
         font_child.setBold(false);
         cellStyle_child.setFont(font_child);
+//        cellStyle_child.setWrapText(true);
         cellStyle_child.setAlignment(HorizontalAlignment.CENTER);
 
         for (int i = 0; i < list.size(); i++) {
@@ -596,7 +658,24 @@ public class ExtEntityAction extends FastAction {
                 HSSFCell cell = row.createCell(j);
                 cell.setCellStyle(cellStyle);
 
-                String value = FastStringUtils.defaultValue(data.get(column.get("dataIndex")), "");
+                Object entityData = data.get(column.get("dataIndex"));
+                String value = FastStringUtils.defaultValue(entityData, "");
+
+                boolean isCollection = false;
+                if (entityData instanceof Collection) {
+                    isCollection = true;
+                    Collection<?> collection = (Collection<?>) entityData;
+                    if (FastBooleanUtils.formatToBoolean(column.get("files"), false)) {
+                        List<String> items = new ArrayList<>();
+                        for (Object o : collection) {
+                            String url = FastStringUtils.defaultValue(o, "");
+                            items.add(url.split("@")[0]);
+                        }
+                        value = FastStringUtils.join(items, " , ");
+                    } else {
+                        value = FastStringUtils.join(collection, " , ");
+                    }
+                }
 
                 if (column.get("enum") != null && FastStringUtils.isNotEmpty(column.get("enum").toString())) {
                     IFastExtEnum enumClass = FastChar.getOverrides().singleInstance(IFastExtEnum.class, column.get("enum").toString());
@@ -607,31 +686,34 @@ public class ExtEntityAction extends FastAction {
                         }
                     }
                 }
-                if (FastBooleanUtils.formatToBoolean(column.get("file"), false)) {
-                    if (!value.startsWith("http://") && value.startsWith("https://")) {
+                if (FastBooleanUtils.formatToBoolean(column.get("file"), false)
+                        && FastStringUtils.isNotEmpty(value)) {
+                    if (!value.startsWith("http://") && !value.startsWith("https://")) {
                         value = getProjectHost() + FastStringUtils.stripStart(value, "/");
                     }
                 }
+
+
                 cell.setCellStyle(cellStyle_child);
                 if (value.length() < 32767) {
-                    if (value.startsWith("http://") || value.startsWith("https://")) {
+                    if ((value.startsWith("http://") || value.startsWith("https://")) && !isCollection) {
                         cell.setCellFormula("HYPERLINK(\"" + value + "\",\"" + value + "\")");
                         HSSFCellStyle linkStyle = workBook.createCellStyle();
-                        HSSFFont cellFont= workBook.createFont();
+                        HSSFFont cellFont = workBook.createFont();
                         cellFont.setUnderline((byte) 1);
                         cellFont.setColor(HSSFColor.HSSFColorPredefined.BLUE.getIndex());
                         linkStyle.setFont(cellFont);
                         cell.setCellStyle(linkStyle);
                     } else {
-                        cell.setCellValue(value);
+                        cell.setCellValue(new HSSFRichTextString(value));
                     }
                 } else {
-                    cell.setCellValue("字符长度过大,无法添加到Excel中");
+                    cell.setCellValue("内容长度过大,无法添加到Excel中");
                 }
             }
         }
 
-        String child = "excel/" + FastStringUtils.buildOnlyCode("EXL") + ".xls";
+        String child = "excel/" + title + "_数据" + ".xls";
         File file = new File(FastChar.getConstant().getAttachDirectory(), child);
 
         if (!file.getParentFile().exists()) {
@@ -641,12 +723,16 @@ public class ExtEntityAction extends FastAction {
         workBook.write(fileOutputStream);
         fileOutputStream.close();
         workBook.close();
-        responseJson(0, "导出成功，共导出" + list.size() + "条数据！", child);
+        responseJson(0, "导出成功，共导出" + list.size() + "条数据！", FastFile.newInstance(file).getUrl());
     }
 
 
     /**
-     * 生成excel导入模板
+     * 生成实体excel导入数据的模板
+     * 参数：
+     * entityCode 实体编号 {String}
+     * menu 操作的菜单名称，用作记录日志 {String}
+     * column 列集合 json数组
      */
     @AFastLog(value = "生成【${entityDetails}】Excel模板！", type = "Excel模板")
     public void module() throws Exception {
@@ -731,6 +817,9 @@ public class ExtEntityAction extends FastAction {
 
             cell.setCellStyle(cellStyle);
             cell.setCellValue(String.valueOf(column.get("text")));
+            if (column.containsKey("groupHeaderText") && FastStringUtils.isNotEmpty(column.get("groupHeaderText").toString())) {
+                cell.setCellValue("【" + column.get("groupHeaderText") + "】" + column.get("text"));
+            }
             cell.setCellType(CellType.STRING);
             if (column.containsKey("enum") && FastStringUtils.isNotEmpty(String.valueOf(column.get("enum")))) {
                 IFastExtEnum enumClass = FastChar.getOverrides().singleInstance(false, IFastExtEnum.class, column.get("enum"));
@@ -755,9 +844,10 @@ public class ExtEntityAction extends FastAction {
                 sheet.addValidationData(dataValidate);
             }
             sheet.setColumnWidth(i, FastNumberUtils.formatToInt(column.get("width"), 100) * 50);
+//            sheet.autoSizeColumn(i, true);
         }
 
-        String child = "excel/" + FastStringUtils.buildOnlyCode("Module") + ".xls";
+        String child = "excel/" + title + "_数据模板" + ".xls";
         File file = new File(FastChar.getConstant().getAttachDirectory(), child);
 
         if (!file.getParentFile().exists()) {
@@ -767,12 +857,16 @@ public class ExtEntityAction extends FastAction {
         workBook.write(fileOutputStream);
         fileOutputStream.close();
         workBook.close();
-        responseJson(0, "下载成功！", child);
+        responseJson(0, "下载成功！", FastFile.newInstance(file).getUrl());
     }
 
 
     /**
-     * 导入数据
+     * 导入实体Excel数据
+     * 参数：
+     * entityCode 实体编号 {String}
+     * menu 操作的菜单名称，用作记录日志 {String}
+     * file excel文件
      */
     @AFastLog(value = "导入【${entityDetails}】数据！", type = "数据导入")
     public void importData() throws Exception {
@@ -877,7 +971,7 @@ public class ExtEntityAction extends FastAction {
                     FastExtTableInfo extTableInfo = entity.getTable();
                     if (extTableInfo.isBindSessionLayer()) {
                         ExtManagerEntity managerEntity = getSession("manager");
-                        entity.put("parentLayerCode", managerEntity.getLayerValue());
+                        entity.put(FastExtEntity.EXTRA_PARENT_CODE, managerEntity.getLayerValue());
                     }
                 }
                 if (entity.size() > 0) {
@@ -916,9 +1010,15 @@ public class ExtEntityAction extends FastAction {
         }
 
         if (batchSave.size() > 0) {
+            List<FastEntity<?>> removed = new ArrayList<>(batchSave);
+            removed.removeAll(all);
+            batchSave.removeAll(removed);
             FastChar.getDb().batchSaveEntity(batchSave, 2000);
         }
         if (batchUpdate.size() > 0) {
+            List<FastEntity<?>> removed = new ArrayList<>(batchUpdate);
+            removed.removeAll(all);
+            batchUpdate.removeAll(removed);
             FastChar.getDb().batchUpdateEntity(batchUpdate, 2000);
         }
 
@@ -938,7 +1038,10 @@ public class ExtEntityAction extends FastAction {
         if (batchUpdate.size() > 0) {
             msg.append("共更新").append(batchUpdate.size()).append("条数据！");
         }
-        responseJson(0, "导入成功！" + msg.toString());
+        if (msg.length() == 0) {
+            msg.append("共导入0条数据！");
+        }
+        responseJson(0, "导入成功！" + msg);
     }
 
     private Object getCellValue(Workbook workbook, Cell cell) {

@@ -159,6 +159,7 @@ public class FastExtHelper {
         URL httpURL = new URL(url);
         HttpURLConnection conn = (HttpURLConnection) httpURL.openConnection();
         String headerField = conn.getHeaderField("content-disposition");
+        String contentType = conn.getContentType();
         if (FastStringUtils.isNotEmpty(headerField)) {
             String regStr = "filename=\"(.*)\"";
             Matcher matcher = Pattern.compile(regStr).matcher(headerField);
@@ -169,6 +170,8 @@ public class FastExtHelper {
         File saveFile = new File(FastChar.getConstant().getAttachDirectory(), fileName);
         FastFileUtils.copyURLToFile(httpURL, saveFile);
         paramFile = FastFile.newInstance(saveFile.getParent(), fileName);
+        paramFile.setUploadFileName(fileName);
+        paramFile.setContentType(contentType);
         return paramFile;
     }
 

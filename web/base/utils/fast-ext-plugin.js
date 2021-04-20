@@ -8,17 +8,32 @@ Ext.define("Fast.ext.EnumComboBox", {
     enumValue: 'id',
     enumText: 'text',
     exclude: [],//排除id
-    params: [],//扩展参数
+    include: [],//只包含id
+    params: {},//扩展参数
     firstData: null,//插入到头部的数据
     lastData: null,//插入到尾部的数据
+    editable: false,
+    useCache: true,
     initComponent: function () {
         let me = this;
         me.displayField = me.enumText;
         me.valueField = me.enumValue;
-        me.editable = false;
-        me.store = getEnumDataStore(me.enumName, me.firstData, me.lastData, me.params);
+
+        me.store = getEnumDataStore(me.enumName, me.firstData, me.lastData, me.params, me.useCache);
+        if (!me.exclude) {
+            me.exclude = [];
+        }
+        if (!me.include) {
+            me.include = [];
+        }
         me.store.filterBy(function (record) {
             if (me.exclude.exists(record.get(me.enumValue))) {
+                return false;
+            }
+            if (me.include.length > 0) {
+                if (me.include.exists(record.get(me.enumValue))) {
+                    return true;
+                }
                 return false;
             }
             return true;
@@ -38,12 +53,16 @@ Ext.define("Fast.ext.FastFile", {
     getMenu: function () {
         return this.up("menu");
     },
+    onFileChange: function (fileObj) {
+    },
     listeners: {
         change: function (obj, newValue, oldValue, eOpts) {
             if (Ext.isEmpty(newValue)) {
                 obj.getTrigger('help').hide();
+                obj.getTrigger('close').hide();
             } else {
                 obj.getTrigger('help').show();
+                obj.getTrigger('close').show();
             }
         },
         afterrender: function (obj) {
@@ -56,6 +75,7 @@ Ext.define("Fast.ext.FastFile", {
         }
     },
     initComponent: function () {
+        let me = this;
         let errorMsg = "";
         for (let i = 0; i < this.fileModules.length; i++) {
             let fileModule = this.fileModules[i];
@@ -83,8 +103,30 @@ Ext.define("Fast.ext.FastFile", {
                             }
                         }, true);
                         return;
-                    }else  if (me.fileModules[0].type === 'videos') {
+                    }
+
+                    if (me.fileModules[0].type === 'videos') {
                         showVideo(this, me.getValue());
+                        return;
+                    }
+                }
+
+                if (me.fileObj) {
+                    let name = me.fileObj.name;
+                    if (files.image().reg.test(name)) {
+                        showImage(me, me.getValue(), null, true);
+                        return;
+                    }
+                    if (files.mp4().reg.test(name)) {
+                        showVideo(this, me.getValue());
+                        return;
+                    }
+                    if (files.pdf().reg.test(name) ||
+                        files.word().reg.test(name) ||
+                        files.excel().reg.test(name) ||
+                        files.ppt().reg.test(name)) {
+                        let viewerUrl = "https://view.officeapps.live.com/op/view.aspx?src=" + me.getValue();
+                        openUrl(viewerUrl);
                         return;
                     }
                 }
@@ -95,6 +137,13 @@ Ext.define("Fast.ext.FastFile", {
             cls: 'extIcon extUpload',
             handler: function () {
                 this.selectData();
+            }
+        },
+        close: {
+            cls: 'text-clear',
+            hidden: true,
+            handler: function () {
+                this.clearData();
             }
         }
     },
@@ -108,9 +157,15 @@ Ext.define("Fast.ext.FastFile", {
                 me.getMenu().holdShow = false;
             }
             if (result) {
+                me.fileObj = result;
                 me.setValue(result.url);
+                me.onFileChange(result);
             }
         });
+    },
+    clearData: function () {
+        let me = this;
+        me.setValue(null);
     }
 });
 
@@ -124,9 +179,10 @@ Ext.define("Fast.ext.FastFiles", {
     editable: false,
     fileModules: [],
     allowBlank: true,
-    autoUpdate: true,
+    autoUpdate: false,
     showFileName: false,
     showFileLength: false,
+    submitArray: false,//已数组格式提交
     getMenu: function () {
         return this.up("menu");
     },
@@ -148,6 +204,16 @@ Ext.define("Fast.ext.FastFiles", {
         }
         this.emptyText = '请上传' + errorMsg.substring(1);
         this.editable = false;
+        if (this.submitArray) {
+            let formPanel = this.up("form");
+            if (formPanel) {
+                formPanel.add({
+                    xtype: "hiddenfield",
+                    name: this.name + "@JsonArray",
+                    value: true
+                });
+            }
+        }
         this.callParent(arguments);
     },
     triggers: {
@@ -165,7 +231,7 @@ Ext.define("Fast.ext.FastFiles", {
             if (Ext.isFunction(callBack)) {
                 callBack(me);
             }
-        }, me.fileModules, me.getValue());
+        }, me.fileModules, me.getValue(), title);
     }
 });
 
@@ -211,11 +277,26 @@ Ext.define("Fast.ext.Content", {
                         server.showExtConfig(me.getCode(), "TextEditorCache", function (success, value) {
                             if (success) {
                                 me.setValue(value);
+                                toast("已恢复暂存的数据！");
                             }
                         });
                     }
                 },
                 buttons: [
+                    {
+                        text: '清除暂存',
+                        iconCls: 'extIcon extDelete whiteColor',
+                        handler: function () {
+                            showWait("正在清除中，请稍后……");
+                            server.deleteExtConfig(me.getCode(), "TextEditorCache", function (success) {
+                                hideWait();
+                                if (success) {
+                                    toast("清除成功！");
+                                }
+                            });
+                        }
+                    },
+                    '->',
                     {
                         text: '暂存',
                         iconCls: 'extIcon extSave whiteColor',
@@ -401,11 +482,26 @@ Ext.define("Fast.ext.HtmlContent", {
                         server.showExtConfig(me.getCode(), "HtmlEditorCache", function (success, value) {
                             if (success) {
                                 me.setValue(value);
+                                toast("已恢复暂存的数据！");
                             }
                         });
                     }
                 },
                 buttons: [
+                    {
+                        text: '清除暂存',
+                        iconCls: 'extIcon extDelete whiteColor',
+                        handler: function () {
+                            showWait("正在清除中，请稍后……");
+                            server.deleteExtConfig(me.getCode(), "HtmlEditorCache", function (success) {
+                                hideWait();
+                                if (success) {
+                                    toast("清除成功！");
+                                }
+                            });
+                        }
+                    },
+                    '->',
                     {
                         text: '暂存',
                         iconCls: 'extIcon extSave whiteColor',
@@ -449,6 +545,7 @@ Ext.define("Fast.ext.HtmlContent", {
                     }]
             });
         }
+
         me.editorWin.setTitle(title);
         me.editorWin.callBack = callBack;
         me.editorWin.animateTarget = obj;
@@ -475,6 +572,8 @@ Ext.define("Fast.ext.Link", {
     submitValue: true,
     onBeforeSelect: null,
     onAfterSelect: null,
+    onClearSelect: null,
+    binds: [],// 格式：linkFieldName@selfFieldName1@selfFieldName2@selfFieldName2
     isValid: function () {
         let me = this;
         let display = me.down("[name=" + me.name + "Display]");
@@ -508,6 +607,20 @@ Ext.define("Fast.ext.Link", {
             }
             record.set(me.name, me.getValue());
             record.set(me.dataIndex, me.getText());
+
+            if (me.record) {
+                for (let i = 0; i < me.binds.length; i++) {
+                    let bindSet = me.binds[i];
+                    let setArray = bindSet.toString().split("@");
+                    if (setArray.length > 1) {
+                        let linkFieldName = setArray[0];
+                        let linkValue = me.record.get(linkFieldName);
+                        for (let j = 1; j < setArray.length; j++) {
+                            record.set(setArray[j], linkValue);
+                        }
+                    }
+                }
+            }
             if (record.store) {
                 record.store.holdUpdate = false;
                 record.store.fireEvent("endupdate");
@@ -548,6 +661,24 @@ Ext.define("Fast.ext.Link", {
                 moreFieldContainer.add(newField);
             }
         }
+        if (me.record) {
+            for (let i = 0; i < me.binds.length; i++) {
+                let bindSet = me.binds[i];
+                let setArray = bindSet.toString().split("@");
+                if (setArray.length > 1) {
+                    let linkFieldName = setArray[0];
+                    let linkValue = me.record.get(linkFieldName);
+                    for (let j = 1; j < setArray.length; j++) {
+                        let newField = Ext.create({
+                            xtype: 'hiddenfield',
+                            name: setArray[j]
+                        });
+                        newField.setValue(linkValue);
+                        moreFieldContainer.add(newField);
+                    }
+                }
+            }
+        }
     },
     getRawValue: function () {
         let me = this;
@@ -560,7 +691,7 @@ Ext.define("Fast.ext.Link", {
     getMenu: function () {
         return this.up("menu");
     },
-    selectData: function () {
+    selectData: function (callback) {
         let me = this;
         if (Ext.isFunction(me.onBeforeSelect)) {
             if (!me.onBeforeSelect(me)) {
@@ -631,12 +762,17 @@ Ext.define("Fast.ext.Link", {
         }
         entityObj.showSelect(this, "选择" + selectTitle, me.linkValue.where, me.multiSelect).then(function (result) {
             if (result) {
+                if (Ext.isFunction(callback)) {
+                    callback(result);
+                    return;
+                }
                 if (result.length === 1) {
                     let data = result[0];
+                    me.record = data;
                     me.setValue(data.get(me.entityText));
                     me.setRawValue(data.get(me.entityId));
-                    me.record = data;
                 } else if (result.length > 1) {
+                    me.record = result[0];
                     me.records = result;
                     let newText = "";
                     let moreValues = [];
@@ -667,6 +803,9 @@ Ext.define("Fast.ext.Link", {
         me.setRawValue(-1);
         let moreFieldContainer = me.down("[name=" + me.name + "MoreFields]");
         moreFieldContainer.removeAll(true);
+        if (Ext.isFunction(me.onClearSelect)) {
+            me.onClearSelect(me);
+        }
     },
     initComponent: function () {
         let me = this;
@@ -675,7 +814,7 @@ Ext.define("Fast.ext.Link", {
             if (defaultLinkValue) {
                 if (me.linkValue) {
                     me.linkValue = mergeJson(me.linkValue, defaultLinkValue);
-                }else{
+                } else {
                     me.linkValue = defaultLinkValue;
                 }
             }
@@ -685,15 +824,38 @@ Ext.define("Fast.ext.Link", {
             me.linkValue[me.entityId] = -1;
             me.linkValue[me.entityText] = null;
         }
+
         if (!me.linkValue.hasOwnProperty(me.entityId)) {
             me.linkValue[me.entityId] = -1;
         }
+
+        if (Ext.isEmpty(me.linkValue[me.entityId])) {
+            me.linkValue[me.entityId] = -1;
+        }
+
         if (Ext.isEmpty(me.name)) {
             me.name = "LinkField" + Ext.now();
         }
         let displayValue = me.linkValue[me.entityText];
         if (!displayValue) {
             displayValue = me.value;
+        }
+
+        let moreFieldItems = [];
+        for (let i = 0; i < me.binds.length; i++) {
+            let bindSet = me.binds[i];
+            let setArray = bindSet.toString().split("@");
+            if (setArray.length > 1) {
+                let linkFieldName = setArray[0];
+                let linkValue = me.linkValue[linkFieldName];
+                for (let j = 1; j < setArray.length; j++) {
+                    moreFieldItems.push({
+                        xtype: 'hiddenfield',
+                        name: setArray[j],
+                        value: linkValue
+                    });
+                }
+            }
         }
         me.items = [
             {
@@ -705,7 +867,7 @@ Ext.define("Fast.ext.Link", {
                 xtype: 'fieldcontainer',
                 name: me.name + "MoreFields",
                 hidden: true,
-                items: []
+                items: moreFieldItems
             },
             {
                 xtype: 'textfield',
@@ -716,7 +878,7 @@ Ext.define("Fast.ext.Link", {
                 hideLabel: true,
                 fieldLabel: me.fieldLabel,
                 allowBlank: me.allowBlank,
-                emptyText: me.emptyText,
+                emptyText: '请选择',
                 listeners: {
                     afterrender: function (obj) {
                         if (!this.editable) {
@@ -764,6 +926,8 @@ Ext.define("Fast.ext.Target", {
     targetId: null,
     targetValue: {},
     targetFunction: 'getTargetEntity',
+    include: [],
+    exclude: [],
     getValue: function () {
         let me = this;
         let targetIdCmp = me.down("[name=" + me.targetId + "]");
@@ -895,6 +1059,10 @@ Ext.define("Fast.ext.Target", {
     },
     initComponent: function () {
         let me = this;
+        let configLabel = me.fieldLabel;
+        if (Ext.isEmpty(configLabel)) {
+            configLabel = "目标类型";
+        }
         me.fieldLabel = "";
         if (!me.labelWidth) {
             me.labelWidth = 60;
@@ -942,16 +1110,18 @@ Ext.define("Fast.ext.Target", {
         let targetTypeCmp = {
             name: me.targetType,
             xtype: "enumcombo",
-            fieldLabel: "目标类型",
+            fieldLabel: configLabel,
             columnWidth: 1,
             value: targetTypeValue,
             labelWidth: me.labelWidth,
             labelAlign: me.labelAlign,
-            emptyText: '请选择目标类型',
+            emptyText: '请选择' + configLabel,
             margin: me.margin,
             allowBlank: false,
             readOnly: me.targetTypeReadOnly,
             enumName: me.targetTypeEnum,
+            exclude: me.exclude,
+            include: me.include,
             listeners: {
                 change: function (obj, newValue, oldValue) {
                     let newEntity = me.getTargetEntity(newValue);
@@ -980,7 +1150,8 @@ Ext.define("Fast.ext.Target", {
             entityCode: targetEntity.entityCode,
             entityId: targetEntity.entityId,
             entityText: targetEntity.entityText,
-            linkValue: linkValue
+            linkValue: linkValue,
+            multiSelect: me.multiSelect
         };
         me.items = [targetTypeCmp, targetIdCmp];
         me.callParent(arguments);
@@ -999,7 +1170,8 @@ Ext.define("Fast.ext.Map", {
     proName: null,
     cityName: null,
     areaName: null,
-    editable: true,
+    editable: false,
+    emptyText: '请选择',
     allowBlank: true,
     layout: 'fit',
     submitValue: true,
@@ -1037,9 +1209,6 @@ Ext.define("Fast.ext.Map", {
                 me.setAreaValue(record.get(me.areaName));
             }
         }
-    },
-    setHtml: function (val) {
-        this.setValue(val);
     },
     setRecordValue: function (record) {
         let me = this;
@@ -1670,12 +1839,128 @@ Ext.define("Fast.ext.DateRange", {
 });
 
 
+/**
+ * 日期时间选择控件
+ */
+Ext.define("Fast.ext.Date", {
+    alias: ['widget.date', 'widget.datefield'],
+    extend: 'Ext.form.field.Text',
+    format: 'Y-m-d H:i:s',
+    getMenu: function () {
+        return this.up("menu");
+    },
+    isValid: function () {
+        let me = this;
+        if (me.callParent(arguments)) {
+            if (!Ext.isEmpty(me.getValue())) {
+                let date = Ext.Date.parse(me.getValue(), this.format);
+                if (!date) {
+                    me.invalidText = "日期格式错误！格式必须为：" + this.format;
+                    me.markInvalid(this.invalidText);
+                    return false;
+                }
+            }
+            return true;
+        }
+        return false;
+    },
+    selectData: function () {
+        let me = this;
+        if (me.getMenu() != null) {
+            me.getMenu().holdShow = true;
+        }
+        showFastDatePicker(me, me.getValue(), this.format).then(function (dateValue) {
+            if (me.getMenu() != null) {
+                me.getMenu().holdShow = false;
+            }
+            if (dateValue) {
+                me.setValue(dateValue);
+            }
+        });
+    },
+    triggers: {
+        search: {
+            cls: 'x-form-date-trigger',
+            handler: function () {
+                this.selectData();
+            }
+        }
+    },
+    listeners: {
+        afterrender: function (obj) {
+            let me = this;
+            if (!this.editable) {
+                obj.inputEl.on('click', function () {
+                    me.selectData();
+                });
+            }
+        }
+    },
+    initComponent: function () {
+        let me = this;
+        me.callParent(arguments);
+    }
+});
 
 
+/**
+ * 上传文件组件
+ */
+Ext.define("Fast.ext.ColorField", {
+    extend: 'Ext.form.field.Text',
+    alias: ['widget.colorfield'],
+    editable: false,
+    getMenu: function () {
+        return this.up("menu");
+    },
+    beforeBodyEl: [
+        '<div class="' + Ext.baseCSSPrefix + 'colorpicker-field-swatch">' +
+        '<div id="{id}-swatchEl" data-ref="swatchEl" class="' + Ext.baseCSSPrefix +
+        'colorpicker-field-swatch-inner"></div>' +
+        '</div>'
+    ],
+    cls: Ext.baseCSSPrefix + 'colorpicker-field',
+    childEls: [
+        'swatchEl'
+    ],
+    setValue: function (val) {
+        val = toColor(val);
+        let me = this,
+            inputEl = me.inputEl;
 
-
-
-
-
-
+        if (inputEl && me.emptyText && !Ext.isEmpty(value)) {
+            inputEl.removeCls(me.emptyUICls);
+            me.valueContainsPlaceholder = false;
+        }
+        me.callParent(arguments);
+        me.applyEmptyText();
+        Ext.ux.colorpick.ColorUtils.setBackground(me.swatchEl, Ext.ux.colorpick.ColorUtils.parseColor(val));
+        return me;
+    },
+    triggers: {
+        search: {
+            cls: 'extIcon extSearch',
+            handler: function () {
+                this.selectData();
+            }
+        }
+    },
+    selectData: function () {
+        let me = this;
+        if (me.getMenu() != null) {
+            me.getMenu().holdShow = true;
+        }
+        showFastColorPicker(me.inputEl, me.getValue(), function (color) {
+            me.setValue(color.toHEXA());
+        }).then(function (dateValue) {
+            if (me.getMenu() != null) {
+                me.getMenu().holdShow = false;
+            }
+        });
+    },
+    clearData: function () {
+        let me = this;
+        me.setValue(null);
+    }
+});
 

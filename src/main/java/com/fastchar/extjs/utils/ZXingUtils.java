@@ -54,7 +54,9 @@ public class ZXingUtils {
     public static void insertImage(BufferedImage source, Image imgPath,
                                    boolean needCompress) {
         try {
-            if(imgPath==null) return;
+            if(imgPath==null) {
+                return;
+            }
             int width = imgPath.getWidth(null);
             int height = imgPath.getHeight(null);
             if (needCompress) { // 压缩LOGO

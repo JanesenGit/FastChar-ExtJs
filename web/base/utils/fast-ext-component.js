@@ -384,8 +384,6 @@ Ext.override(Ext.Component, {
 });
 
 
-
-
 Ext.override(Ext, {
     getScrollbarSize: function (force) {
         //<debug>
@@ -425,8 +423,6 @@ Ext.override(Ext, {
 });
 
 
-
-
 Ext.override(Ext.Component, {
     onAlignToScroll: function () {
     },
@@ -464,5 +460,336 @@ Ext.override(Ext.Component, {
 });
 
 
+Ext.override(Ext.toolbar.Paging, {
+    updateInfo: function () {
+        let me = this,
+            displayItem = me.child('#displayItem'),
+            store = me.store,
+            pageData = me.getPageData(),
+            count, msg;
+
+        if (displayItem) {
+            count = store.getCount();
+            if (count === 0) {
+                msg = me.emptyMsg;
+            } else {
+                msg = Ext.String.format(
+                    me.displayMsg,
+                    pageData.fromRecord,
+                    pageData.toRecord,
+                    pageData.total
+                );
+            }
+            if (store.grid) {
+                let selectCount;
+                if (store.grid.getSelectionModel && store.grid.getSelectionModel().selected
+                    && !Ext.isEmpty(store.grid.getSelectionModel().selected.rangeEnd)
+                    && !Ext.isEmpty(store.grid.getSelectionModel().selected.rangeStart)) {
+                    selectCount = Math.abs(parseInt(store.grid.getSelectionModel().selected.rangeEnd) -
+                        parseInt(store.grid.getSelectionModel().selected.rangeStart)) + 1;
+                } else {
+                    selectCount = store.grid.getSelection().length;
+                }
+                if (selectCount > 0) {
+                    msg = "选中" + selectCount + "行数据，" + msg;
+                }
+                store.grid.selectCount = selectCount;
+                if (Ext.isFunction(store.grid.refreshSelect)) {
+                    store.grid.refreshSelect();
+                }
+                if (Ext.isFunction(store.grid.refreshDetailsPanel())) {
+                    store.grid.refreshDetailsPanel();
+                }
+            }
+            displayItem.setText(msg);
+        }
+    }
+});
+
+
+/**
+ * 弹出日期时间选择控件
+ * @param obj 需要弹出的目标控件
+ * @param defaultValue 默认日期时间
+ * @param dateFormat 日期时间的格式
+ * @returns {*}
+ */
+function showFastDatePicker(obj, defaultValue, dateFormat) {
+    return new Ext.Promise(function (resolve, reject) {
+        let token = new Date().getTime();
+        if (Ext.isEmpty(dateFormat)) {
+            dateFormat = "Y-m-d H:i:s";
+        }
+        let hourStoreValue = [];
+        for (let i = 0; i < 24; i++) {
+            let value = prefixInteger(i, 2);
+            hourStoreValue.push({
+                text: value
+            });
+        }
+
+        let secondStoreValue = [];
+        for (let i = 0; i < 60; i++) {
+            let value = prefixInteger(i, 2);
+            secondStoreValue.push({
+                text: value
+            });
+        }
+        let defaultDate;
+        if (!Ext.isEmpty(defaultValue)) {
+            defaultDate = Ext.Date.parse(defaultValue, dateFormat);
+        }
+        if (!defaultDate) {
+            defaultDate = new Date();
+        }
+
+        let hour = Ext.Date.format(defaultDate, 'H');
+        let minute = Ext.Date.format(defaultDate, 'i');
+        let second = Ext.Date.format(defaultDate, 's');
+
+        let countItem = 0;
+
+        let hourShow = dateFormat.indexOf("H") !== -1;
+        let minuteShow = dateFormat.indexOf("i") !== -1;
+        let secondShow = dateFormat.indexOf("s") !== -1;
+
+        if (hourShow) {
+            countItem++;
+        }
+        if (minuteShow) {
+            countItem++;
+        }
+        if (secondShow) {
+            countItem++;
+        }
+
+
+        let menu = Ext.create('Ext.menu.Menu', {
+            showSeparator: false,
+            layout: 'border',
+            padding: '0 0 0 0',
+            style: {
+                background: "#ffffff"
+            },
+            alwaysOnTop: true,
+            width: 350,
+            height: 400,
+            listeners: {
+                hide: function (obj, epts) {
+                    runCallBack(resolve);
+                }
+            },
+            items: [
+                {
+                    xtype: 'datepicker',
+                    id: 'dateValue' + token,
+                    region: 'center',
+                    showToday: false,
+                    margin: '0 0 0 0',
+                    border: 0,
+                    value: defaultDate
+                },
+                {
+                    xtype: 'panel',
+                    layout: 'column',
+                    margin: '0 0 0 0',
+                    region: 'south',
+                    border: 0,
+                    items: [
+                        {
+                            xtype: 'panel',
+                            columnWidth: 1,
+                            layout: 'column',
+                            border: 0,
+                            items: [
+                                {
+                                    id: 'hourValue' + token,
+                                    columnWidth: 1.0 / countItem,
+                                    emptyText: '时',
+                                    minValue: 0,
+                                    margin: '0 0 0 5',
+                                    maxValue: 23,
+                                    displayField: 'text',
+                                    valueField: 'text',
+                                    editable: false,
+                                    hidden: !hourShow,
+                                    value: hour,
+                                    store: Ext.create('Ext.data.Store', {
+                                        autoLoad: true,
+                                        data: hourStoreValue
+                                    }),
+                                    xtype: 'combo'
+                                }, {
+                                    xtype: 'displayfield',
+                                    width: 30,
+                                    hidden: !hourShow,
+                                    value: "<div align='center'>时</div>"
+                                }, {
+                                    id: 'minuteValue' + token,
+                                    columnWidth: 1.0 / countItem,
+                                    emptyText: '分',
+                                    minValue: 0,
+                                    maxValue: 59,
+                                    displayField: 'text',
+                                    valueField: 'text',
+                                    editable: false,
+                                    value: minute,
+                                    hidden: !minuteShow,
+                                    store: Ext.create('Ext.data.Store', {
+                                        autoLoad: true,
+                                        data: secondStoreValue
+                                    }),
+                                    xtype: 'combo'
+                                }, {
+                                    xtype: 'displayfield',
+                                    width: 30,
+                                    hidden: !minuteShow,
+                                    value: "<div align='center'>分</div>"
+                                }, {
+                                    id: 'secondsValue' + token,
+                                    columnWidth: 1.0 / countItem,
+                                    emptyText: '秒',
+                                    minValue: 0,
+                                    maxValue: 59,
+                                    displayField: 'text',
+                                    valueField: 'text',
+                                    editable: false,
+                                    value: second,
+                                    hidden: !secondShow,
+                                    store: Ext.create('Ext.data.Store', {
+                                        autoLoad: true,
+                                        data: secondStoreValue
+                                    }),
+                                    xtype: 'combo'
+                                }, {
+                                    xtype: 'displayfield',
+                                    width: 30,
+                                    hidden: !secondShow,
+                                    value: "<div align='center'>秒</div>"
+                                },
+                            ]
+                        },
+                        {
+                            xtype: 'button',
+                            columnWidth: 1,
+                            margin: '5 5 5 5',
+                            text: '确定',
+                            handler: function () {
+                                let datePicker = Ext.getCmp("dateValue" + token);
+                                let hourCombo = Ext.getCmp("hourValue" + token);
+                                let minuteCombo = Ext.getCmp("minuteValue" + token);
+                                let secondsCombo = Ext.getCmp("secondsValue" + token);
+                                let dateValue = datePicker.getValue();
+                                dateValue.setHours(parseInt(hourCombo.getValue()));
+                                dateValue.setMinutes(parseInt(minuteCombo.getValue()));
+                                dateValue.setSeconds(parseInt(secondsCombo.getValue()));
+                                runCallBack(resolve, Ext.Date.format(dateValue, dateFormat));
+                                menu.close();
+                            }
+                        }]
+                }]
+        });
+        menu.showBy(obj);
+    });
+}
+
+
+/**
+ * 弹出颜色选择控件
+ * @param obj 需要弹出的目标控件
+ * @param defaultValue 默认颜色
+ * @param onColorChange 颜色变化的监听
+ * @returns {*}
+ */
+function showFastColorPicker(obj, defaultValue,onColorChange) {
+    if (Ext.isEmpty(defaultValue)) {
+        defaultValue = "#42445a";
+    }
+    return new Ext.Promise(function (resolve, reject) {
+        window["onColorPickerLoadDone"] = function (colorPicker) {
+            colorPicker.on('change', function (color, source, instance) {
+                if (Ext.isFunction(onColorChange)) {
+                    onColorChange(color, source, instance)
+                }
+            });
+        };
+        let menu = Ext.create('Ext.menu.Menu', {
+            showSeparator: false,
+            layout: 'border',
+            padding: '0 0 0 0',
+            style: {
+                background: "#ffffff"
+            },
+            alwaysOnTop: true,
+            width: 250,
+            height: 320,
+            listeners: {
+                hide: function (obj, epts) {
+                    runCallBack(resolve);
+                },
+                mouseleave: function (obj) {
+                    const targetElement = colorPickerFrame.window.document.getElementsByTagName("body")[0];
+                    dispatchTargetEvent(colorPickerFrame.window.document, targetElement, "mouseup");
+                }
+            },
+            items: [
+                {
+                    xtype: 'panel',
+                    region: 'center',
+                    margin: '0 0 0 0',
+                    border: 0,
+                    listeners: {
+                        afterrender: function () {
+                            let url = system.formatUrlVersion('base/colorpicker/index.html',
+                                {
+                                    color: defaultValue.replace("#", "")
+                                });
+                            this.update("<iframe name='colorPickerFrame'  src='" + url + "' width='100%' height='100%' frameborder='0' scrolling='no' />");
+                        }
+                    }
+                }]
+        });
+        menu.showBy(obj);
+    });
+}
+
+
+Ext.override(Ext.util.Grouper, {
+    sortFn: function (item1, item2) {
+        //取消分组排名
+        return 0;
+    }
+});
+
+
+Ext.override(Ext.resizer.Splitter, {
+    onRender: function() {
+        let me = this;
+        me.collapseOnDblClick = false;
+        me.callParent(arguments);
+        if (me.getEl()) {
+            //解决 split拖拽 到iframe鼠标事件丢失问题
+            me.getEl().on("mousedown", function () {
+                let iframePanelArray = Ext.ComponentQuery.query("panel[iframePanel=true]");
+                for (let i = 0; i < iframePanelArray.length; i++) {
+                    iframePanelArray[i].setDisabled(true);
+                }
+            });
+            me.getEl().on("mouseup", function () {
+                let iframePanelArray = Ext.ComponentQuery.query("panel[iframePanel=true]");
+                for (let i = 0; i < iframePanelArray.length; i++) {
+                    iframePanelArray[i].setDisabled(false);
+                }
+            });
+            me.on("move", function () {
+                let iframePanelArray = Ext.ComponentQuery.query("panel[iframePanel=true]");
+                for (let i = 0; i < iframePanelArray.length; i++) {
+                    iframePanelArray[i].setDisabled(false);
+                }
+            });
+        }
+    }
+
+});
 
 

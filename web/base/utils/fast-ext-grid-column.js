@@ -102,6 +102,11 @@ function configColumnProperty(column) {
         if (column.where && column.where.length > 0) {
             column.doSearch(false);
         }
+        if (column.isSubHeader) {
+            column.groupHeaderText = column.ownerCt.text;
+        } else {
+            column.groupHeaderText = null;
+        }
     } catch (e) {
         console.error(e);
     }
@@ -128,9 +133,9 @@ function refreshColumnStyle(column) {
                 column.sumText = "<font size='1'></font>";
             }
             if (column.searching) {
-                column.setText(getSVGIcon("extSearch") +"&nbsp;"+ column.configText + column.sumText + sortDirection + "&nbsp;");
+                column.setText(getSVGIcon("extSearch") + "&nbsp;" + column.configText + column.sumText + sortDirection + "&nbsp;");
                 column.setStyle('color', 'red');
-            }else{
+            } else {
                 column.setText("&nbsp;" + column.configText + column.sumText + sortDirection + "&nbsp;");
                 column.setStyle('color', '#444444');
             }
@@ -153,13 +158,15 @@ function checkColumnSearch(grid) {
                 }
             }
         });
-        let dockeds = grid.getDockedItems('toolbar[dock="bottom"]');
-        if (dockeds.length > 0) {
-            let searchBtn = dockeds[0].down("button[toolType=searchBtn]");
-            if (hasSearch) {
-                searchBtn.setIconCls("extIcon extSearch redColor");
-            } else {
-                searchBtn.setIconCls("extIcon extSearch grayColor");
+        let pagingToolBar = grid.child('#pagingToolBar');
+        if (pagingToolBar) {
+            let searchBtn = pagingToolBar.down("button[toolType=searchBtn]");
+            if (searchBtn) {
+                if (hasSearch) {
+                    searchBtn.setIconCls("extIcon extSearch redColor");
+                } else {
+                    searchBtn.setIconCls("extIcon extSearch grayColor");
+                }
             }
         }
     } catch (e) {
@@ -171,9 +178,9 @@ function checkColumnSearch(grid) {
 function checkColumnSort(grid) {
     try {
         let hasSort = grid.getStore().getSorters().length > 0;
-        let dockeds = grid.getDockedItems('toolbar[dock="bottom"]');
-        if (dockeds.length > 0) {
-            let sortBtn = dockeds[0].down("button[toolType=sortBtn]");
+        let pagingToolBar = grid.child('#pagingToolBar');
+        if (pagingToolBar) {
+            let sortBtn = pagingToolBar.down("button[toolType=sortBtn]");
             if (hasSort) {
                 sortBtn.setIconCls("extIcon extSort redColor");
             } else {
@@ -342,7 +349,11 @@ function buildSearchItem(column, where) {
                 }
             }
         };
-        editorField.editable = true;
+        if (isEnumField(editorField)) {
+            editorField.editable = false;
+        } else {
+            editorField.editable = true;
+        }
         editorField.emptyText = "请输入条件值";
 
         // 此处是移除默认的trigger
@@ -601,6 +612,9 @@ function hasColumnField(column) {
     return false;
 }
 
+/**
+ * 是否是日期列
+ */
 function isDateColumn(column) {
     if (!column) {
         return false;
@@ -616,6 +630,18 @@ function isNumberColumn(column) {
         return false;
     }
     return isNumberField(column.field);
+}
+
+/**
+ * 是否是下拉框列
+ * @param column
+ * @returns {string}
+ */
+function isComboColumn(column) {
+    if (!column) {
+        return false;
+    }
+    return isComboField(column.field);
 }
 
 /**
@@ -672,6 +698,45 @@ function isLinkColumn(column) {
         return false;
     }
     return isLinkField(column.field);
+}
+
+
+/**
+ * 是否是地图的列
+ * @param column
+ * @returns {boolean|boolean|*}
+ */
+function isMapColumn(column) {
+    if (!column) {
+        return false;
+    }
+    return isMapField(column.field);
+}
+
+
+/**
+ * 是否是省市区选择的列
+ * @param column
+ * @returns {boolean|boolean|*}
+ */
+function isPCAColumn(column) {
+    if (!column) {
+        return false;
+    }
+    return isPCAField(column.field);
+}
+
+
+/**
+ * 是否是目标选择的列
+ * @param column
+ * @returns {boolean|boolean|*}
+ */
+function isTargetColumn(column) {
+    if (!column) {
+        return false;
+    }
+    return isTargetField(column.field);
 }
 
 
@@ -739,6 +804,9 @@ function scrollToColumn(grid, dataIndex, text) {
     let column = getColumn(grid, dataIndex, text);
     blinkColumn(column);
     let x = column.getLocalX();
+    if (column.isSubHeader) {
+        x += column.ownerCt.getLocalX();
+    }
     grid.view.getEl().scrollTo("left", x, true);
 }
 
@@ -763,11 +831,11 @@ function batchEditColumn(column) {
             let selectData = getColumnGrid(column).getSelectionModel().getSelection();
             if (selectData.length > 0) {
                 Ext.each(selectData, function (record, index) {
-                    setRecordValue(record, column.dataIndex, fieldObj);
+                    setRecordValue(record, column.dataIndex, fieldObj, append);
                 });
             } else {
                 getColumnGrid(column).getStore().each(function (record, index) {
-                    setRecordValue(record, column.dataIndex, fieldObj);
+                    setRecordValue(record, column.dataIndex, fieldObj, append);
                 });
             }
             getColumnGrid(column).getStore().holdUpdate = false;
@@ -831,7 +899,8 @@ function batchEditColumn(column) {
                             handler: function () {
                                 column.batchEditMenu.doUpdate();
                             }
-                        }]
+                        }
+                    ]
                 }],
             listeners: {
                 show: function (obj, epts) {
@@ -880,93 +949,91 @@ function configColumnSearchLink(column) {
  * @param obj
  */
 function showColumnSearchWin(obj, grid) {
-    let store = getGridColumnStore(grid, true);
-    let buildItem = function (data, where) {
-        let inputItem = buildSearchItem(getColumn(grid, data.get("id"), data.get("text")), where);
-        inputItem.removeSearch = function () {
-            this.ownerCt.destroy();
-        };
-        return {
-            xtype: 'panel',
-            flex: 1,
-            columnWidth: 1,
-            layout: 'hbox',
-            margin: '0',
-            border: 0,
-            toParam: function () {
-                let param = {};
-                let combo = this.items.get(0);
-                let data = combo.getStore().findRecord("id", combo.getValue(), 0, false, false, true);
-                param["text"] = data.get("text");
-                param["dataIndex"] = data.get("id");
-                let inputItem = this.items.get(1);
-                param = mergeJson(param, inputItem.toParam());
-                return param;
-            },
-            items: [
-                {
-                    xtype: 'combo',
-                    region: 'west',
-                    valueField: 'id',
-                    displayField: 'text',
-                    flex: 0.4,
-                    margin: '2 0 0 2',
-                    value: data.get("id"),
-                    editable: false,
-                    listeners: {
-                        change: function (obj, newValue, oldValue, eOpts) {
-                            let parent = this.up("panel");
-                            parent.remove(parent.items.get(1), true);
-                            let data = obj.getStore().findRecord("id", newValue, 0, false, false, true);
-
-                            let inputItem = buildSearchItem(getColumn(grid, data.get("id"), data.get("text")));
-                            inputItem.removeSearch = function () {
-                                this.ownerCt.destroy();
-                            };
-                            parent.insert(1, inputItem);
-                        }
-                    },
-                    store: store
-                },
-                inputItem
-            ]
-        };
-    };
-
-    let defaultItems = grid.searchItems;
-    if (!defaultItems) {
-        defaultItems = [];
-    }
-
-    let formPanel = Ext.create('Ext.form.FormPanel', {
-        margin: '5',
-        border: 0,
-        layout: 'column',
-        width: 400,
-        scrollable: true,
-        defaults: {
-            labelWidth: 80,
-            margin: '5 5 5 5',
-            labelAlign: 'right',
-            emptyText: '请填写'
-        },
-        items: defaultItems,
-    });
-
-    Ext.each(grid.getColumns(), function (item) {
-        if (item.where) {
-            let data = store.findRecord("id", item.dataIndex, 0, false, false, true);
-            for (let i = 0; i < item.where.length; i++) {
-                formPanel.add(buildItem(data, item.where[i]));
-            }
-        }
-    });
-    if (formPanel.items.length === 0) {
-        formPanel.add(buildItem(store.getAt(0)));
-    }
-
-
     if (!obj.searchWin) {
+        let store = getGridColumnStore(grid, true);
+        let buildItem = function (data, where) {
+            let inputItem = buildSearchItem(getColumn(grid, data.get("id"), data.get("text")), where);
+            inputItem.removeSearch = function () {
+                this.ownerCt.destroy();
+            };
+            return {
+                xtype: 'panel',
+                flex: 1,
+                columnWidth: 1,
+                layout: 'hbox',
+                margin: '0',
+                border: 0,
+                toParam: function () {
+                    let param = {};
+                    let combo = this.items.get(0);
+                    let data = combo.getStore().findRecord("id", combo.getValue(), 0, false, false, true);
+                    param["text"] = data.get("text");
+                    param["dataIndex"] = data.get("id");
+                    let inputItem = this.items.get(1);
+                    param = mergeJson(param, inputItem.toParam());
+                    return param;
+                },
+                items: [
+                    {
+                        xtype: 'combo',
+                        region: 'west',
+                        valueField: 'id',
+                        displayField: 'text',
+                        flex: 0.4,
+                        margin: '2 0 0 2',
+                        value: data.get("id"),
+                        editable: false,
+                        listeners: {
+                            change: function (obj, newValue, oldValue, eOpts) {
+                                let parent = this.up("panel");
+                                parent.remove(parent.items.get(1), true);
+                                let data = obj.getStore().findRecord("id", newValue, 0, false, false, true);
+
+                                let inputItem = buildSearchItem(getColumn(grid, data.get("id"), data.get("text")));
+                                inputItem.removeSearch = function () {
+                                    this.ownerCt.destroy();
+                                };
+                                parent.insert(1, inputItem);
+                            }
+                        },
+                        store: store
+                    },
+                    inputItem
+                ]
+            };
+        };
+
+        let defaultItems = grid.searchItems;
+        if (!defaultItems) {
+            defaultItems = [];
+        }
+
+        let formPanel = Ext.create('Ext.form.FormPanel', {
+            margin: '5',
+            border: 0,
+            layout: 'column',
+            width: 400,
+            scrollable: true,
+            defaults: {
+                labelWidth: 80,
+                margin: '5 5 5 5',
+                labelAlign: 'right',
+                emptyText: '请填写'
+            },
+            items: defaultItems,
+        });
+
+        Ext.each(grid.getColumns(), function (item) {
+            if (item.where) {
+                let data = store.findRecord("id", item.dataIndex, 0, false, false, true);
+                for (let i = 0; i < item.where.length; i++) {
+                    formPanel.add(buildItem(data, item.where[i]));
+                }
+            }
+        });
+        if (formPanel.items.length === 0) {
+            formPanel.add(buildItem(store.getAt(0)));
+        }
         obj.searchWin = Ext.create('Ext.window.Window', {
             title: '搜索数据',
             layout: 'fit',
@@ -1041,423 +1108,101 @@ function showColumnSearchWin(obj, grid) {
 
 
 /**
- * 批量随机值
- * @param column
- */
-function batchEditColumnRandom(column) {
-    let idCode = "Random" + Ext.now();
-    let autoType = 1;
-    let dateFormat = 'Y-m-d H:i:s';
-    let dataLength = getColumnGrid(column).getStore().getTotalCount();
-    let title = "批量随机生成当前页的【" + column.text + "】列数据";
-    if (getColumnGrid(column).getSelection().length > 0) {
-        title = "批量随机生成选择的" + getColumnGrid(column).getSelection().length + "条【" + column.text + "】列数据";
-        dataLength = getColumnGrid(column).getSelection().length;
-    }
-    if (isNumberColumn(column) || isEnumColumn(column) || isLinkColumn(column)) {
-        autoType = 2;
-    } else if (isDateColumn(column)) {
-        autoType = 3;
-        if (Ext.isObject(column.field)) {
-            dateFormat = column.field.format;
-        }
-    }
-
-    let textField = {
-        xtype: 'fieldcontainer',
-        layout: 'column',
-        columnWidth: 1,
-        id: idCode + "_1",
-        defaults: {
-            labelWidth: 60,
-            margin: '5 5 5 5',
-            labelAlign: 'right',
-            columnWidth: 1,
-            emptyText: '请填写'
-        },
-        items: [
-            {
-                xtype: 'fieldset',
-                columnWidth: 1,
-                layout: 'column',
-                defaults: {
-                    labelWidth: 60,
-                    margin: '5 5 5 5',
-                    labelAlign: 'right',
-                    columnWidth: 1,
-                    emptyText: '请填写'
-                },
-                title: '文字设置',
-                items: [
-                    {
-                        fieldLabel: '文字前缀',
-                        name: 'textPrefix',
-                        allowBlank: false,
-                        xtype: 'textfield',
-                    },
-                    {
-                        fieldLabel: '开始序数',
-                        name: 'textStartNumber',
-                        value: 1,
-                        allowBlank: false,
-                        xtype: 'numberfield',
-                    }
-                ]
-            }
-        ]
-    };
-    let numberField = {
-        xtype: 'fieldcontainer',
-        layout: 'column',
-        columnWidth: 1,
-        id: idCode + "_2",
-        hidden: true,
-        disabled: true,
-        defaults: {
-            labelWidth: 60,
-            margin: '5 5 5 5',
-            labelAlign: 'right',
-            columnWidth: 1,
-            emptyText: '请填写'
-        },
-        items: [
-            {
-                xtype: 'fieldset',
-                columnWidth: 1,
-                layout: 'column',
-                defaults: {
-                    labelWidth: 60,
-                    margin: '5 5 5 5',
-                    labelAlign: 'right',
-                    columnWidth: 1,
-                    emptyText: '请填写'
-                },
-                title: '数字设置',
-                items: [
-                    {
-                        fieldLabel: '保留位数',
-                        name: 'dotNumber',
-                        value: 0,
-                        allowBlank: false,
-                        xtype: 'numberfield',
-                    },
-                    {
-                        fieldLabel: '最小数字',
-                        name: 'minNumber',
-                        value: 0,
-                        allowBlank: false,
-                        xtype: 'numberfield',
-                    },
-                    {
-                        fieldLabel: '最大数字',
-                        name: 'maxNumber',
-                        allowBlank: false,
-                        xtype: 'numberfield',
-                    }
-                ]
-            }
-        ]
-    };
-
-    let dateField = {
-        xtype: 'fieldcontainer',
-        layout: 'column',
-        columnWidth: 1,
-        id: idCode + "_3",
-        hidden: true,
-        disabled: true,
-        defaults: {
-            labelWidth: 60,
-            margin: '5 5 5 5',
-            labelAlign: 'right',
-            columnWidth: 1,
-            emptyText: '请填写'
-        },
-        items: [
-            {
-                xtype: 'fieldset',
-                columnWidth: 1,
-                layout: 'column',
-                defaults: {
-                    labelWidth: 60,
-                    margin: '5 5 5 5',
-                    labelAlign: 'right',
-                    columnWidth: 1,
-                    emptyText: '请填写'
-                },
-                title: '日期设置',
-                items: [
-                    {
-                        fieldLabel: '最小日期',
-                        xtype: 'datefield',
-                        name: 'minDate',
-                        allowBlank: false,
-                        format: dateFormat
-                    },
-                    {
-                        fieldLabel: '最大日期',
-                        xtype: 'datefield',
-                        name: 'maxDate',
-                        allowBlank: false,
-                        format: dateFormat
-                    }
-                ]
-            }
-        ]
-    };
-
-
-    let setPanel = Ext.create('Ext.form.Panel', {
-        bodyPadding: 5,
-        region: 'center',
-        autoScroll: true,
-        layout: "column",
-        defaults: {
-            labelWidth: 60,
-            margin: '5 5 5 5',
-            labelAlign: 'right',
-            columnWidth: 1,
-            emptyText: '请填写'
-        },
-        items: [
-            {
-                xtype: "combo",
-                name: 'autoType',
-                fieldLabel: '随机类型',
-                editable: false,
-                displayField: "text",
-                valueField: "id",
-                value: 1,
-                listeners: {
-                    change: function (obj, newValue, oldValue, eOpts) {
-                        Ext.getCmp(idCode + "_" + oldValue).setHidden(true);
-                        Ext.getCmp(idCode + "_" + oldValue).setDisabled(true);
-
-                        Ext.getCmp(idCode + "_" + newValue).setHidden(false);
-                        Ext.getCmp(idCode + "_" + newValue).setDisabled(false);
-                    }
-                },
-                store: Ext.create('Ext.data.Store', {
-                    fields: ["id", "text"],
-                    data: [
-                        {
-                            'text': '文本',
-                            "id": 1
-                        },
-                        {
-                            'text': '数字',
-                            "id": 2
-                        },
-                        {
-                            'text': '日期',
-                            "id": 3
-                        }]
-                })
-            }, textField, numberField, dateField
-        ]
-    });
-
-
-    let setColumnValue = function (valueArray) {
-        if (valueArray.length === 0 || !(getColumnGrid(column).getStore())) return;
-        getColumnGrid(column).getStore().holdUpdate = true;
-        let selectData = getColumnGrid(column).getSelectionModel().getSelection();
-        if (selectData.length > 0) {
-            Ext.each(selectData, function (record, index) {
-                record.set(column.dataIndex, valueArray[index]);
-            });
-        } else {
-            getColumnGrid(column).getStore().each(function (record, index) {
-                record.set(column.dataIndex, valueArray[index]);
-            });
-        }
-        getColumnGrid(column).getStore().holdUpdate = false;
-        getColumnGrid(column).getStore().fireEvent("endupdate");
-    };
-
-    let win = Ext.create('Ext.window.Window', {
-        title: title,
-        height: 360,
-        iconCls: 'extIcon extRandom',
-        width: 450,
-        layout: 'border',
-        items: [setPanel],
-        modal: true,
-        constrain: true,
-        listeners: {
-            show: function () {
-                let autoTypeField = setPanel.getField("autoType");
-                autoTypeField.setValue(autoType);
-                autoTypeField.setReadOnly(autoType != 1);
-            }
-        },
-        buttons: [
-            "->",
-            {
-                text: '取消',
-                iconCls: 'extIcon extClose',
-                handler: function () {
-                    win.close();
-                }
-            }, {
-                text: '立即生成',
-                iconCls: 'extIcon extOk whiteColor',
-                handler: function () {
-                    let form = setPanel.getForm();
-                    if (form.isValid()) {
-                        let valueArray = [];
-                        let buildType = setPanel.getFieldValue("autoType");
-                        if (buildType === 1) {//文本
-                            let textPrefix = setPanel.getFieldValue("textPrefix");
-                            let textStartNumber = setPanel.getFieldValue("textStartNumber");
-                            for (let i = parseInt(textStartNumber); i < Number.MAX_VALUE; i++) {
-                                valueArray.push(textPrefix + i);
-                                if (valueArray.length === dataLength) {
-                                    break;
-                                }
-                            }
-                        } else if (buildType === 2) {//数字
-                            let dotNumber = setPanel.getFieldValue("dotNumber");
-                            let minNumber = setPanel.getFieldValue("minNumber");
-                            let maxNumber = setPanel.getFieldValue("maxNumber");
-                            if (minNumber > maxNumber) {
-                                showAlert("系统提醒", "最大数字必须大于最小数字！");
-                                return;
-                            }
-                            for (let i = 0; i < Number.MAX_VALUE; i++) {
-                                let numberValue = Math.random() * (maxNumber - minNumber) + minNumber;
-                                valueArray.push(numberValue.toFixed(dotNumber));
-                                if (valueArray.length === dataLength) {
-                                    break;
-                                }
-                            }
-                        } else if (buildType === 3) {//日期
-                            let minDate = setPanel.getFieldValue("minDate");
-                            let maxDate = setPanel.getFieldValue("maxDate");
-                            if (minDate.getTime() > maxDate.getTime()) {
-                                showAlert("系统提醒", "最大日期必须大于最小日期！");
-                                return;
-                            }
-                            for (let i = 0; i < Number.MAX_VALUE; i++) {
-                                let sub = maxDate.getTime() - minDate.getTime();
-                                let numberValue = Math.random() * sub + minDate.getTime();
-                                let randDate = new Date(numberValue);
-                                valueArray.push(Ext.Date.format(randDate, setPanel.getField("minDate").format));
-                                if (valueArray.length === dataLength) {
-                                    break;
-                                }
-                            }
-                        }
-                        setColumnValue(valueArray);
-                        win.close();
-                    }
-                }
-            }]
-    });
-    win.show();
-}
-
-
-/**
  * 显示列排序窗体
  * @param obj
  */
 function showColumnSortWin(obj, grid) {
-    let store = getGridColumnStore(grid);
-
-    let buildItem = function (data, defaultValue) {
-        if (!defaultValue) {
-            defaultValue = "ASC";
-        }
-        return {
-            xtype: 'panel',
-            flex: 1,
-            columnWidth: 1,
-            layout: 'hbox',
-            margin: '0',
-            border: 0,
-            toParam: function () {
-                let param = {};
-                let combo = this.items.get(0);
-                param["property"] = combo.getValue();
-                let directionItem = this.items.get(1);
-                param["direction"] = directionItem.getValue();
-                return param;
-            },
-            items: [
-                {
-                    xtype: 'combo',
-                    region: 'west',
-                    valueField: 'id',
-                    flex: 0.4,
-                    margin: '2 0 0 2',
-                    value: data.get("id"),
-                    displayField: 'text',
-                    editable: false,
-                    store: store
-                },
-                {
-                    xtype: 'combo',
-                    flex: 1,
-                    valueField: 'value',
-                    editable: false,
-                    margin: '2 2 0 2',
-                    value: defaultValue,
-                    triggers: {
-                        close: {
-                            cls: 'text-clear',
-                            handler: function () {
-                                this.ownerCt.destroy();
-                            }
-                        }
-                    },
-                    store: Ext.create('Ext.data.Store', {
-                        fields: ["id", "text"],
-                        data: [
-                            {
-                                'text': '无',
-                                'value': 'NONE'
-                            },
-                            {
-                                'text': '正序',
-                                "value": 'ASC'
-                            },
-                            {
-                                'text': '倒序',
-                                "value": 'DESC'
-                            }]
-                    })
-                },
-            ]
-        };
-    };
-
-    let formPanel = Ext.create('Ext.form.FormPanel', {
-        margin: '5',
-        border: 0,
-        layout: 'column',
-        width: 400,
-        scrollable: true,
-        defaults: {
-            labelWidth: 80,
-            margin: '5 5 5 5',
-            labelAlign: 'right',
-            emptyText: '请填写'
-        },
-        items: [],
-    });
-
-    grid.getStore().getSorters().each(function (item) {
-        let data = store.findRecord("id", item.getProperty(), 0, false, false, true);
-        formPanel.add(buildItem(data, item.getDirection()));
-    });
-
-    if (formPanel.items.length === 0) {
-        formPanel.add(buildItem(store.getAt(0), "NONE"));
-    }
-
-
     if (!obj.sortWin) {
+        let store = getGridColumnStore(grid);
+        let buildItem = function (data, defaultValue) {
+            if (!defaultValue) {
+                defaultValue = "ASC";
+            }
+            return {
+                xtype: 'panel',
+                flex: 1,
+                columnWidth: 1,
+                layout: 'hbox',
+                margin: '0',
+                border: 0,
+                toParam: function () {
+                    let param = {};
+                    let combo = this.items.get(0);
+                    param["property"] = combo.getValue();
+                    let directionItem = this.items.get(1);
+                    param["direction"] = directionItem.getValue();
+                    return param;
+                },
+                items: [
+                    {
+                        xtype: 'combo',
+                        region: 'west',
+                        valueField: 'id',
+                        flex: 0.4,
+                        margin: '2 0 0 2',
+                        value: data.get("id"),
+                        displayField: 'text',
+                        editable: false,
+                        store: store
+                    },
+                    {
+                        xtype: 'combo',
+                        flex: 1,
+                        valueField: 'value',
+                        editable: false,
+                        margin: '2 2 0 2',
+                        value: defaultValue,
+                        triggers: {
+                            close: {
+                                cls: 'text-clear',
+                                handler: function () {
+                                    this.ownerCt.destroy();
+                                }
+                            }
+                        },
+                        store: Ext.create('Ext.data.Store', {
+                            fields: ["id", "text"],
+                            data: [
+                                {
+                                    'text': '无',
+                                    'value': 'NONE'
+                                },
+                                {
+                                    'text': '正序',
+                                    "value": 'ASC'
+                                },
+                                {
+                                    'text': '倒序',
+                                    "value": 'DESC'
+                                }]
+                        })
+                    },
+                ]
+            };
+        };
+        let formPanel = Ext.create('Ext.form.FormPanel', {
+            margin: '5',
+            border: 0,
+            layout: 'column',
+            width: 400,
+            scrollable: true,
+            defaults: {
+                labelWidth: 80,
+                margin: '5 5 5 5',
+                labelAlign: 'right',
+                emptyText: '请填写'
+            },
+            items: [],
+        });
+
+        grid.getStore().getSorters().each(function (item) {
+            let data = store.findRecord("id", item.getProperty(), 0, false, false, true);
+            formPanel.add(buildItem(data, item.getDirection()));
+        });
+
+        if (formPanel.items.length === 0) {
+            formPanel.add(buildItem(store.getAt(0), "NONE"));
+        }
         obj.sortWin = Ext.create('Ext.window.Window', {
             title: '排序数据',
             layout: 'fit',
@@ -1516,8 +1261,6 @@ function showColumnSortWin(obj, grid) {
         grid.ownerCt.add(obj.sortWin);
     }
     obj.sortWin.show();
-
-
 }
 
 

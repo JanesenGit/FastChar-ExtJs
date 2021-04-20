@@ -38,6 +38,7 @@ function commitStoreUpdate(store) {
         let phantoms = store.getNewRecords();
         records = records.concat(phantoms);
         if (records.length === 0) {
+            resolve(true);
             return;
         }
         store.commiting = true;
@@ -59,7 +60,7 @@ function commitStoreUpdate(store) {
             store.commiting = false;
             resolve(success);
             if (success) {
-                toast('修改成功!');
+                toast(message);
                 store.commitChanges();
             } else {
                 Ext.Msg.alert('系统提醒', message);
@@ -90,7 +91,7 @@ function commitStoreDelete(store, data) {
         server.deleteEntity(params, function (success, message) {
             resolve(success);
             if (success) {
-                toast('删除成功!');
+                toast(message);
                 let reloadPage = store.currentPage;
                 if (store.count() - data.length <= 0) {
                     reloadPage = reloadPage - 1;
@@ -160,7 +161,7 @@ function commitStoreCopy(store, data) {
         server.copyEntity(params, function (success, message) {
             resolve(success);
             if (success) {
-                toast('复制成功!');
+                toast(message);
                 let reloadPage = store.currentPage;
                 if (store.count() - data.length <= 0) {
                     reloadPage = reloadPage - 1;
@@ -232,10 +233,11 @@ function getEntityDataStore(entity, where, tree) {
             }
         },
         listeners: {
-            endupdate: function (eOpts) {
-            },
-            beforeload: function (store, options) {
+            beforeload:  function ( store, options, eOpts) {
                 try {
+                    if (!store.entity || !store.entity.entityCode) {
+                        return false;
+                    }
                     let params = store.proxy.extraParams;
                     let newParams = {
                         "entityCode": store.entity.entityCode,
@@ -287,6 +289,14 @@ function getEntityDataStore(entity, where, tree) {
 
                         checkColumnSearch(store.grid);
                     }
+                    if (store.grid) {
+                        if (Ext.isFunction(store.grid.onBeforeLoad)) {
+                            let result = store.grid.onBeforeLoad(store.grid, store, newParams);
+                            if (!toBool(result, true)) {
+                                return false;
+                            }
+                        }
+                    }
                     store.getProxy().setExtraParams(mergeJson(params, newParams));
                     return true;
                 } catch (e) {
@@ -295,11 +305,29 @@ function getEntityDataStore(entity, where, tree) {
             }
         }
     };
-    if (tree) {
-        return Ext.create('Ext.data.TreeStore', config);
-    }
     config.autoLoad = false;
-    return Ext.create('Ext.data.Store', config);
+    let entityStore;
+    if (tree) {
+        config["root"]={
+            expanded: true
+        }
+        entityStore = Ext.create('Ext.data.TreeStore', config);
+    }else{
+        entityStore = Ext.create('Ext.data.Store', config);
+    }
+
+    entityStore.on("load", function (store) {
+        setTimeout(function () {
+            try {
+                if (store.grid) {
+                    store.grid.syncRowHeights();
+                }
+            } catch (e) {
+            }
+        }, 300);
+    });
+
+    return entityStore;
 }
 
 
@@ -308,13 +336,18 @@ function getEntityDataStore(entity, where, tree) {
  * @param enumName
  * @param firstData
  * @param lastData
+ * @param params
+ * @param useCache
  */
-function getEnumDataStore(enumName, firstData, lastData, params) {
+function getEnumDataStore(enumName, firstData, lastData, params,useCache) {
     if (!params) {
         params = {};
     }
+    if (Ext.isEmpty(useCache)) {
+        useCache = true;
+    }
     let cacheKey = $.md5(enumName + Ext.JSON.encode(params));
-    if (!MemoryCache.hasOwnProperty(cacheKey)) {
+    if (!useCache || !MemoryCache.hasOwnProperty(cacheKey)) {
         Ext.Ajax.request({
             url: 'showEnums?enumName=' + enumName,
             async: false,

@@ -50,5 +50,24 @@ public class ExtFileUtils {
         return null;
     }
 
+    /**
+     * 合并文件
+     */
+    public static void merge(File targetFile, File... files) {
+        try {
+            StringBuilder builder = new StringBuilder();
+            for (File file : files) {
+                if (file.exists()) {
+                    String jsContent = FastFileUtils.readFileToString(file, StandardCharsets.UTF_8);
+                    builder.append(jsContent);
+                }
+            }
+            FastFileUtils.writeStringToFile(targetFile, builder.toString(), StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
 
 }

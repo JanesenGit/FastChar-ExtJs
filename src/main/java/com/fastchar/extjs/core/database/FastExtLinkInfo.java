@@ -2,6 +2,7 @@ package com.fastchar.extjs.core.database;
 
 import com.fastchar.core.FastBaseInfo;
 import com.fastchar.database.info.FastColumnInfo;
+import com.fastchar.database.info.FastTableInfo;
 
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -10,11 +11,11 @@ import java.util.Map;
 public class FastExtLinkInfo extends FastBaseInfo {
 
     private static final long serialVersionUID = -2930962312837008230L;
-    private String tableName;//被关联的表明
+    private String tableName;//被关联的表名
     private String keyColumnName;//被关联的key列名
     private LinkedHashSet<String> textColumnNames = new LinkedHashSet<>();//被关联的text列名
     private Map<String, FastColumnInfo<?>> textColumnInfo = new HashMap<>();
-
+    private FastTableInfo<?> tableInfo;
 
     private FastColumnInfo<?> keyColumn;
 
@@ -63,4 +64,12 @@ public class FastExtLinkInfo extends FastBaseInfo {
         return this.textColumnInfo.get(textColumnName);
     }
 
+    public FastTableInfo<?> getTableInfo() {
+        return tableInfo;
+    }
+
+    public FastExtLinkInfo setTableInfo(FastTableInfo<?> tableInfo) {
+        this.tableInfo = tableInfo;
+        return this;
+    }
 }

@@ -17,10 +17,11 @@
 </head>
 <body onload="onPageLoad();">
 <div id="container"></div>
+
 </body>
 
 <script type="text/javascript">
-    let map = null, geolocation = null, marker = null, geocoder;
+    let map = null, geolocation = null, marker = null, geocoder, imageLayerArray = [];
 
     function getQueryString(name) {
         let reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)");
@@ -81,8 +82,6 @@
                 map.addControl(new AMap.ToolBar());
                 // 在图面添加比例尺控件，展示地图在当前层级和纬度下的比例尺
                 map.addControl(new AMap.Scale());
-                // 在图面添加鹰眼控件，在地图右下角显示地图的缩略图
-                map.addControl(new AMap.HawkEye({isOpen: true}));
                 // 在图面添加类别切换控件，实现默认图层与卫星图、实施交通图层之间切换的控制
                 map.addControl(new AMap.MapType());
 
@@ -100,9 +99,11 @@
                 });
 
                 window.parent.onMapLoadDone();
+
+                addScript({src: "fast-img-layer.js"});
             });
 
-            map.on('click', function(ev) {
+            map.on('click', function (ev) {
                 searchPosition(ev.lnglat);
             });
         } catch (e) {
@@ -127,7 +128,7 @@
     //开始定位
     function startLocation() {
         geolocation.getCityInfo(function (status, result) {
-            if (status == "complete") {
+            if (status === "complete") {
                 window.parent.closeMapMask();
                 let position = new AMap.LngLat(result.position[0], result.position[1], true);
                 initMarker(position);
@@ -157,9 +158,9 @@
                     result.regeocode.formattedAddress, province, city, district);
                 if (marker) {
                     marker.setPosition(position);
-                    map.setZoomAndCenter(14, position);
+                    map.setCenter(position);
                 }
-            }else if (status == 'no_data') {
+            } else if (status === 'no_data') {
                 window.parent.alert("未检索到位置信息！");
             }
         });
@@ -178,9 +179,9 @@
                 let position = result.geocodes[0].location;
                 let fAddress = result.geocodes[0].formattedAddress;
                 marker.setPosition(position);
-                map.setZoomAndCenter(14, position);
-                window.parent.setMarkCurrPos(position, fAddress,province,city,district);
-            }else if (status == 'no_data') {
+                map.setCenter(position);
+                window.parent.setMarkCurrPos(position, fAddress, province, city, district);
+            } else if (status === 'no_data') {
                 window.parent.alert("未检索到位置信息！");
             }
         });
@@ -194,5 +195,9 @@
         map.setZoomAndCenter(14, position);
         searchPosition(position);
     }
+
+
+
+
 </script>
 </html>

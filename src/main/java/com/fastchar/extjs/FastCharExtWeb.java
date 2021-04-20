@@ -2,7 +2,6 @@ package com.fastchar.extjs;
 
 
 import com.fastchar.annotation.AFastPriority;
-import com.fastchar.core.FastChar;
 import com.fastchar.core.FastEngine;
 import com.fastchar.extjs.accepter.FastExtEntityAccepter;
 import com.fastchar.extjs.accepter.FastExtEnumAccepter;
@@ -13,18 +12,13 @@ import com.fastchar.extjs.interceptor.FastExtGlobalInterceptor;
 import com.fastchar.extjs.interceptor.FastExtFileInterceptor;
 import com.fastchar.extjs.interceptor.FastExtRootAttachInterceptor;
 import com.fastchar.extjs.local.FastExtLocal_CN;
-import com.fastchar.extjs.observer.FastHeadXmlObserver;
+import com.fastchar.extjs.observer.FastHeadHtmlObserver;
 import com.fastchar.extjs.observer.FastMenuXmlObserver;
 import com.fastchar.extjs.out.FastExtParamError;
 import com.fastchar.extjs.provider.FastExtEnum;
-import com.fastchar.extjs.utils.ExtFileUtils;
 import com.fastchar.extjs.validators.FastEnumValidator;
-import com.fastchar.interfaces.IFastWeb;
 import com.fastchar.interfaces.IFastWebRun;
 import com.fastchar.out.FastOutJson;
-import com.fastchar.utils.FastStringUtils;
-
-import java.io.File;
 
 @AFastPriority(-1)
 public final class FastCharExtWeb implements IFastWebRun {
@@ -37,22 +31,23 @@ public final class FastCharExtWeb implements IFastWebRun {
             engine.getFindClass()
                     .find("com.google.gson.Gson", "https://mvnrepository.com/artifact/com.google.code.gson/gson")
                     .find("org.jsoup.Jsoup", "https://mvnrepository.com/artifact/org.jsoup/jsoup")
-                    .find("org.apache.poi.POIDocument", "https://mvnrepository.com/artifact/org.apache.poi/poi-ooxml")
-                    .find("org.apache.xmlbeans.XmlBeans", "https://mvnrepository.com/artifact/org.apache.xmlbeans/xmlbeans")
-                    .find("net.coobird.thumbnailator.Thumbnails", "https://mvnrepository.com/artifact/net.coobird/thumbnailator")
+                    .find("org.apache.poi.POIDocument", "https://mvnrepository.com/artifact/org.apache.poi/poi-ooxml",false)
+                    .find("org.apache.xmlbeans.XmlBeans", "https://mvnrepository.com/artifact/org.apache.xmlbeans/xmlbeans",false)
+                    .find("net.coobird.thumbnailator.Thumbnails", "https://mvnrepository.com/artifact/net.coobird/thumbnailator",false)
                     .find("com.yahoo.platform.yui.compressor.YUICompressor", "https://mvnrepository.com/artifact/com.yahoo.platform.yui/yuicompressor")
-                    .find("org.apache.velocity.VelocityContext", "https://mvnrepository.com/artifact/org.apache.velocity/velocity-engine-core");
+                    .find("org.apache.velocity.VelocityContext", "https://mvnrepository.com/artifact/org.apache.velocity/velocity-engine-core",false);
 
         }
         engine.getActions()
                 .setDefaultOut(FastOutJson.class);
 
         engine.getConfig(FastExtConfig.class)
-                .getMergeJs().delete();
+                .getMergeJs()
+                .delete();
 
         engine.getObservable()
                 .addObserver(new FastMenuXmlObserver())
-                .addObserver(new FastHeadXmlObserver());
+                .addObserver(new FastHeadHtmlObserver());
 
         engine.getOverrides()
                 .add(FastEnumValidator.class)
@@ -83,6 +78,5 @@ public final class FastCharExtWeb implements IFastWebRun {
 
     @Override
     public void onRun(FastEngine engine) throws Exception {
-        YuiCompress.releaseYuiCompressor();
     }
 }

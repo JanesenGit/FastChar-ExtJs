@@ -25,6 +25,7 @@ public class FastExtEnum extends FastExtBaseEnum {
         enumClass = FastExtEnumAccepter.ENUM_MAP.get(enumName);
     }
 
+    @Override
     public Class<? extends Enum<?>> getEnumClass() {
         return enumClass;
     }

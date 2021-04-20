@@ -25,6 +25,14 @@ public class ExtConfigAction extends FastAction {
         setLog(false);
     }
 
+
+    /**
+     * 保存ExtJs配置
+     * 参数：
+     * configKey 配置的key
+     * configType 配置类型
+     * configValue 配置的值
+     */
     public void saveExtConfig() {
         ExtManagerEntity managerEntity = getSession("manager");
         if (managerEntity == null) {
@@ -53,7 +61,10 @@ public class ExtConfigAction extends FastAction {
 
 
     /**
-     * 获得ext配置
+     * 获取ExtJs配置
+     * 参数：
+     * configKey 配置的key
+     * configType 配置的类型
      */
     public void showExtConfig() {
         ExtManagerEntity managerEntity = getSession("manager");
@@ -74,7 +85,10 @@ public class ExtConfigAction extends FastAction {
 
 
     /**
-     * 删除配置
+     * 删除ExtJs配置
+     * 参数：
+     * configKey 配置的Key
+     * configType 配置的类型
      */
     public void deleteExtConfig() {
         ExtManagerEntity managerEntity = getSession("manager");
@@ -91,6 +105,8 @@ public class ExtConfigAction extends FastAction {
 
     /**
      * 获得实体对应grid列
+     * 参数：
+     * entityCode 实体编号
      */
     public void showEntityColumn() {
         ExtManagerEntity managerEntity = getSession("manager");
@@ -111,6 +127,9 @@ public class ExtConfigAction extends FastAction {
 
     /**
      * 保存系统配置
+     * 参数：
+     * configKey 配置的key
+     * configValue 配置的值
      */
     public void saveSystemConfig() throws Exception {
         Map<String, Object> paramToMap = getParamToMap();
@@ -129,9 +148,11 @@ public class ExtConfigAction extends FastAction {
 
     /**
      * 获得系统配置
+     * 参数：
+     * 无
      */
     public void showSystemConfig() {
-        Map<String, Object> data = new HashMap<>();
+        Map<String, Object> data = new HashMap<>(16);
 
         List<FastHeadExtInfo> extInfo = FastExtConfig.getInstance().getExtInfo();
         for (FastHeadExtInfo fastHeadExtInfo : extInfo) {
@@ -145,6 +166,9 @@ public class ExtConfigAction extends FastAction {
     }
 
 
+    /**
+     * 删除系统配置
+     */
     public void deleteSystemConfig() throws Exception {
         ExtSystemConfigEntity.getInstance().deleteConfig(-1, "System");
         FastChar.getObservable().notifyObservers("refreshHeads");

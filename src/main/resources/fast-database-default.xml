@@ -10,10 +10,10 @@
                 length="250" nullable="null"/>
 
         <column name="roleMenuPower" comment="角色菜单权限" type="text"
-                nullable="null"/>
+                nullable="null" />
 
         <column name="roleExtPower" comment="角色界面权限" type="text"
-                nullable="null"/>
+                nullable="null" />
 
         <column name="roleState" comment="角色状态" type="int"
                 nullable="null" length="11" render="Enum"/>

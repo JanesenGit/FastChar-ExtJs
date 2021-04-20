@@ -13,7 +13,7 @@ import com.fastchar.utils.FastStringUtils;
 import java.util.ArrayList;
 import java.util.List;
 
-public final class FastExtLayerHelper {
+public final class FastExtBindHelper {
 
     /**
      * 根据上级构建当前实体的层级编号
@@ -25,7 +25,7 @@ public final class FastExtLayerHelper {
             //配置权限字段
             FastExtColumnInfo layerColumn = extEntity.getLayerColumn();
             if (layerColumn != null) {
-                String parentLayerCode = extEntity.getString("parentLayerCode");
+                String parentLayerCode = extEntity.getString(FastExtEntity.EXTRA_PARENT_CODE);
 
                 if (FastStringUtils.isEmpty(parentLayerCode)) {
                     FastExtColumnInfo layerLinkColumn = extEntity.getLayerLinkColumn();

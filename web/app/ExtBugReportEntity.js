@@ -243,7 +243,7 @@ function ExtBugReportEntity() {
 
 			let addWin = Ext.create('Ext.window.Window', {
 				title: '添加问题反馈',
-				height: 400,
+				height: 700,
 				icon: obj.icon,
 				iconCls: obj.iconCls,
 				width: 520,

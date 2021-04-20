@@ -3,6 +3,7 @@ package com.fastchar.extjs.core.database;
 import com.fastchar.annotation.AFastOverride;
 import com.fastchar.annotation.AFastPriority;
 import com.fastchar.core.FastChar;
+import com.fastchar.core.FastEntities;
 import com.fastchar.core.FastEntity;
 import com.fastchar.database.info.FastColumnInfo;
 import com.fastchar.database.info.FastSqlInfo;
@@ -11,7 +12,9 @@ import com.fastchar.database.sql.FastMySql;
 import com.fastchar.exception.FastSqlException;
 import com.fastchar.extjs.core.FastExtEntity;
 
-import com.fastchar.extjs.core.FastExtLayerHelper;
+import com.fastchar.extjs.core.FastExtBindHelper;
+import com.fastchar.local.FastCharLocal;
+import com.fastchar.utils.FastClassUtils;
 import com.fastchar.utils.FastStringUtils;
 
 import java.util.ArrayList;
@@ -24,54 +27,43 @@ import java.util.List;
 @AFastOverride
 public class FastExtMySql extends FastMySql {
 
-    public FastSqlInfo toSelectLayerValueSql(FastEntity<?> entity, String... checks) {
+    public FastSqlInfo toSelectValueSql(FastEntity<?> entity, String[] columns, String... checks) {
         if (entity == null) {
             return null;
         }
-        if (entity instanceof FastExtEntity) {
-            FastExtEntity<?> extEntity = (FastExtEntity<?>) entity;
 
-            FastColumnInfo<?> layerColumn = extEntity.getLayerColumn();
-            if (layerColumn == null) {
-                return null;
+        List<Object> values = new ArrayList<>();
+        List<String> checkColumns = new ArrayList<>();
+        for (String key : checks) {
+            FastColumnInfo<?> column = entity.getColumn(key);
+            if (column != null) {
+                checkColumns.add(key);
             }
-
-            List<Object> values = new ArrayList<>();
-
-            List<String> checkColumns = new ArrayList<>();
-            for (String key : checks) {
-                FastColumnInfo<?> column = entity.getColumn(key);
-                if (column != null) {
-                    checkColumns.add(key);
-                }
-            }
-
-            StringBuilder sqlBuilder = new StringBuilder("select " + layerColumn.getName() + " as layer from " + entity.getTableName() + " where 1=1 ");
-
-            if (checkColumns.size() == 0) {
-                for (FastColumnInfo<?> primary : entity.getPrimaries()) {
-                    if (entity.isEmpty(primary.getName())) {
-                        throw new FastSqlException(FastChar.getLocal().getInfo("Db_Sql_Error4", "'" + primary.getName() + "'"));
-                    }
-                    sqlBuilder.append(" and ").append(primary.getName()).append(" = ? ");
-                    values.add(getColumnValue(entity, primary));
-                }
-            } else {
-                for (String check : checkColumns) {
-                    FastColumnInfo<?> column = entity.getColumn(check);
-                    if (column != null) {
-                        sqlBuilder.append(" and ").append(check).append(" = ? ");
-                        values.add(getColumnValue(entity, column));
-                    }
-                }
-            }
-
-            FastSqlInfo sqlInfo = newSqlInfo();
-            sqlInfo.setSql(sqlBuilder.toString());
-            sqlInfo.setParams(values);
-            return sqlInfo;
         }
-        return null;
+        StringBuilder sqlBuilder = new StringBuilder("select " + FastStringUtils.join(columns, ",") + " from " + entity.getTableName() + " where 1=1 ");
+
+        if (checkColumns.size() == 0) {
+            for (FastColumnInfo<?> primary : entity.getPrimaries()) {
+                if (entity.isEmpty(primary.getName())) {
+                    throw new FastSqlException(FastChar.getLocal().getInfo(FastCharLocal.DB_SQL_ERROR4, "'" + primary.getName() + "'"));
+                }
+                sqlBuilder.append(" and ").append(primary.getName()).append(" = ? ");
+                values.add(getColumnValue(entity, primary));
+            }
+        } else {
+            for (String check : checkColumns) {
+                FastColumnInfo<?> column = entity.getColumn(check);
+                if (column != null) {
+                    sqlBuilder.append(" and ").append(check).append(" = ? ");
+                    values.add(getColumnValue(entity, column));
+                }
+            }
+        }
+
+        FastSqlInfo sqlInfo = newSqlInfo();
+        sqlInfo.setSql(sqlBuilder.toString());
+        sqlInfo.setParams(values);
+        return sqlInfo;
     }
 
 
@@ -106,7 +98,7 @@ public class FastExtMySql extends FastMySql {
         if (checkColumns.size() == 0) {
             for (FastColumnInfo<?> primary : entity.getPrimaries()) {
                 if (entity.isEmpty(primary.getName())) {
-                    throw new FastSqlException(FastChar.getLocal().getInfo("Db_Sql_Error4", "'" + primary.getName() + "'"));
+                    throw new FastSqlException(FastChar.getLocal().getInfo(FastCharLocal.DB_SQL_ERROR4, "'" + primary.getName() + "'"));
                 }
                 sqlBuilder.append(" and ").append(primary.getName()).append(" = ? ");
                 values.add(getColumnValue(entity, primary));
@@ -160,7 +152,7 @@ public class FastExtMySql extends FastMySql {
         if (checkColumns.size() == 0) {
             for (FastColumnInfo<?> primary : entity.getPrimaries()) {
                 if (entity.isEmpty(primary.getName())) {
-                    throw new FastSqlException(FastChar.getLocal().getInfo("Db_Sql_Error4", "'" + primary.getName() + "'"));
+                    throw new FastSqlException(FastChar.getLocal().getInfo(FastCharLocal.DB_SQL_ERROR4, "'" + primary.getName() + "'"));
                 }
                 sqlBuilder.append(" and ").append(primary.getName()).append(" = ? ");
                 values.add(getColumnValue(entity, primary));
@@ -202,7 +194,7 @@ public class FastExtMySql extends FastMySql {
         if (checkColumns.size() == 0) {
             for (FastColumnInfo<?> primary : entity.getPrimaries()) {
                 if (entity.isEmpty(primary.getName())) {
-                    throw new FastSqlException(FastChar.getLocal().getInfo("Db_Sql_Error4", "'" + primary.getName() + "'"));
+                    throw new FastSqlException(FastChar.getLocal().getInfo(FastCharLocal.DB_SQL_ERROR4, "'" + primary.getName() + "'"));
                 }
                 sqlBuilder.append(" and ").append(primary.getName()).append(" = ? ");
                 values.add(getColumnValue(entity, primary));
@@ -247,6 +239,7 @@ public class FastExtMySql extends FastMySql {
     @Override
     public FastSqlInfo buildInsertSql(FastEntity<?> entity, String... checks) {
         setLayerValue(entity);
+        setSameValue(entity);
         return super.buildInsertSql(entity, checks);
     }
 
@@ -259,10 +252,50 @@ public class FastExtMySql extends FastMySql {
             //配置权限字段
             FastExtColumnInfo layerColumn = extEntity.getLayerColumn();
             if (layerColumn != null && entity.isEmpty(layerColumn.getName())) {
-                entity.set(layerColumn.getName(), FastExtLayerHelper.buildLayerValue(entity));
+                entity.set(layerColumn.getName(), FastExtBindHelper.buildLayerValue(entity));
             }
         }
     }
+
+    /**
+     * 设置绑定关联表格相同属性的值，当相同属性为空的时候
+     */
+    private void setSameValue(FastEntity<?> entity) {
+        if (entity instanceof FastExtEntity) {
+            FastExtEntity<?> extEntity = (FastExtEntity<?>) entity;
+            FastExtColumnInfo sameLinkColumn = extEntity.getSameLinkColumn();
+            if (sameLinkColumn != null) {
+                FastExtLinkInfo linkInfo = sameLinkColumn.getLinkInfo();
+                if (linkInfo != null) {
+                    List<String> columns = new ArrayList<>();
+                    List<FastColumnInfo<?>> columnList = entity.getColumns();
+                    for (FastColumnInfo<?> columnInfo : columnList) {
+                        if (entity.isNotEmpty(columnInfo.getName())) {
+                            continue;
+                        }
+                        if (linkInfo.getTableInfo().checkColumn(columnInfo.getName())) {
+                            columns.add(columnInfo.getName());
+                        }
+                    }
+                    if (columns.size() > 0) {
+                        List<FastEntities.EntityInfo> entityInfo = FastChar.getEntities().getEntityInfo(linkInfo.getTableName());
+                        FastEntity<?> fastEntity = FastClassUtils.newInstance(entityInfo.get(0).getTargetClass());
+                        if (fastEntity instanceof FastExtEntity) {
+                            FastExtEntity<?> fastExtEntity = (FastExtEntity<?>) fastEntity;
+                            fastExtEntity.set(linkInfo.getKeyColumnName(), entity.get(sameLinkColumn.getName()));
+                            FastEntity<?> firstValue = fastExtEntity.selectFirstValue(columns.toArray(new String[]{}), linkInfo.getKeyColumnName());
+                            if (firstValue != null) {
+                                for (String column : columns) {
+                                    entity.set(column, firstValue.get(column));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
 
     @Override
     public FastSqlInfo buildCopySql(FastEntity<?> entity) {
@@ -295,7 +328,7 @@ public class FastExtMySql extends FastMySql {
 
             for (FastColumnInfo<?> primary : entity.getPrimaries()) {
                 if (entity.isEmpty(primary.getName())) {
-                    throw new FastSqlException(FastChar.getLocal().getInfo("Db_Sql_Error4", "'" + primary.getName() + "'"));
+                    throw new FastSqlException(FastChar.getLocal().getInfo(FastCharLocal.DB_SQL_ERROR4, "'" + primary.getName() + "'"));
                 }
                 sqlBuilder.append(" and ").append(primary.getName()).append(" = ? ");
                 values.add(getColumnValue(entity, primary));

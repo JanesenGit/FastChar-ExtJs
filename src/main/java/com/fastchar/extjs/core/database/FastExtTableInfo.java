@@ -29,13 +29,18 @@ public class FastExtTableInfo extends FastTableInfo<FastExtTableInfo> {
 
     private boolean checkLayer;
     private boolean checkLayerLink;
+    private boolean checkSameLink;
     private FastExtColumnInfo layerColumn;
     private FastExtColumnInfo layerLinkColumn;
+    private FastExtColumnInfo sameLinkColumn;
     public String getShortName() {
         if (containsKey("shortName")) {
             return getString("shortName");
         }
-        return getComment().replace("管理", "");
+        if (FastStringUtils.isNotEmpty(getComment())) {
+            return getComment().replace("管理", "");
+        }
+        return "";
     }
 
     public boolean isBindSessionLayer() {
@@ -78,6 +83,23 @@ public class FastExtTableInfo extends FastTableInfo<FastExtTableInfo> {
         }
         return layerLinkColumn;
     }
+
+    public FastExtColumnInfo getSameLinkColumn() {
+        if (sameLinkColumn == null && !checkSameLink) {
+            checkSameLink = true;
+            for (FastColumnInfo<?> column : getColumns()) {
+                if (column instanceof FastExtColumnInfo) {
+                    FastExtColumnInfo extColumnInfo = (FastExtColumnInfo) column;
+                    if (extColumnInfo.isBindSame()) {
+                        sameLinkColumn = extColumnInfo;
+                    }
+                }
+            }
+        }
+        return sameLinkColumn;
+    }
+
+
 
     @Override
     public void validate() throws FastDatabaseException {

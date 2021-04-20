@@ -44,6 +44,7 @@ function showLogin(container) {
     let headPanel = Ext.create('Ext.panel.Panel', {
         region: 'north',
         layout: 'fit',
+        bodyCls: 'bgNull',
         width: '100%',
         bodyStyle: {},
         border: 0,
@@ -65,6 +66,7 @@ function showLogin(container) {
         url: server.loginUrl(),
         method: 'POST',
         fileUpload: true,
+        bodyCls: 'bgNull',
         border: 0,
         width: '100%',
         layout: "anchor",
@@ -129,6 +131,7 @@ function showLogin(container) {
                             xtype: 'image',
                             margin: '10 10 0 0',
                             width: 70,
+                            cls: 'validCodeImg',
                             id: 'imgCode',
                             height: 32
                         }]
@@ -274,6 +277,7 @@ function showLogin(container) {
         layout: 'fit',
         width: '100%',
         height: 50,
+        bodyCls: 'bgNull',
         border: 0,
         html: "<div align='center'><a href='" + copyrightUrl + "' target='" + targetValue + "' style='font-size: xx-small;color:#aaa;text-decoration:none;'>" + copyright + "</a>" +
             "</div><div align='center' style='font-size: xx-small;color:#aaa;margin-top: 5px;'>Copyright © " + year + " " + version + "</div>"
@@ -283,9 +287,10 @@ function showLogin(container) {
     let win = Ext.create('Ext.window.Window', {
         title: '管理员登录',
         iconCls: 'extIcon extLogin',
-        width: 380,
+        width: 420,
         resizable: false,
         layout: 'vbox',
+        bodyCls: 'bgImage',
         closable: false,
         toFrontOnShow: true,
         // tools: [

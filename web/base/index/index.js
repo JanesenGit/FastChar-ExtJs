@@ -5,6 +5,7 @@ const system = {
     manager: null,//当前登录的管理员
     menus: null,//菜单
     http: null,//项目http路径
+    baseUrl:null,//首次进入系统管理界面的根路径
     regByImage: /\.(jpg|png|gif|jpeg)$/i,
     regByMP4: /\.(mp4)$/i,
     regByExcel: /\.(xls|xlsx)$/i,
@@ -37,6 +38,7 @@ const system = {
         if (!timeout) {
             timeout = 24 * 60 * 60;
         }
+
         if (operateValid) {
             callBack();
         }else{
@@ -274,6 +276,14 @@ const system = {
     },
     initConfig: function () {
         let me = this;
+        me.baseUrl = window.location.href;
+        if (me.baseUrl.indexOf("#") > 0) {
+            me.baseUrl=me.baseUrl.split("#")[0];
+        }
+        if (!me.baseUrl.toString().endWith("/")) {
+            me.baseUrl = me.baseUrl + "/";
+        }
+
         let params = {};
         if (isPower()) {
             if (window.parent && Ext.isFunction(window.parent.getMenuPower)) {
@@ -457,20 +467,18 @@ const system = {
 
 
         window.addEventListener("popstate", function (e) {
-            me.selectTabFromHref();
+            me.selectTab(me.selectTabFromHref());
         }, false);
 
         me.init = true;
         me.initSystem();
     },
     selectTabFromHref: function () {
-        let me = this;
         let href = window.location.href;
         if (href.indexOf("#") > 0) {
-            let menuId = href.substring(href.lastIndexOf("/") + 1);
-            return me.selectTab(menuId);
+            return href.substring(href.lastIndexOf("/") + 1);
         }
-        return false;
+        return null;
     },
     initSystem: function () {
         removeLoading();
@@ -571,7 +579,7 @@ const system = {
         });
 
 
-        let leftTreeWidth = document.body.clientWidth * 0.25;
+        let leftTreeWidth = parseInt((document.body.clientWidth * 0.25).toFixed(0));
         let leftTreePanel = Ext.create('Ext.panel.Panel', {
             border: 0,
             region: 'center',
@@ -720,9 +728,9 @@ const system = {
                     if (me.restoredTab) {
                         let state = {
                             title: tab.title,
-                            url: ""
+                            url: me.baseUrl
                         };
-                        window.history.pushState(state, tab.title, "");
+                        window.history.pushState(state, tab.title, me.baseUrl);
                     }
                 }
             }
@@ -737,7 +745,7 @@ const system = {
             items: [headerPanel, leftContainer, rightContainer]
         });
         container.add(containerPanel);
-        let tabFromHref = me.selectTabFromHref();
+        let tabFromHrefMenuId = me.selectTabFromHref(false);
         if (toBool(me['tab-record'].value, true)) {
             Ext.MessageBox.updateProgress(1, '即将完成操作，请耐心等待', '系统初始化成功！获取菜单中…');
             me.restoreTab().then(function (value) {
@@ -750,8 +758,8 @@ const system = {
                     return;
                 }
                 Ext.each(tabs, function (tab) {
-                    if (tabFromHref) {
-                        tab.active = false;
+                    if (tabFromHrefMenuId === tab.id) {
+                        tab.active = true;
                     }
                     me.showTab(tab.method, tab.id, tab.title, tab.icon, tab.active, true, tab.where, tab.closable, tab.reorderable);
                 });
@@ -847,12 +855,20 @@ const system = {
                 },
                 doCopyUrl: function () {
                     let tab = this;
-                    copyToBoard(system.http + "#/" + tab.title + "/" + tab.id);
+                    copyToBoard(system.baseUrl + "#/" + tab.title + "/" + tab.id);
                     toast("复制成功！");
                 },
                 listeners: {
                     deactivate: function (tab) {
-                        changeIcon(tab, false);
+                        try {
+                            changeIcon(tab, false);
+                            let entityOwner = tab.down("[entityList=true]");
+                            if (entityOwner && entityOwner.onTabDeactivate) {
+                                entityOwner.onTabDeactivate(tab);
+                            }
+                        } catch (e) {
+                            console.error(e);
+                        }
                     },
                     activate: function (tab) {
                         if (!tab) {
@@ -881,8 +897,12 @@ const system = {
                                     console.error(e);
                                 }
                             });
+                        }else{
+                            let entityOwner = tab.down("[entityList=true]");
+                            if (entityOwner && entityOwner.onTabActivate) {
+                                entityOwner.onTabActivate(tab);
+                            }
                         }
-
                         try {
                             let href = window.location.href;
                             if (href.indexOf("#") > 0) {
@@ -893,9 +913,9 @@ const system = {
                             }
                             let state = {
                                 title: tab.title,
-                                url: "#/" + tab.title + "/" + tab.id
+                                url: me.baseUrl + "#/" + tab.title + "/" + tab.id
                             };
-                            window.history.pushState(state, tab.title, "#/" + tab.title + "/" + tab.id);
+                            window.history.pushState(state, tab.title, me.baseUrl + "#/" + tab.title + "/" + tab.id);
                         } catch (e) {
                             console.error(e);
                         }
@@ -1569,5 +1589,3 @@ Ext.onReady(function () {
         system.initConfig();
     }
 });
-
-

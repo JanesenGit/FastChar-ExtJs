@@ -2,4 +2,4 @@ Manifest-Version: 1.0
 FastChar-Web: com.fastchar.extjs.FastCharExtWeb
 FastChar-Scanner: true
 FastChar-Extract: true
-FastChat-Exclude: */build-compress.txt,*/index.js,*/login.js,*/welcome.js,*/fast-ext.js,*/fast-ext-button.js,*/fast-ext-component.js,*/fast-ext-file.js,*/fast-ext-form.js,*/fast-ext-grid.js,*/fast-ext-grid-column.js,*/fast-ext-map.js,*/fast-ext-menu.js,*/fast-ext-plugin.js,*/fast-ext-power.js,*/fast-ext-renderer.js,*/fast-ext-server.js,*/fast-ext-store.js,*/fast-ext-window.js,*/readme.txt,*/extjs/ux/*
+FastChat-Exclude: */build-compress.txt,*/index.js,*/login.js,*/welcome.js,*/fast-ext.js,*/fast-ext-button.js,*/fast-ext-component.js,*/fast-ext-file.js,*/fast-ext-form.js,*/fast-ext-grid.js,*/fast-ext-grid-column.js,*/fast-ext-map.js,*/fast-ext-menu.js,*/fast-ext-plugin.js,*/fast-ext-power.js,*/fast-ext-renderer.js,*/fast-ext-server.js,*/fast-ext-store.js,*/fast-ext-window.js,*/readme.txt,*/extjs/ux/*,*/fast-ext-random-data.js

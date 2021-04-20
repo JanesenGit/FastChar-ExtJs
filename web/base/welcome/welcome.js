@@ -14,12 +14,12 @@ function getWelcomePanel() {
         items: leftItems
     });
 
-    let rightItems = [systemVersion()];
+    let rightItems = [];
     if (system.isSuperRole()) {
+        rightItems.push(systemVersion());
         rightItems.push(systemConfig());
         rightItems.push(systemMonitor());
     }
-
     let rightPanel = Ext.create('Ext.panel.Panel', {
         layout: 'accordion',
         region: 'east',
@@ -31,7 +31,12 @@ function getWelcomePanel() {
         items: rightItems
     });
 
-    let items = [accordionPanel, rightPanel];
+    let items = [accordionPanel];
+
+    if (rightItems.length > 0) {
+        items.push(rightPanel);
+    }
+
     //自定义welcome组件
     if (window["initWelcomeItems"]) {
         window["initWelcomeItems"](items);
@@ -237,7 +242,7 @@ function searchSysOperate(grid, obj) {
             autoScroll: true,
             layout: "column",
             defaults: {
-                labelWidth: 60,
+                labelWidth: 100,
                 margin: '5 5 5 5',
                 labelAlign: 'right',
                 emptyText: '可输入…'
@@ -954,7 +959,7 @@ function showBugReportDetails(id) {
 }
 
 
-//搜索系统日志
+//搜索上报的日志
 function searchBugReport(grid, obj) {
     if (!grid.searchForm) {
         grid.searchForm = Ext.create('Ext.form.FormPanel', {
@@ -963,7 +968,7 @@ function searchBugReport(grid, obj) {
             autoScroll: true,
             layout: "column",
             defaults: {
-                labelWidth: 60,
+                labelWidth: 100,
                 margin: '5 5 5 5',
                 labelAlign: 'right',
                 emptyText: '可输入…'
@@ -1034,7 +1039,7 @@ function searchBugReport(grid, obj) {
         grid.searchWin = Ext.create('Ext.window.Window', {
             title: title,
             closeAction: 'hide',
-            width: 500,
+            width: 550,
             minWidth: 500,
             minHeight: 110,
             height: 250,
@@ -1205,7 +1210,6 @@ function doneSystemWait(noticeId) {
         }
     });
 }
-
 
 function checkSystemWait(justRefresh) {
     window.clearTimeout(server.checkWaitNoticeTimer);

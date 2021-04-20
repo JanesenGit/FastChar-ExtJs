@@ -23,6 +23,7 @@ pre.prettyprint {
 
 .loginLogo{
     margin-top: 20px;
+    background:#ffffff;
 }
 
 .headContainer{
@@ -35,6 +36,9 @@ pre.prettyprint {
    font-size: $[fontSize6] !important;
    line-height: $[fontSize6] !important;
    font-weight: 700;
+}
+.headLogo {
+    background:#ffffff;
 }
 .leftBottom{
     background: #32404e !important;
@@ -619,4 +623,42 @@ body>.x-mask {
 }
 .x-mask-msg-text{
     color:#000000;
+}
+
+.validCodeImg{
+    border-width: 1px;
+    border-style: solid;
+    border-color: #d0d0d0;
+    border-radius: 3px;
+}
+
+.bgImage{
+     background-image: linear-gradient(45deg, #ffffff 50%, #f6f6f6 0);
+     background-size: 30px 30px;
+}
+
+.bgNull{
+     background:transparent !important;
+}
+
+.x-tree-elbow-img {
+    height: 33px !important;
+    line-height: 33px !important;
+}
+
+.x-fieldset-header-default>.x-fieldset-header-text {
+    position: unset;
+}
+
+.x-mask.x-focus{
+    border-color:$[color];
+}
+
+.x-grid-group-hd {
+    border-color: #e9e9e9;
+   background-color:#da930017;
+}
+
+.x-grid-group-title {
+    color: #aaaaaa;
 }

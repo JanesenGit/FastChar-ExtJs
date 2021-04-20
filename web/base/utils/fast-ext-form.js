@@ -1,6 +1,17 @@
-
-
 Ext.override(Ext.form.Basic, {
+    submit: function(options) {
+        options = options || {};
+        let me = this,
+            action;
+        options.submitEmptyText = false;
+        if (options.standardSubmit || me.standardSubmit) {
+            action = 'standardsubmit';
+        } else {
+            action = me.api ? 'directsubmit' : 'submit';
+        }
+
+        return me.doAction(action, options);
+    },
     isValid: function () {
         try {
             let me = this,
@@ -23,8 +34,10 @@ Ext.override(Ext.form.Basic, {
             if (!result) {
                 if (Ext.isEmpty(fieldName)) {
                     toast("请将数据填写完整！");
-                } else {
+                } else if (!Ext.isEmpty(errorInfo)) {
                     toast("【" + fieldName + "】错误：" + errorInfo);
+                }else{
+                    toast("【" + fieldName + "】错误！");
                 }
                 shakeComment(me.owner.ownerCt);
             }
@@ -35,7 +48,103 @@ Ext.override(Ext.form.Basic, {
     }
 });
 
+Ext.override(Ext.form.field.Date, {
+    parseDate: function (value) {
+        if (!value || Ext.isDate(value)) {
+            return value;
+        }
+        //先猜测一下日期格式
+        let guessFormat = guessDateFormat(value);
+        if (guessFormat) {
+            this.format = guessFormat;
+        }
+        let me = this,
+            val = me.safeParse(value, me.format),
+            altFormats = me.altFormats,
+            altFormatsArray = me.altFormatsArray,
+            i = 0,
+            len;
+        if (!val && altFormats) {
+            altFormatsArray = altFormatsArray || altFormats.split('|');
+            len = altFormatsArray.length;
+            for (; i < len && !val; ++i) {
+                val = me.safeParse(value, altFormatsArray[i]);
+            }
+        }
+        return val;
+    },
+    initComponent: Ext.Function.createSequence(Ext.form.field.Date.prototype.initComponent, function () {
+        if (isSystem()) {
+            if (!this.format) {
+                this.format = system.dateFormat;
+            }
+            if (this.format === 'y-m-d') {
+                this.format = system.dateFormat;
+            }
 
+            //修改日期picker弹出方式
+            this.pickerAlign = "tl-tr?";
+        }
+    })
+});
+
+
+Ext.override(Ext.form.field.Time, {
+    initComponent: Ext.Function.createSequence(Ext.form.field.Time.prototype.initComponent, function () {
+        this.invalidText = "无效的时间格式!";
+    })
+});
+
+
+
+Ext.override(Ext.form.field.Text, {
+    initComponent: Ext.Function.createSequence(Ext.form.field.Text.prototype.initComponent, function () {
+        let me = this;
+        if (me.inputType === 'password') {
+            me.setTriggers({
+                eayOpen: {
+                    cls: 'extIcon extEye editColor',
+                    hidden: true,
+                    handler: function () {
+                        if (me.up("menu")) {
+                            me.up("menu").holdShow = true;
+                        }
+                        this.getTrigger('eayOpen').hide();
+                        this.getTrigger('eayClose').show();
+                        let inputObj = document.getElementById(this.getInputId());
+                        inputObj.blur();
+                        inputObj.setAttribute("type", "password");
+                        setTimeout(function () {
+                            inputFocusEnd(inputObj);
+                            if (me.up("menu")) {
+                                me.up("menu").holdShow = false;
+                            }
+                        }, 100);
+                    }
+                },
+                eayClose: {
+                    cls: 'extIcon extEye',
+                    handler: function () {
+                        if (me.up("menu")) {
+                            me.up("menu").holdShow = true;
+                        }
+                        this.getTrigger('eayOpen').show();
+                        this.getTrigger('eayClose').hide();
+                        let inputObj = document.getElementById(this.getInputId());
+                        inputObj.blur();
+                        inputObj.setAttribute("type", "text");
+                        setTimeout(function () {
+                            inputFocusEnd(inputObj);
+                            if (me.up("menu")) {
+                                me.up("menu").holdShow = false;
+                            }
+                        }, 100);
+                    }
+                }
+            });
+        }
+    })
+});
 
 
 /**
@@ -64,7 +173,13 @@ Ext.form.FormPanel.prototype.getField = function (fieldName) {
  * 失去焦点;
  */
 Ext.form.field.Base.prototype.blur = function () {
-    this.inputEl.blur();
+    try {
+        if (this.inputEl) {
+            this.inputEl.blur();
+        }
+    } catch (e) {
+        console.error(e);
+    }
 };
 
 
@@ -77,7 +192,12 @@ Ext.form.FormPanel.prototype.submitForm = function (entity, extraParams, waitMsg
         extraParams = {};
     }
     if (!waitMsg) {
-        waitMsg="正在提交中……"
+        waitMsg = "正在提交中……"
+    }
+    if (me.submiting) {
+        return new Ext.Promise(function (resolve, reject) {
+            reject({"success": false, "message": "数据正在提交中，不可重复提交！"});
+        });
     }
     return new Ext.Promise(function (resolve, reject) {
         let submitConfig = {
@@ -85,6 +205,7 @@ Ext.form.FormPanel.prototype.submitForm = function (entity, extraParams, waitMsg
             waitMsg: waitMsg,
             params: extraParams,
             success: function (form, action) {
+                me.submiting = false;
                 Ext.Msg.alert('系统提醒', action.result.message, function (btn) {
                     if (btn === "ok") {
                         resolve(action.result);
@@ -92,6 +213,7 @@ Ext.form.FormPanel.prototype.submitForm = function (entity, extraParams, waitMsg
                 });
             },
             failure: function (form, action) {
+                me.submiting = false;
                 Ext.Msg.alert('系统提醒', action.result.message);
                 reject(action.result);
             }
@@ -99,28 +221,19 @@ Ext.form.FormPanel.prototype.submitForm = function (entity, extraParams, waitMsg
         if (entity) {
             submitConfig.params["entityCode"] = entity.entityCode;
             if (entity.menu) {
-                submitConfig.params["menu"] =getStoreMenuText({entity: entity});
+                submitConfig.params["menu"] = getStoreMenuText({entity: entity});
             }
         }
         let form = me.getForm();
         if (form.isValid()) {
+            me.submiting = true;
             form.submit(submitConfig);
+        } else {
+            me.submiting = false;
+            reject({"success": false, "message": "表单填写不完整！"});
         }
     });
 };
-
-Ext.override(Ext.form.field.Date, {
-    initComponent: Ext.Function.createSequence(Ext.form.field.Date.prototype.initComponent, function () {
-        if (isSystem()) {
-            if (this.format === 'y-m-d') {
-                this.format = system.dateFormat;
-            }
-            //修改日期picker弹出方式
-            this.pickerAlign = "tl-tr?";
-        }
-    })
-});
-
 
 /**
  * 暂存
@@ -218,6 +331,14 @@ function isTextField(field) {
 
 
 /**
+ * 是否是下拉框控件
+ */
+function isComboField(field) {
+    if (!field) return false;
+    return field === "combobox" || field.xtype === "combo";
+}
+
+/**
  * 是否是文件控件
  */
 function isFileField(field) {
@@ -277,10 +398,19 @@ function isTargetField(field) {
 }
 
 /**
- * 是否是目标编辑器
+ * 是否是省市区选择控件
  */
 function isPCAField(field) {
     if (!field) return false;
     return field === "pcafield" || field === "pca" || field.xtype === "pcafield" || field.xtype === "pca";
+}
+
+
+/**
+ * 是否是地图控件
+ */
+function isMapField(field) {
+    if (!field) return false;
+    return field === "mapfield" || field === "map" || field.xtype === "mapfield" || field.xtype === "map";
 }
 

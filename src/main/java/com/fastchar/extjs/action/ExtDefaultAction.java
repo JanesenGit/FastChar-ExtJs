@@ -14,7 +14,7 @@ import com.fastchar.extjs.entity.ExtManagerRoleEntity;
 import com.fastchar.extjs.entity.ExtSystemConfigEntity;
 import com.fastchar.extjs.interfaces.IFastExtEnum;
 import com.fastchar.extjs.interfaces.IFastManagerListener;
-import com.fastchar.extjs.observer.FastHeadXmlObserver;
+import com.fastchar.extjs.observer.FastHeadHtmlObserver;
 import com.fastchar.extjs.observer.FastMenuXmlObserver;
 import com.fastchar.extjs.utils.ZXingUtils;
 import com.fastchar.out.FastOutCaptcha;
@@ -50,6 +50,11 @@ public class ExtDefaultAction extends FastAction {
     }
 
 
+    /**
+     * 进入系统首页
+     * 参数：
+     * 无
+     */
     @AFastRoute({"/fast_index.html", "/index.html", "/index.jsp", "/index.vm"})
     public void index() throws Exception {
 
@@ -64,7 +69,7 @@ public class ExtDefaultAction extends FastAction {
         }
 
 
-        if (FastHeadXmlObserver.isModified()) {
+        if (FastHeadHtmlObserver.isModified()) {
             FastChar.getObservable().notifyObservers("refreshHeads");
         }
 
@@ -100,6 +105,7 @@ public class ExtDefaultAction extends FastAction {
         holders.put("head", headString.toString());
         holders.put("http", getProjectHost());
         holders.put("power", getParamToBoolean("power"));
+        holders.put("indexUrl", getRequest().getRequestURL().toString());
         FastHeadExtInfo extInfo = FastExtConfig.getInstance().getExtInfo("theme-color");
         if (extInfo != null) {
             holders.put("color", extInfo.getColorValue());
@@ -110,7 +116,7 @@ public class ExtDefaultAction extends FastAction {
         FastHeadExtInfo fontSize = FastExtConfig.getInstance().getExtInfo("font-size");
         if (fontSize != null) {
             holders.put("fontSize", fontSize.getValue());
-        }else{
+        } else {
             holders.put("fontSize", "14px");
         }
 
@@ -123,6 +129,11 @@ public class ExtDefaultAction extends FastAction {
     }
 
 
+    /**
+     * 获取系统加载的文件列
+     * 参数：
+     * 无
+     */
     public void loadApp() {
         List<FastHeadInfo> heads = FastChar.getValues().get("heads");
 
@@ -159,8 +170,6 @@ public class ExtDefaultAction extends FastAction {
             } else {
                 responseJson(-1, "初始化失败！系统login.js文件异常，请及时告知开发人员！");
             }
-
-
         }
         FastHeadScriptInfo headScriptInfo = new FastHeadScriptInfo();
         headScriptInfo.setSrc(baseJsUrl);
@@ -182,6 +191,11 @@ public class ExtDefaultAction extends FastAction {
     }
 
 
+    /**
+     * 进入系统管理员权限编辑页面
+     * 参数：
+     * 无
+     */
     @AFastSession
     public void power() throws Exception {
         addParam("power", "true");
@@ -189,6 +203,11 @@ public class ExtDefaultAction extends FastAction {
     }
 
 
+    /**
+     * 获取系统配置信息
+     * 参数：
+     * 无
+     */
     @AFastSession
     public void showConfig() throws Exception {
         if (FastMenuXmlObserver.isModified()) {
@@ -276,6 +295,12 @@ public class ExtDefaultAction extends FastAction {
     }
 
 
+    /**
+     * 获取系统svg文件
+     * 参数：
+     * path svg相对项目的位置 {String}
+     * color svg填充的颜色 {String}
+     */
     public void icon() {
         try {
             setLog(false);
@@ -287,7 +312,7 @@ public class ExtDefaultAction extends FastAction {
             if (file.exists()) {
                 if (FastStringUtils.isNotEmpty(color)) {
                     if (file.getName().toLowerCase().endsWith(".svg")) {
-                        String coloLocalPath = file.getParent() + "/" + FastMD5Utils.MD5(color) + "/" + file.getName();
+                        String coloLocalPath = file.getParent() + "/" + FastMD5Utils.MD5To16(color) + "/" + file.getName();
                         File colorFile = new File(coloLocalPath);
                         if (colorFile.exists()) {
                             responseFile(colorFile);
@@ -312,9 +337,7 @@ public class ExtDefaultAction extends FastAction {
 
 
     /**
-     * 获得验证码
-     *
-     * @return FastOutCaptcha
+     * 获得图形验证码
      */
     public FastOutCaptcha showCaptcha() {
         return FastChar.getOverrides().newInstance(FastOutCaptcha.class).setStatus(200);
@@ -322,7 +345,9 @@ public class ExtDefaultAction extends FastAction {
 
 
     /**
-     * 获得枚举列表
+     * 获得枚举的值列表
+     * 参数：
+     * enumName 枚举的类名 {String}
      */
     @AFastCache(checkClass = true)
     public void showEnums() throws Exception {
@@ -338,6 +363,9 @@ public class ExtDefaultAction extends FastAction {
 
     /**
      * 获取权限菜单
+     * 参数：
+     * checked 默认选中的菜单Id {String}
+     * parent 父级的权限值 {String}
      */
     @AFastSession
     public List<FastMenuInfo> showPowerMenus() {
@@ -368,9 +396,9 @@ public class ExtDefaultAction extends FastAction {
     }
 
     /**
-     * 获得菜单列
-     *
-     * @return
+     * 获得后台菜单列表
+     * 参数：
+     * checked 默认选中的菜单 {String}
      */
     @AFastSession
     public List<FastMenuInfo> showMenuColumn() {
@@ -431,46 +459,83 @@ public class ExtDefaultAction extends FastAction {
 
     /**
      * 上传文件
+     * 参数：
+     * type 文件保存的子目录名 {String}
+     * url 网络文件地址 {Array}【可选】
+     * file 上传的文件流 {Array} {File}
      */
     public void upload() throws Exception {
         setLogResponse(true);
         String type = getParam("type");
-        FastFile<?> paramFile = getParamFile();
-        if (paramFile != null) {
+
+        List<Object> resultList = new ArrayList<>();
+
+        List<FastFile<?>> paramListFile = getParamListFile();
+        for (FastFile<?> paramFile : paramListFile) {
             if (FastStringUtils.isNotEmpty(type)) {
                 paramFile = paramFile.renameTo(new File(paramFile.getAttachDirectory() + File.separator + type,
-                        FastMD5Utils.MD5(System.currentTimeMillis() + paramFile.getFileName()) + paramFile.getExtensionName()), true);
+                        FastMD5Utils.MD5To16(System.currentTimeMillis() + paramFile.getFileName()) + paramFile.getExtensionName()), true);
             }
-        } else {
-            String url = getParam("url");
+            Map<String, Object> result = new HashMap<>();
+            result.put("name", paramFile.getUploadFileName());
+            result.put("type", paramFile.getExtensionName());
+            result.put("length", paramFile.getFile().length());
+            String fileUrl = paramFile.getUrl();
+            if (fileUrl.startsWith("http://") || fileUrl.startsWith("https://")) {
+                result.put("url", fileUrl);
+            } else {
+                result.put("url", getProjectHost() + FastStringUtils.stripStart(fileUrl, "/"));
+            }
+            result.putAll(paramFile.getAttrs());
+            result.put("http", getProjectHost());
+            resultList.add(result);
+        }
+
+        String[] urls = getParamToArray("url");
+        for (String url : urls) {
             if (FastStringUtils.isNotEmpty(url)) {
-                paramFile = FastExtHelper.getFastFileFromUrl(url);
+                FastFile<?> paramFile = FastExtHelper.getFastFileFromUrl(url);
+                if (FastStringUtils.isNotEmpty(type)) {
+                    paramFile = paramFile.renameTo(new File(paramFile.getAttachDirectory() + File.separator + type,
+                            FastMD5Utils.MD5To16(System.currentTimeMillis() + paramFile.getFileName()) + paramFile.getExtensionName()), true);
+                }
+                Map<String, Object> result = new HashMap<>();
+                result.put("name", paramFile.getUploadFileName());
+                result.put("length", paramFile.getFile().length());
+                result.put("type", paramFile.getExtensionName());
+                String fileUrl = paramFile.getUrl();
+                if (fileUrl.startsWith("http://") || fileUrl.startsWith("https://")) {
+                    result.put("url", fileUrl);
+                } else {
+                    result.put("url", getProjectHost() + FastStringUtils.stripStart(fileUrl, "/"));
+                }
+                result.putAll(paramFile.getAttrs());
+                result.put("http", getProjectHost());
+                resultList.add(result);
             }
         }
 
-        if (paramFile == null) {
+        if (resultList.size() == 0) {
             responseJson(-1, "上传失败！未获取的文件！");
             return;
         }
 
-        Map<String, Object> result = new HashMap<>();
-        result.put("name", paramFile.getUploadFileName());
-        result.put("length", paramFile.getFile().length());
-        result.put("url", paramFile.getUrl());
-        result.putAll(paramFile.getAttrs());
-        result.put("http", getProjectHost());
         //上传文件强制使用text/html格式返回，避免浏览器弹出json下载
         if (!isParamExists("__accept")) {
             addParam("__accept", "text/html");
         }
 
-        responseJson(0, "上传成功！", result);
+        if (resultList.size() == 1) {
+            responseJson(0, "上传成功！", resultList.get(0));
+        }
+        responseJson(0, "上传成功！", resultList);
     }
-
 
 
     /**
      * 下载或查看文件
+     * 参数：
+     * path 文件路径 {String}
      */
     @AFastRoute({"/download", "/attach"})
     public void down() {
@@ -493,6 +558,8 @@ public class ExtDefaultAction extends FastAction {
 
     /**
      * 删除附件
+     * 参数：
+     * path 文件路径 {String}
      */
     public void deleteAttach() {
         List<String> paths = getParamToList("path");
@@ -510,6 +577,8 @@ public class ExtDefaultAction extends FastAction {
 
     /**
      * 压缩文件
+     * 参数：
+     * path 需要压缩的文件路径 {Array}{String}
      */
     public void zipFile() throws IOException {
         File folderFile = new File(FastChar.getConstant().getAttachDirectory(), "/zip" + System.currentTimeMillis());
@@ -536,7 +605,9 @@ public class ExtDefaultAction extends FastAction {
             } else {
                 path = path.replace("attach/", "").split("\\?")[0];
                 File file = new File(FastChar.getConstant().getAttachDirectory(), path);
-                if (file.isDirectory()) continue;
+                if (file.isDirectory()) {
+                    continue;
+                }
                 if (file.exists()) {
                     FastFileUtils.copyFileToDirectory(file, folderFile);
                 }
@@ -554,7 +625,7 @@ public class ExtDefaultAction extends FastAction {
 
 
     /**
-     * 查看生成的接口文档
+     * 查看RESTful API接口文档
      */
     @AFastRoute({"document", "interface", "document.html", "interface.html", "api"})
     public void doc() throws Exception {
@@ -762,7 +833,7 @@ public class ExtDefaultAction extends FastAction {
         desc.add(jvmDesc);
 
         FileSystem fileSystem = systemInfo.getOperatingSystem().getFileSystem();
-        OSFileStore[] fsArray = fileSystem.getFileStores();
+        List<OSFileStore> fsArray = fileSystem.getFileStores();
         for (OSFileStore osFileStore : fsArray) {
             if (osFileStore.getMount().startsWith("/private")) {
                 continue;

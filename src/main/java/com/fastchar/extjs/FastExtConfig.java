@@ -7,6 +7,7 @@ import com.fastchar.extjs.core.FastLayerType;
 import com.fastchar.extjs.core.heads.FastHeadExtInfo;
 import com.fastchar.extjs.core.heads.FastHeadInfo;
 import com.fastchar.extjs.core.heads.FastHeadStyleInfo;
+import com.fastchar.extjs.interfaces.IFastAppJsListener;
 import com.fastchar.extjs.utils.ColorUtils;
 import com.fastchar.extjs.utils.ExtFileUtils;
 import com.fastchar.interfaces.IFastConfig;
@@ -31,10 +32,12 @@ public final class FastExtConfig implements IFastConfig {
     private String defaultThemeColor = "#62a3db";
     private boolean compressAppJs;
     private boolean attachLog;
-    private boolean mergeAppJs;
+    private boolean mergeAppJs;//是否合并AppJs文件
     private FastExtEntities extEntities = new FastExtEntities();
     private FastLayerType layerType = FastLayerType.None;//权限级别，默认以当前管理角色为最高级别
     private String menuPrefix = "fast-menus";
+    private final Set<String> excludeMenuFiles = new HashSet<>();//被排除的menu文件名
+    private String uglifyJsPath; //uglify-js 压缩工具的本地路径
 
     /**
      * 获取系统默认的主题色
@@ -166,6 +169,26 @@ public final class FastExtConfig implements IFastConfig {
     }
 
     /**
+     * 排除menus文件菜单
+     * @param menuFileName 文件名
+     * @return 当前对象
+     */
+    public FastExtConfig excludeMenuFile(String... menuFileName) {
+        excludeMenuFiles.addAll(Arrays.asList(menuFileName));
+        return this;
+    }
+
+    /**
+     * 判断菜单文件是否被排除在外
+     * @param menuFileName 文件名
+     * @return 布尔值
+     */
+    public boolean isExcludeMenuFile(String menuFileName) {
+        return excludeMenuFiles.contains(menuFileName);
+    }
+
+
+    /**
      * 获取配置的ext值，在fast-head-*.html配置的scheme="ext"值
      * @param name ext名称
      * @return FastHeadExtInfo对象值
@@ -260,15 +283,32 @@ public final class FastExtConfig implements IFastConfig {
                     }
                 });
             }
-            jsFiles.add(value.get(0));
+            if (notifyListener(value.get(0))) {
+                jsFiles.add(value.get(0));
+            }
         }
 
         if (FastChar.getConfig(FastExtConfig.class).isMergeAppJs()) {
-            YuiCompress.merge(mergeFile, jsFiles.toArray(new File[]{}));
+            ExtFileUtils.merge(mergeFile, jsFiles.toArray(new File[]{}));
             return Collections.singletonList(mergeFile);
         }
         return jsFiles;
     }
+
+    private boolean notifyListener(File jsFile) {
+        List<IFastAppJsListener> iFastAppJsListeners = FastChar.getOverrides().singleInstances(false, IFastAppJsListener.class);
+        for (IFastAppJsListener iFastAppJsListener : iFastAppJsListeners) {
+            if (iFastAppJsListener == null) {
+                continue;
+            }
+            if (!iFastAppJsListener.onLoadJs(jsFile)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
 
 
     private Map<String, List<File>> getJsFiles(File file) {
@@ -385,4 +425,21 @@ public final class FastExtConfig implements IFastConfig {
     }
 
 
+    /**
+     * 获取uglify-js的本地项目路径
+     * @return 字符串
+     */
+    public String getUglifyJsPath() {
+        return uglifyJsPath;
+    }
+
+    /**
+     * 设置uglify-js的本地项目路径
+     * @param uglifyJsPath 本地项目路径
+     * @return 当前对象
+     */
+    public FastExtConfig setUglifyJsPath(String uglifyJsPath) {
+        this.uglifyJsPath = uglifyJsPath;
+        return this;
+    }
 }

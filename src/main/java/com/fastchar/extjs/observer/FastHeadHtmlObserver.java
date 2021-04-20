@@ -18,7 +18,7 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.util.*;
 
-public class FastHeadXmlObserver {
+public class FastHeadHtmlObserver {
     private static int FILE_COUNT = 0;
     private static final Map<String, Long> FILE_MODIFY_TICK = new HashMap<>();
 
@@ -71,7 +71,16 @@ public class FastHeadXmlObserver {
     }
 
     private FastHeadExtInfo getHeadExtInfo(String name) {
+        if (FastStringUtils.isEmpty(name)) {
+            return null;
+        }
         for (FastHeadInfo head : heads) {
+            if (head == null) {
+                continue;
+            }
+            if (FastStringUtils.isEmpty(head.getTagName())) {
+                continue;
+            }
             if (head.getTagName().equalsIgnoreCase("ext")) {
                 if (head.containsKey("name") && head.get("name").toString().equalsIgnoreCase(name)) {
                     return (FastHeadExtInfo) head;
@@ -191,14 +200,14 @@ public class FastHeadXmlObserver {
                     String value = headExtInfo.getColorValue();
                     FastHeadExtInfo frontColorDarkExt = new FastHeadExtInfo();
                     frontColorDarkExt.setName("front-color-dark");
-                    frontColorDarkExt.setValue(ColorUtils.getDarkColor(value, 0.1));
+                    frontColorDarkExt.setValue(ColorUtils.getDarkColor(value, 0.5));
                     frontColorDarkExt.fromProperty();
                     waitAdd.add(frontColorDarkExt);
                 }else if (headExtInfo.getName().equalsIgnoreCase("theme-color")) {
                     String value = headExtInfo.getColorValue();
                     FastHeadExtInfo themeColorDarkExt = new FastHeadExtInfo();
                     themeColorDarkExt.setName("theme-color-dark");
-                    themeColorDarkExt.setValue(ColorUtils.getDarkColor(value, 0.1));
+                    themeColorDarkExt.setValue(ColorUtils.getDarkColor(value, 0.2));
                     themeColorDarkExt.fromProperty();
                     waitAdd.add(themeColorDarkExt);
                 }
@@ -285,7 +294,7 @@ public class FastHeadXmlObserver {
 
         FastHeadExtInfo fastcharExtInfo = new FastHeadExtInfo();
         fastcharExtInfo.setName("fastchar");
-        fastcharExtInfo.setValue("FastChar " + FastConstant.FastCharVersion);
+        fastcharExtInfo.setValue("FastChar " + FastConstant.FAST_CHAR_VERSION);
         fastcharExtInfo.fromProperty();
 
         FastHeadExtInfo catalinaInfo = new FastHeadExtInfo();

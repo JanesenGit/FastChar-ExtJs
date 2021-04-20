@@ -6683,8 +6683,9 @@
                   .attr('width', '640').attr('height', '360');
           }
           else {
-              // this is not a known video link. Now what, Cat? Now what?
-              return false;
+              $video = $$1('<video controls>')
+                  .attr('src', url)
+                  .attr('width', '640').attr('height', '360');
           }
           $video.addClass('note-video-clip');
           return $video[0];

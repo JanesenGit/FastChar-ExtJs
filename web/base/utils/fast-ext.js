@@ -4,7 +4,7 @@ let globalConfig = function () {
             "fromOS": getOS()
         }
     });
-    Ext.Ajax.on('beforerequest', function (conn, options, eOpts ) {
+    Ext.Ajax.on('beforerequest', function (conn, options, eOpts) {
         try {
             conn.setExtraParams({
                 "fromOS": getOS()
@@ -28,7 +28,7 @@ let MemoryCache = {}, progressLine;
  * 'user.js'.endWidth('.js');
  */
 String.prototype.endWith = function (suffix) {
-    if (!suffix|| suffix === "" || this.length === 0 || suffix.length > this.length) return false;
+    if (!suffix || suffix === "" || this.length === 0 || suffix.length > this.length) return false;
     return this.substring(this.length - suffix.length) === suffix;
 };
 
@@ -40,7 +40,7 @@ String.prototype.endWith = function (suffix) {
  * 'test.js'.startWith('test')
  */
 String.prototype.startWith = function (prefix) {
-    if (!prefix|| prefix === "" || this.length === 0 || prefix.length > this.length) return false;
+    if (!prefix || prefix === "" || this.length === 0 || prefix.length > this.length) return false;
     return this.substr(0, prefix.length) === prefix;
 };
 
@@ -53,6 +53,26 @@ String.prototype.firstUpperCase = function () {
             return s.toUpperCase();
         });
 };
+
+/**
+ * 获取字符串实际长度，包含汉字
+ * @returns {number}
+ */
+String.prototype.truthLength = function () {
+    return this.replace(/[\u0391-\uFFE5]/g, "aa").length;
+};
+
+/**
+ * 去除字符串的所有标点符号
+ */
+String.prototype.trimAllSymbol = function () {
+    return this.replace(/[\ |\~|\`|\!|\@|\#|\$|\%|\^|\&|\*|\(|\)|\-|\_|\+|\=|\||\\|\[|\]|\{|\}|\;|\:|\"|\'|\,|\<|\.|\>|\/|\?/\，/\。/\；/\：/\“/\”/\》/\《/\|/\{/\}/\、/\!/\~/\`]/g, "");
+};
+
+String.prototype.replaceAll = function (oldStr,newStr) {
+    return this.replace(new RegExp(oldStr, 'g'), newStr);
+};
+
 
 /**
  * 判断是否存在于数组中
@@ -126,6 +146,11 @@ function toColor(obj, defaultValue) {
     }
     if (obj.toString().startWith("#")) {
         return obj.toString();
+    }
+    try {
+        let color = Ext.ux.colorpick.ColorUtils.parseColor(obj);
+        return "#" + Ext.ux.colorpick.ColorUtils.formats.HEX8(color);
+    } catch (e) {
     }
     return "#" + obj;
 }
@@ -321,8 +346,8 @@ function getProgressLine(toColor) {
  * 抖动控件
  * @param obj 待抖动的控件
  */
-function shakeComment(obj, callBack,shakeCount) {
-    if(!shakeCount){
+function shakeComment(obj, callBack, shakeCount) {
+    if (!shakeCount) {
         shakeCount = 1080;
     }
     try {
@@ -425,14 +450,36 @@ function loadFunction(functionStr) {
  * @param url 下载路径
  */
 function download(url) {
-    url = url.split("?")[0];
-    let name = url.substring(url.lastIndexOf("/"));
+    let name = url.split("?")[0].substring(url.lastIndexOf("/"));
     let a = document.createElement('a');
     let event = new MouseEvent('click');
     a.download = "file" + name;
     a.href = url;
     a.dispatchEvent(event)
 }
+
+
+/**
+ * 动态打开URL地址
+ * @param url
+ * @param target 打开方式 例如：_blank 、 self、
+ */
+function openUrl(url, target) {
+    if (Ext.isEmpty(target)) {
+        target = "_blank";
+    }
+    let a = document.createElement("a");
+    if (!a.click) {
+        window.location = url;
+        return;
+    }
+    a.setAttribute("href", url);
+    a.setAttribute("target", target);
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+}
+
 
 /**
  * 执行回调，限制了重复执行
@@ -460,7 +507,7 @@ function runCallBack(fun, param) {
  * @param dataIndex 属性值
  * @param field field对象
  */
-function setRecordValue(record, dataIndex, field) {
+function setRecordValue(record, dataIndex, field,append) {
     field.dataIndex = dataIndex;
     if (Ext.isFunction(field.setRecordValue)) {
         field.setRecordValue(record, false);
@@ -518,7 +565,8 @@ function getOS() {
             if (isWin10) return "Windows 10";
             return "Windows";
         }
-    } catch (e) {}
+    } catch (e) {
+    }
     return "Other";
 }
 
@@ -550,4 +598,200 @@ function getSVGIcon(className) {
     return '<svg class="svgIcon" aria-hidden="true"><use xlink:href="#' + className + '"></use></svg>';
 }
 
+/**
+ * 根据文件名称获取svg的classname
+ * @param type content-type或者filename
+ * @returns {string}
+ */
+function getSVGClassName(type) {
+    type = type.toString().toLowerCase();
+    let fileClassName = "extFile";
+    if (type.endWith(".doc") || type.endWith(".docx") ||
+        type === "application/msword" ||
+        type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+        fileClassName = "extFileWord";
+    } else if (type.endWith(".xls") || type.endWith(".xlsx") ||
+        type === "application/vnd.ms-excel" ||
+        type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") {
+        fileClassName = "extFileExcel";
+    } else if (type.endWith(".zip") || type.endWith(".rar") ||
+        type === "application/zip" ||
+        type === "application/rar") {
+        fileClassName = "extFileZIP";
+    } else if (type.endWith(".apk") ||
+        type === "application/vnd.android.package-archive") {
+        fileClassName = "extFileAPK";
+    } else if (type.endWith(".jpg") || type.endWith(".jpeg") || type === "image/jpeg") {
+        fileClassName = "extFileJPG";
+    } else if (type.endWith(".png") || type === "image/png") {
+        fileClassName = "extFilePNG";
+    } else if (type.endWith(".psd") || type === "image/vnd.adobe.photoshop") {
+        fileClassName = "extFilePSD";
+    } else if (type.endWith(".html") || type.endWith(".shtml") || type.endWith(".htm") || type === "text/html") {
+        fileClassName = "extFileHTMl";
+    } else if (type.endWith(".txt") || type === "text/plain") {
+        fileClassName = "extFileTXT";
+    }
+    return fileClassName;
+}
 
+
+/**
+ * 根据日期值猜测日期类型
+ * @param value
+ * @returns {string}
+ */
+function guessDateFormat(value) {
+    if (!value || Ext.isDate(value)) {
+        return '';
+    }
+    value = value.toString().trim();
+    let regPattern = new RegExp("[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}");
+    if (regPattern.test(value)) {
+        return "Y-m-d H:i:s";
+    }
+    regPattern = new RegExp("[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}");
+    if (regPattern.test(value)) {
+        return "Y-m-d H:i";
+    }
+    regPattern = new RegExp("[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}");
+    if (regPattern.test(value)) {
+        return "Y-m-d H";
+    }
+    regPattern = new RegExp("[0-9]{4}-[0-9]{2}-[0-9]{2}");
+    if (regPattern.test(value)) {
+        return "Y-m-d";
+    }
+
+    regPattern = new RegExp("[0-9]{4}/[0-9]{2}/[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}");
+    if (regPattern.test(value)) {
+        return "Y/m/d H:i:s";
+    }
+    regPattern = new RegExp("[0-9]{4}/[0-9]{2}/[0-9]{2} [0-9]{2}:[0-9]{2}");
+    if (regPattern.test(value)) {
+        return "Y/m/d H:i";
+    }
+    regPattern = new RegExp("[0-9]{4}/[0-9]{2}/[0-9]{2} [0-9]{2}");
+    if (regPattern.test(value)) {
+        return "Y/m/d H";
+    }
+    regPattern = new RegExp("[0-9]{4}/[0-9]{2}/[0-9]{2}");
+    if (regPattern.test(value)) {
+        return "Y/m/d";
+    }
+    return '';
+}
+
+/**
+ * 获取url的headers消息
+ * @param url
+ * @param callback
+ */
+function getUrlContentType(url, callback) {
+    if (!url || !callback) {
+        return;
+    }
+    let onlyCode = $.md5(url.toString());
+    let cacheXhr = getCache(onlyCode);
+    if (cacheXhr) {
+        callback(cacheXhr);
+        return;
+    }
+    $.ajax({
+        type: 'HEAD', // 获取头信息，type=HEAD即可
+        url: url,
+        complete: function (xhr, data) {
+            setCache(onlyCode, xhr.getResponseHeader("content-type"));
+            callback(xhr.getResponseHeader("content-type"));
+        },
+        error: function () {
+            setCache(onlyCode, "un-know");
+            callback("un-know");
+        }
+    });
+}
+
+/**
+ * 将光标移动到文本末尾
+ * @param obj
+ */
+function inputFocusEnd(obj) {
+    try {
+        obj.focus();
+        let len = obj.value.length;
+        if (document.selection) {//IE
+            let sel = obj.createTextRange();
+            sel.moveStart('character', len);
+            sel.collapse();
+            sel.select();
+        } else if (typeof obj.selectionStart == 'number' && typeof obj.selectionEnd == 'number') {//非IE
+            obj.selectionStart = obj.selectionEnd = len;
+        }
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+/**
+ * 随机范围整数
+ * @param min
+ * @param max
+ * @returns {number}
+ */
+function randomInt(min, max) {
+    if (min === max) {
+        return min;
+    }
+    return Math.floor(Math.random() * (max - min + 1) + min);
+}
+
+
+/**
+ * 动态加载css代码
+ * @param style
+ * @param callBack
+ */
+function loadCssCode(style, callBack) {
+    let oHead = document.getElementsByTagName('head').item(0);
+    let oStyle = document.createElement("style");
+    oStyle.type = "text/css";
+    if (oStyle.styleSheet) {
+        oStyle.styleSheet.cssText = style;
+    } else {
+        oStyle.innerHTML = style;
+    }
+    if (callBack != null) {
+        callBack();
+    }
+    oHead.appendChild(oStyle);
+}
+
+/**
+ * 主动触发事件
+ */
+function dispatchTargetEvent(targetDocument, targetElement, eventName) {
+    if (targetDocument.createEvent) {
+        const event = targetDocument.createEvent('MouseEvents');
+        event.initEvent(eventName, true, false);
+        targetElement.dispatchEvent(event);
+    } else if (targetDocument.createEventObject) {
+        //兼容IE
+        targetElement.fireEvent('on' + eventName);
+    }
+}
+
+function buildUUID4() {
+    return (((1 + Math.random()) * 0x10000) | 0).toString(16).substring(1);
+}
+
+function buildUUID8() {
+    return (((1 + Math.random()) * 0x100000000) | 0).toString(16).substring(1);
+}
+
+function buildUUID12() {
+    return buildUUID4() + buildUUID8();
+}
+
+function buildUUID16() {
+    return buildUUID8() + buildUUID8();
+}

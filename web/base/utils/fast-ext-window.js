@@ -9,6 +9,10 @@ Ext.override(Ext.Window, {
                 this.icon = server.getIcon(regStr.exec(this.icon)[1].trim(), "#ffffff");
             }
             this.liveDrag = true;
+            this.on("show", function (obj) {
+                obj.toFront(true);
+                obj.focus();
+            });
         } catch (e) {
             console.error(e);
         }
@@ -17,11 +21,6 @@ Ext.override(Ext.Window, {
 
 
 Ext.override(Ext.window.Window, {
-    show: Ext.Function.createSequence(Ext.window.Window.prototype.show, function () {
-        let me = this;
-        me.toFront(true);
-        me.focus();
-    }),
     setIcon: Ext.Function.createSequence(Ext.window.Window.prototype.setIcon, function (value) {
         let me = this;
         let regStr = /([^/]*.svg)/;
@@ -81,6 +80,7 @@ function toast(message) {
         slideInDuration: 200,
         slideBackDuration: 200,
         minWidth: 180,
+        // alwaysOnTop: true, 不能设置
         slideBackAnimation: 'easeOut',
         iconCls: 'extIcon extInfo',
         title: '消息提示'
@@ -119,10 +119,25 @@ function showHtml(obj, title, content) {
 /**
  * 弹窗显示网页内容
  */
-function showLink(obj, title, url) {
+function showLink(obj, title, url,config) {
     let winWidth = parseInt((document.body.clientWidth * 0.4).toFixed(0));
     let winHeight = parseInt((document.body.clientHeight * 0.6).toFixed(0));
-    let win = Ext.create('Ext.window.Window', {
+    let iframePanel = Ext.create('Ext.panel.Panel', {
+        layout: 'border',
+        region: 'center',
+        border: 0,
+        listeners: {
+            afterrender: function (obj, eOpts) {
+                this.setLoading("正在努力加载中，请稍后……");
+                let html = "<iframe onload='iFrameLoadDone()' src='" + url + "'  width='100%' height='100%' frameborder='0'>";
+                this.update(html);
+            }
+        }
+    });
+    window["iFrameLoadDone"] = function () {
+        iframePanel.setLoading(false);
+    };
+    let defaultConfig = {
         title: title,
         layout: 'fit',
         height: winHeight,
@@ -139,13 +154,14 @@ function showLink(obj, title, url) {
         scrollable: false,
         alwaysOnTop: true,
         toFrontOnShow: true,
+        items: [iframePanel],
         listeners: {
-            show: function () {
-                let html = "<iframe src='" + url + "'  width='100%' height='100%' frameborder='0'>";
-                this.update(html);
+            close: function () {
+                window["iFrameLoadDone"] = null;
             }
         }
-    });
+    };
+    let win = Ext.create('Ext.window.Window', mergeJson(defaultConfig, config));
     win.show();
 }
 
@@ -155,7 +171,7 @@ function showLink(obj, title, url) {
  * @param title
  * @param content
  */
-function showEditorHtml(obj, title, content) {
+function showEditorHtml(obj, title, content,config) {
     let winWidth = parseInt((document.body.clientWidth * 0.4).toFixed(0));
     let winHeight = parseInt((document.body.clientHeight * 0.6).toFixed(0));
     let win = Ext.create('Ext.window.Window', {
@@ -263,7 +279,7 @@ function showException(e, from) {
                 text: '查看错误',
                 flex: 1,
                 handler: function () {
-                    showHtml(this, '异常信息', message);
+                    showCode(this, message, true);
                 }
             }]
         });
@@ -274,8 +290,18 @@ function showException(e, from) {
 /**
  * 显示弹框
  */
-function showAlert(title, message, callBack) {
-    Ext.Msg.alert(title, message, callBack);
+function showAlert(title, message, callBack, modal) {
+    if (Ext.isEmpty(modal)) {
+        modal = true;
+    }
+    Ext.MessageBox.show({
+        title: title,
+        message: message,
+        modal: modal,
+        buttons: Ext.MessageBox.OK,
+        fn: callBack,
+        minWidth: 250
+    });
 }
 
 
@@ -286,9 +312,14 @@ function showImage(obj, url, callBack, modal) {
     if (Ext.isEmpty(modal)) {
         modal = false;
     }
-    let jsonData = [{
-        "url": url
-    }];
+    let jsonData = [];
+    if (Ext.isArray(url)) {
+        jsonData=url
+    }else{
+        jsonData.push({
+            "url": url
+        });
+    }
 
     let selectIndex = -1;
     if (Ext.getStore("ImageViewStore") != null) {
@@ -296,7 +327,7 @@ function showImage(obj, url, callBack, modal) {
         let currStore = Ext.getStore("ImageViewStore");
 
         currStore.each(function (record, index) {
-            if (record.get("url").split("?")[0] === url.split("?")[0]) {
+            if (record.get("url") === url) {
                 hasValue = true;
                 Ext.getCmp("ImageViewGrid").getSelectionModel().select(index);
                 return false;
@@ -307,6 +338,7 @@ function showImage(obj, url, callBack, modal) {
             if (selectIndex === -1) {
                 selectIndex = currStore.count() - 1;
             }
+            currStore.imgSelectIndex = selectIndex;
             Ext.getCmp("ImageViewGrid").getSelectionModel().select(selectIndex);
         }
         return;
@@ -319,6 +351,7 @@ function showImage(obj, url, callBack, modal) {
     let imageStore = Ext.create('Ext.data.Store', {
         fields: ['url'],
         autoLoad: false,
+        imgSelectIndex: selectIndex,
         id: "ImageViewStore",
         data: jsonData
     });
@@ -381,7 +414,7 @@ function showImage(obj, url, callBack, modal) {
     window["imageViewerLoadDone"] = function () {
         Ext.getCmp("ImageViewGrid").setDisabled(false);
         try {
-            let index = Ext.getStore("ImageViewStore").count() - 1;
+            let index = Ext.getStore("ImageViewStore").imgSelectIndex;
             Ext.getCmp("ImageViewGrid").getSelectionModel().select(index);
         } catch (e) {
             showException(e, "showImage")
@@ -507,12 +540,15 @@ function showImage(obj, url, callBack, modal) {
  * @param videoUrl
  */
 function showVideo(obj, videoUrl) {
+    if (obj) {
+        obj.blur();
+    }
     //视频播放器的大小固定
     let win = Ext.create('Ext.window.Window', {
         title: '查看视频',
         layout: 'fit',
-        height: 515,
-        width: 660,
+        height: 600,
+        width: 700,
         resizable: false,
         constrain: true,
         maximizable: false,
@@ -529,7 +565,7 @@ function showVideo(obj, videoUrl) {
                 window["getVideoUrl"] = function () {
                     return videoUrl;
                 };
-                let html = "<iframe style='background-color: black;' name='showVideoFrame' src='" + url + "'  width='100%' height='100%' frameborder='0' scrolling='no' >";
+                let html = "<iframe allowfullscreen='allowfullscreen' mozallowfullscreen='mozallowfullscreen' msallowfullscreen='msallowfullscreen' oallowfullscreen='oallowfullscreen' webkitallowfullscreen='webkitallowfullscreen' style='background-color: black;' name='showVideoFrame' src='" + url + "'  width='100%' height='100%' frameborder='0' scrolling='no' >";
                 this.update(html);
             }
         }
@@ -541,6 +577,9 @@ function showVideo(obj, videoUrl) {
  * 编辑大文本
  */
 function editorText(obj, title, callBack) {
+    if (obj) {
+        obj.blur();
+    }
     let time = new Date().getTime();
     let areaId = "PublicTextArea" + time;
     let winWidth = parseInt((document.body.clientWidth * 0.4).toFixed(0));
@@ -623,6 +662,9 @@ function editorText(obj, title, callBack) {
  */
 function showJson(obj, title, value) {
     try {
+        if (obj) {
+            obj.blur();
+        }
         let winWidth = parseInt((document.body.clientWidth * 0.4).toFixed(0));
         let winHeight = parseInt((document.body.clientHeight * 0.6).toFixed(0));
         let win = Ext.create('Ext.window.Window', {
@@ -654,6 +696,9 @@ function showJson(obj, title, value) {
  */
 function showFormatJson(obj, value) {
     try {
+        if (obj) {
+            obj.blur();
+        }
         let winWidth = parseInt((document.body.clientWidth * 0.4).toFixed(0));
         let winHeight = parseInt((document.body.clientHeight * 0.6).toFixed(0));
         let win = Ext.create('Ext.window.Window', {
@@ -684,6 +729,9 @@ function showFormatJson(obj, value) {
  */
 function showCode(obj, value, linenumber) {
     try {
+        if (obj) {
+            obj.blur();
+        }
         let winWidth = parseInt((document.body.clientWidth * 0.4).toFixed(0));
         let winHeight = parseInt((document.body.clientHeight * 0.6).toFixed(0));
         let win = Ext.create('Ext.window.Window', {
