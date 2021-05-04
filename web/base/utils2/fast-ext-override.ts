@@ -4,7 +4,7 @@ namespace FastOverrider {
      * 重写全局Ext的功能
      */
     export class ExtOverrider {
-        private constructor() {
+        constructor() {
             Ext.override(Ext, {
                 getScrollbarSize: function (force) {
                     //<debug>
@@ -49,7 +49,7 @@ namespace FastOverrider {
      * 重写Ext.Component相关的功能，
      */
     export class ComponentOverride {
-        private  constructor() {
+        constructor() {
             Ext.override(Ext.Component, {
                 initComponent: Ext.Function.createSequence(Ext.Component.prototype.initComponent, function () {
                     let me = this;
