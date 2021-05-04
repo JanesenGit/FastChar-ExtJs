@@ -1,0 +1,12 @@
+{
+  "entryPoints": [
+    "fast-ext-a.ts"
+  ],
+  "out": "docs",
+  "name": "FastChar-ExtJs文档",
+  "theme": "minimal",
+  "version": false,
+  "excludePrivate": true,
+  "disableSources": false,
+  "hideGenerator": true
+}
