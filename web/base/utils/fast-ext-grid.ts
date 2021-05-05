@@ -549,7 +549,7 @@ namespace FastExt {
                                 }
                             },
                             handler: function () {
-                                FastExt.Grid.showBatchEditColumn(menu.activeHeader);
+                                FastExt.Grid.showBatchEditColumnRandom(menu.activeHeader);
                             }
                         });
                     }
@@ -1065,7 +1065,7 @@ namespace FastExt {
          * @param fromWindow
          * @private
          */
-        private static getDetailsPanel(grid, fromWindow): any {
+        static getDetailsPanel(grid, fromWindow): any {
             let subtitle = "";
             if (grid.getStore().entity.menu) {
                 subtitle = grid.getStore().entity.menu.text;
@@ -1665,6 +1665,7 @@ namespace FastExt {
          * 弹出设置grid操作界面
          * @param obj
          * @param grid
+         * @see {@link FastExt.GridOperate}
          */
         static setGrid(obj, grid) {
             let setPanel = Ext.create('Ext.form.Panel', {
@@ -1675,7 +1676,7 @@ namespace FastExt {
                     data: grid.operate
                 },
                 defaults: {
-                    labelWidth: FastExt.Base.getNumberValue(window["fontSize"]) * 4 + 8
+                    labelWidth: FastExt.Base.getNumberValue(FastExt.System.fontSize) * 4 + 8
                 },
                 items: [
                     {
@@ -2060,7 +2061,7 @@ namespace FastExt {
          * 还原Grid保存的Operate配置
          * @param grid
          * @return new Ext.Promise
-         * @see FastExt.GridOperate
+         * @see {@link FastExt.GridOperate}
          */
         static restoreGridOperate(grid) {
             return new Ext.Promise(function (resolve, reject) {
@@ -2354,6 +2355,514 @@ namespace FastExt {
             column.batchEditMenu.setWidth(column.getWidth());
             column.batchEditMenu.showBy(column, "tl");
         }
+
+        /**
+         * 弹出批量随机列值窗体
+         * @param column
+         */
+        static showBatchEditColumnRandom(column) {
+            //检查是否有自定义随机生成数据的插件方法
+            if (Ext.isFunction(window["showRandomData"])) {
+                window["showRandomData"](column);
+                return;
+            }
+            let idCode = "Random" + Ext.now();
+            let autoType = 1;
+            let selectReadOnly = false;
+            let defaultValue;
+            let dateFormat = 'Y-m-d H:i:s';
+            let dataLength = FastExt.Grid.getColumnGrid(column).getStore().getTotalCount();
+            let title = "批量随机生成当前页的【" + column.text + "】列数据";
+            if (FastExt.Grid.getColumnGrid(column).getSelection().length > 0) {
+                title = "批量随机生成选择的" + FastExt.Grid.getColumnGrid(column).getSelection().length + "条【" + column.text + "】列数据";
+                dataLength = FastExt.Grid.getColumnGrid(column).getSelection().length;
+            }
+            if (FastExt.Grid.isNumberColumn(column)) {
+                autoType = 2;
+                selectReadOnly = true;
+            } else if (FastExt.Grid.isDateColumn(column)) {
+                autoType = 3;
+                if (Ext.isObject(column.field)) {
+                    dateFormat = column.field.format;
+                }
+                selectReadOnly = true;
+            } else if (FastExt.Grid.isEnumColumn(column) || FastExt.Grid.isComboColumn(column)) {
+                autoType = 5;
+                selectReadOnly = true;
+                let intArray = [];
+                let fieldObj = Ext.create(column.field);
+                fieldObj.getStore().each(function (record, index) {
+                    intArray.push(record.get(fieldObj.valueField));
+                });
+                defaultValue = intArray.join(",");
+            } else if (FastExt.Grid.isContentColumn(column)) {
+                autoType = 4;
+            }
+
+            let textField = {
+                xtype: 'fieldcontainer',
+                layout: 'column',
+                columnWidth: 1,
+                id: idCode + "_1",
+                defaults: {
+                    labelWidth: 60,
+                    margin: '5 5 5 5',
+                    labelAlign: 'right',
+                    columnWidth: 1,
+                    emptyText: '请填写'
+                },
+                random: function () {
+                    let valueArray = [];
+                    let textPrefix = Ext.getCmp(idCode + "_textPrefix").getValue();
+                    let textStartNumber = Ext.getCmp(idCode + "_textStartNumber").getValue();
+                    for (let i = parseInt(textStartNumber); i < Number.MAX_VALUE; i++) {
+                        valueArray.push(textPrefix + i);
+                        if (valueArray.length === dataLength) {
+                            break;
+                        }
+                    }
+                    return valueArray;
+                },
+                items: [
+                    {
+                        xtype: 'fieldset',
+                        columnWidth: 1,
+                        layout: 'column',
+                        defaults: {
+                            labelWidth: 60,
+                            margin: '5 5 5 5',
+                            labelAlign: 'right',
+                            columnWidth: 1,
+                            emptyText: '请填写'
+                        },
+                        title: '文字设置',
+                        items: [
+                            {
+                                fieldLabel: '文字前缀',
+                                id: idCode + '_textPrefix',
+                                allowBlank: false,
+                                xtype: 'textfield',
+                            },
+                            {
+                                fieldLabel: '开始序数',
+                                id: idCode + '_textStartNumber',
+                                value: 1,
+                                allowBlank: false,
+                                xtype: 'numberfield',
+                            }
+                        ]
+                    }
+                ]
+            };
+            let numberField = {
+                xtype: 'fieldcontainer',
+                layout: 'column',
+                columnWidth: 1,
+                id: idCode + "_2",
+                hidden: true,
+                disabled: true,
+                defaults: {
+                    labelWidth: 60,
+                    margin: '5 5 5 5',
+                    labelAlign: 'right',
+                    columnWidth: 1,
+                    emptyText: '请填写'
+                },
+                random: function () {
+                    let valueArray = [];
+                    let dotNumber = Ext.getCmp(idCode + "_dotNumber").getValue();
+                    let minNumber = Ext.getCmp(idCode + "_minNumber").getValue();
+                    let maxNumber = Ext.getCmp(idCode + "_maxNumber").getValue();
+                    if (minNumber > maxNumber) {
+                        FastExt.Dialog.showAlert("系统提醒", "最大数字必须大于最小数字！");
+                        return;
+                    }
+                    for (let i = 0; i < Number.MAX_VALUE; i++) {
+                        let numberValue = Math.random() * (maxNumber - minNumber) + minNumber;
+                        valueArray.push(numberValue.toFixed(dotNumber));
+                        if (valueArray.length === dataLength) {
+                            break;
+                        }
+                    }
+                    return valueArray;
+                },
+                items: [
+                    {
+                        xtype: 'fieldset',
+                        columnWidth: 1,
+                        layout: 'column',
+                        defaults: {
+                            labelWidth: 60,
+                            margin: '5 5 5 5',
+                            labelAlign: 'right',
+                            columnWidth: 1,
+                            emptyText: '请填写'
+                        },
+                        title: '数字设置',
+                        items: [
+                            {
+                                fieldLabel: '保留位数',
+                                id: idCode + '_dotNumber',
+                                value: 0,
+                                allowBlank: false,
+                                xtype: 'numberfield',
+                            },
+                            {
+                                fieldLabel: '最小数字',
+                                id: idCode + '_minNumber',
+                                value: 0,
+                                allowBlank: false,
+                                xtype: 'numberfield',
+                            },
+                            {
+                                fieldLabel: '最大数字',
+                                id: idCode + '_maxNumber',
+                                allowBlank: false,
+                                xtype: 'numberfield',
+                            }
+                        ]
+                    }
+                ]
+            };
+            let dateField = {
+                xtype: 'fieldcontainer',
+                layout: 'column',
+                columnWidth: 1,
+                id: idCode + "_3",
+                hidden: true,
+                disabled: true,
+                defaults: {
+                    labelWidth: 60,
+                    margin: '5 5 5 5',
+                    labelAlign: 'right',
+                    columnWidth: 1,
+                    emptyText: '请填写'
+                },
+                random: function () {
+                    let valueArray = [];
+                    let minDate = Ext.getCmp(idCode + "_minDate").getValue();
+                    let maxDate = Ext.getCmp(idCode + "_maxDate").getValue();
+                    if (minDate.getTime() > maxDate.getTime()) {
+                        FastExt.Dialog.showAlert("系统提醒", "最大日期必须大于最小日期！");
+                        return;
+                    }
+                    for (let i = 0; i < Number.MAX_VALUE; i++) {
+                        let sub = maxDate.getTime() - minDate.getTime();
+                        let numberValue = Math.random() * sub + minDate.getTime();
+                        let randDate = new Date(numberValue);
+                        valueArray.push(Ext.Date.format(randDate, Ext.getCmp(idCode + "_minDate").format));
+                        if (valueArray.length === dataLength) {
+                            break;
+                        }
+                    }
+                    return valueArray;
+                },
+                items: [
+                    {
+                        xtype: 'fieldset',
+                        columnWidth: 1,
+                        layout: 'column',
+                        defaults: {
+                            labelWidth: 60,
+                            margin: '5 5 5 5',
+                            labelAlign: 'right',
+                            columnWidth: 1,
+                            emptyText: '请填写'
+                        },
+                        title: '日期设置',
+                        items: [
+                            {
+                                fieldLabel: '最小日期',
+                                xtype: 'datefield',
+                                id: idCode + '_minDate',
+                                allowBlank: false,
+                                format: dateFormat
+                            },
+                            {
+                                fieldLabel: '最大日期',
+                                xtype: 'datefield',
+                                id: idCode + '_maxDate',
+                                allowBlank: false,
+                                format: dateFormat
+                            }
+                        ]
+                    }
+                ]
+            };
+            let longTextField = {
+                xtype: 'fieldcontainer',
+                layout: 'column',
+                columnWidth: 1,
+                id: idCode + "_4",
+                hidden: true,
+                disabled: true,
+                defaults: {
+                    labelWidth: 60,
+                    margin: '5 5 5 5',
+                    labelAlign: 'right',
+                    columnWidth: 1,
+                    emptyText: '请填写'
+                },
+                random: function () {
+                    let valueArray = [];
+                    let minNumber = Ext.getCmp(idCode + "_minLength").getValue();
+                    let maxNumber = Ext.getCmp(idCode + "_maxLength").getValue();
+                    let longTextList = Ext.getCmp(idCode + "_longTextList").getValue();
+                    if (minNumber > maxNumber) {
+                        FastExt.Dialog.showAlert("系统提醒", "最大长度必须大于最小长度！");
+                        return;
+                    }
+                    let charArray = longTextList.toString().trimAllSymbol().split("");
+                    for (let i = 0; i < Number.MAX_VALUE; i++) {
+                        let numberValue = FastExt.Base.randomInt(minNumber, maxNumber);
+                        let stringArray = [];
+                        for (let j = 0; j < Number.MAX_VALUE; j++) {
+                            let indexValue = FastExt.Base.randomInt(0, charArray.length - 1);
+                            let charStr = charArray[indexValue];
+                            stringArray.push(charStr);
+                            if (stringArray.length === numberValue) {
+                                break;
+                            }
+                        }
+                        valueArray.push(stringArray.join(""));
+                        if (valueArray.length === dataLength) {
+                            break;
+                        }
+                    }
+                    return valueArray;
+                },
+                items: [
+                    {
+                        xtype: 'fieldset',
+                        columnWidth: 1,
+                        layout: 'column',
+                        defaults: {
+                            labelWidth: 60,
+                            margin: '5 5 5 5',
+                            labelAlign: 'right',
+                            columnWidth: 1,
+                            emptyText: '请填写'
+                        },
+                        title: '文字设置',
+                        items: [
+                            {
+                                fieldLabel: '文字库',
+                                id: idCode + '_longTextList',
+                                allowBlank: false,
+                                xtype: 'textfield',
+                                listeners: {
+                                    change: function (obj, newValue, oldValue, eOpts) {
+                                        Ext.getCmp(idCode + "_maxLength").setValue(newValue.truthLength());
+                                    }
+                                }
+                            },
+                            {
+                                fieldLabel: '最小长度',
+                                id: idCode + '_minLength',
+                                value: 1,
+                                minValue: 1,
+                                allowBlank: false,
+                                xtype: 'numberfield',
+                            },
+                            {
+                                fieldLabel: '最大长度',
+                                id: idCode + '_maxLength',
+                                allowBlank: false,
+                                minValue: 1,
+                                xtype: 'numberfield',
+                            }
+                        ]
+                    }
+                ]
+            };
+            let numberArrayField = {
+                xtype: 'fieldcontainer',
+                layout: 'column',
+                columnWidth: 1,
+                id: idCode + "_5",
+                hidden: true,
+                disabled: true,
+                defaults: {
+                    labelWidth: 60,
+                    margin: '5 5 5 5',
+                    labelAlign: 'right',
+                    columnWidth: 1,
+                    emptyText: '请填写'
+                },
+                random: function () {
+                    let valueArray = [];
+                    let numberList = Ext.getCmp(idCode + "_numberList").getValue();
+                    let charArray = numberList.toString().split(",");
+                    for (let i = 0; i < Number.MAX_VALUE; i++) {
+                        let value = charArray[FastExt.Base.randomInt(0, charArray.length - 1)];
+                        if (Ext.isEmpty(value)) {
+                            continue;
+                        }
+                        valueArray.push(value);
+                        if (valueArray.length === dataLength) {
+                            break;
+                        }
+                    }
+                    return valueArray;
+                },
+                items: [
+                    {
+                        xtype: 'fieldset',
+                        columnWidth: 1,
+                        layout: 'column',
+                        defaults: {
+                            labelWidth: 60,
+                            margin: '5 5 5 5',
+                            labelAlign: 'right',
+                            columnWidth: 1,
+                            emptyText: '请填写'
+                        },
+                        title: '数字集合设置',
+                        items: [
+                            {
+                                fieldLabel: '数字集合',
+                                id: idCode + '_numberList',
+                                allowBlank: false,
+                                value: defaultValue,
+                                xtype: 'textfield'
+                            },
+                            {
+                                xtype: 'displayfield',
+                                value: '以英文逗号（,）为分隔符！'
+                            }
+                        ]
+                    }
+                ]
+            };
+
+            let setPanel = Ext.create('Ext.form.Panel', {
+                bodyPadding: 5,
+                region: 'center',
+                autoScroll: true,
+                layout: "column",
+                defaults: {
+                    labelWidth: 60,
+                    margin: '5 5 5 5',
+                    labelAlign: 'right',
+                    columnWidth: 1,
+                    emptyText: '请填写'
+                },
+                items: [
+                    {
+                        xtype: "combo",
+                        name: 'autoType',
+                        fieldLabel: '随机类型',
+                        editable: false,
+                        displayField: "text",
+                        valueField: "id",
+                        value: 1,
+                        listeners: {
+                            change: function (obj, newValue, oldValue, eOpts) {
+                                Ext.getCmp(idCode + "_" + oldValue).setHidden(true);
+                                Ext.getCmp(idCode + "_" + oldValue).setDisabled(true);
+
+                                Ext.getCmp(idCode + "_" + newValue).setHidden(false);
+                                Ext.getCmp(idCode + "_" + newValue).setDisabled(false);
+                            }
+                        },
+                        store: Ext.create('Ext.data.Store', {
+                            fields: ["id", "text"],
+                            data: [
+                                {
+                                    'text': '文本',
+                                    "id": 1
+                                },
+                                {
+                                    'text': '长文本',
+                                    "id": 4
+                                },
+                                {
+                                    'text': '数字',
+                                    "id": 2
+                                },
+                                {
+                                    'text': '数字集合',
+                                    "id": 5
+                                },
+                                {
+                                    'text': '日期',
+                                    "id": 3
+                                }]
+                        })
+                    }, textField, numberField, dateField, longTextField, numberArrayField
+                ]
+            });
+
+
+            let setColumnValue = function (valueArray) {
+                if (valueArray.length === 0 || !(FastExt.Grid.getColumnGrid(column).getStore())) return;
+                FastExt.Grid.getColumnGrid(column).getStore().holdUpdate = true;
+                let selectData = FastExt.Grid.getColumnGrid(column).getSelectionModel().getSelection();
+                if (selectData.length > 0) {
+                    Ext.each(selectData, function (record, index) {
+                        if (Ext.isObject(valueArray[index])) {
+                            FastExt.Store.setRecordValue(record, column.dataIndex, valueArray[index]);
+                        } else {
+                            record.set(column.dataIndex, valueArray[index]);
+                        }
+                    });
+                } else {
+                    FastExt.Grid.getColumnGrid(column).getStore().each(function (record, index) {
+                        if (Ext.isObject(valueArray[index])) {
+                            FastExt.Store.setRecordValue(record, column.dataIndex, valueArray[index]);
+                        } else {
+                            record.set(column.dataIndex, valueArray[index]);
+                        }
+                    });
+                }
+                FastExt.Grid.getColumnGrid(column).getStore().holdUpdate = false;
+                FastExt.Grid.getColumnGrid(column).getStore().fireEvent("endupdate");
+            };
+
+            let win = Ext.create('Ext.window.Window', {
+                title: title,
+                height: 360,
+                iconCls: 'extIcon extRandom',
+                width: 450,
+                layout: 'border',
+                items: [setPanel],
+                modal: true,
+                constrain: true,
+                listeners: {
+                    show: function () {
+                        let autoTypeField = setPanel.getField("autoType");
+                        autoTypeField.setValue(autoType);
+                        autoTypeField.setReadOnly(selectReadOnly);
+                    }
+                },
+                buttons: [
+                    "->",
+                    {
+                        text: '取消',
+                        iconCls: 'extIcon extClose',
+                        handler: function () {
+                            win.close();
+                        }
+                    }, {
+                        text: '立即生成',
+                        iconCls: 'extIcon extOk whiteColor',
+                        handler: function () {
+                            let form = setPanel.getForm();
+                            if (form.isValid()) {
+                                let buildType = setPanel.getFieldValue("autoType");
+                                let valueArray = Ext.getCmp(idCode + "_" + buildType).random();
+                                if (!valueArray || valueArray.length === 0) {
+                                    return;
+                                }
+                                setColumnValue(valueArray);
+                                win.close();
+                            }
+                        }
+                    }]
+            });
+            win.show();
+        }
+
 
         /**
          * 配置指定列的搜索链
@@ -3681,6 +4190,236 @@ namespace FastExt {
                 }
             });
         }
+
+
+        /**
+         * 弹出数据的详情窗体，与Grid列表的列属性一致
+         * @param obj 动画对象
+         * @param title 详情窗体标题
+         * @param entity 实体类对象
+         * @param record 单个数据record
+         */
+        static showDetailsWindow(obj, title, entity, record) {
+            FastExt.Server.showColumns(entity.entityCode, function (success, value, message) {
+                if (success) {
+                    let columnInfos = Ext.decode(value);
+                    let data = [];
+                    let lastGroupNon = 1;
+                    for (let key in columnInfos) {
+                        if (columnInfos.hasOwnProperty(key)) {
+                            let column = columnInfos[key];
+                            if (Ext.isEmpty(column.dataIndex)) {
+                                continue;
+                            }
+                            let d = {
+                                value: record.get(column.dataIndex),
+                                groupHeaderText: column.groupHeaderText,
+                                record: record
+                            };
+                            for (let c in column) {
+                                if (column.hasOwnProperty(c)) {
+                                    d[c] = column[c];
+                                }
+                            }
+                            if (!d.groupHeaderText) {
+                                d.groupHeaderText = lastGroupNon;
+                            }else{
+                                lastGroupNon++;
+                            }
+                            data.push(d);
+                        }
+                    }
+                    data.sort(function (a, b) {
+                        return a.index - b.index;
+                    });
+                    let detailsStore = Ext.create('Ext.data.Store', {
+                        autoLoad: false,
+                        groupField: 'groupHeaderText',
+                        fields: []
+                    });
+                    detailsStore.loadData(data);
+                    detailsStore.sort('index', 'ASC');
+
+                    let detailsGrid = Ext.create('Ext.grid.Panel', {
+                        border: 0,
+                        scrollable: 'y',
+                        region: 'center',
+                        store: detailsStore,
+                        hideHeaders: true,
+                        features: [{
+                            ftype: 'grouping',
+                            collapsible: false,
+                            hideGroupedHeader: true,
+                            expandTip: null,
+                            collapseTip: null,
+                            groupHeaderTpl: [
+                                '<b>{name:this.formatName}</b>',{
+                                    formatName: function(name) {
+                                        if (Ext.isNumeric(name)) {
+                                            return "基本属性";
+                                        }
+                                        return name;
+                                    }
+                                }
+                            ]
+                        }],
+                        columns: [
+                            {
+                                header: '名称',
+                                power: false,
+                                dataIndex: 'text',
+                                flex: 0.3,
+                                tdCls: 'tdVTop',
+                                align: 'right',
+                                renderer: function (val, m, r) {
+                                    m.style = 'overflow:auto;padding: 3px 6px;text-overflow: ellipsis;white-space:normal !important;line-height:20px;word-break:break-word; ';
+                                    return "<b>" + val + "：</b>";
+                                }
+                            },
+                            {
+                                header: '值',
+                                dataIndex: 'value',
+                                power: false,
+                                flex: 0.7,
+                                align: 'left',
+                                renderer: function (val, m, r) {
+                                    try {
+                                        m.style = 'overflow:auto;padding: 3px 6px;text-overflow: ellipsis;white-space:normal !important;line-height:20px;word-break:break-word; ';
+                                        let fun = null;
+                                        let rendererFunction = r.get("rendererFunction");
+                                        if (rendererFunction) {
+                                            fun = eval(rendererFunction);
+                                        } else {
+                                            let renderer = r.get("renderer");
+                                            fun = FastExt.Base.loadFunction(renderer);
+                                        }
+                                        if (!Ext.isEmpty(fun)) {
+                                            val = fun(val, m, r.get("record"), -1, -1, null, null, true);
+                                        }
+                                        if (Ext.isEmpty(val) || val === "null") {
+                                            return "<font color='#ccc'>无</font>"
+                                        }
+                                        return val;
+                                    } catch (e) {
+                                        return val;
+                                    }
+                                }
+                            }],
+                        viewConfig: {
+                            loadMask: {
+                                msg: '正在为您在加载数据…'
+                            },
+                            enableTextSelection: true
+                        }
+                    });
+
+                    let winWidth = parseInt((document.body.clientWidth * 0.3).toFixed(0));
+                    let winHeight = parseInt((document.body.clientHeight * 0.6).toFixed(0));
+                    let win = Ext.create('Ext.window.Window', {
+                        title: title,
+                        height: winHeight,
+                        width: winWidth,
+                        minHeight: 450,
+                        iconCls: 'extIcon extDetails',
+                        minWidth: 400,
+                        layout: 'border',
+                        resizable: true,
+                        constrain: true,
+                        maximizable: true,
+                        animateTarget: obj,
+                        listeners: {
+                            destroy: function (obj, op) {
+                            },
+                            show: function (obj) {
+                                obj.focus();
+                            }
+                        },
+                        items: [detailsGrid]
+                    });
+                    win.show();
+                } else {
+                    FastExt.Dialog.showAlert("系统提醒", message);
+                }
+            });
+        }
+
+
+        /**
+         * 创建详情数据的Grid
+         * @param data 数据实体
+         * @param configGrid 扩展配置Grid
+         * @param configName 扩展配置Grid属性名
+         * @param configValue 扩展配置Grid属性值
+         * @return Ext.grid.Panel
+         */
+        static createDetailsGrid(data, configGrid, configName, configValue): any {
+            let dataStore = Ext.create('Ext.data.Store', {
+                autoLoad: false,
+                fields: [],
+                data: data
+            });
+            let nameConfig = {
+                header: '名称',
+                dataIndex: 'name',
+                flex: 0.3,
+                align: 'right',
+                renderer: function (val, m, r) {
+                    m.style = 'color:#000000;overflow:auto;padding: 3px 6px;text-overflow: ellipsis;white-space:normal !important;line-height:20px;word-break:break-word; ';
+                    return "<b>" + val + "：</b>";
+                },
+                listeners: {
+                    dblclick: function (grid, obj, celNo, obj1, obj2, rowNo, e) {
+                        if (celNo === 0) {
+                        }
+                    }
+                }
+            };
+            let valueConfig = {
+                header: '值',
+                dataIndex: 'value',
+                flex: 0.7,
+                align: 'left',
+                renderer: function (val, m, r) {
+                    try {
+                        m.style = 'overflow:auto;padding: 3px 6px;text-overflow: ellipsis;white-space:normal !important;line-height:20px;word-break:break-word; ';
+                        let fun = r.get("renderer");
+                        if (Ext.isFunction(fun)) {
+                            let value = fun(val, m, r.get("record"), -1, -1, null, null, true);
+                            if (Ext.isEmpty(value)) {
+                                return "<font color='#ccc'>无</font>"
+                            }
+                            return value;
+                        }
+                        return val;
+                    } catch (e) {
+                        return val;
+                    }
+                },
+                listeners: {
+                    dblclick: function (grid, obj, celNo, obj1, obj2, rowNo, e) {
+                        if (celNo === 0) {
+
+                        }
+                    }
+                }
+            };
+            let gridConfig = {
+                region: 'center',
+                border: 0,
+                columnLines: true,
+                store: dataStore,
+                viewConfig: {
+                    enableTextSelection: true
+                },
+                updateData: function (newData) {
+                    dataStore.setData(newData);
+                },
+                columns: [FastExt.Json.mergeJson(nameConfig, configName),
+                    FastExt.Json.mergeJson(valueConfig, configValue)]
+            };
+            return Ext.create('Ext.grid.Panel', FastExt.Json.mergeJson(gridConfig, configGrid));
+        }
+
     }
 
     /**
@@ -3688,37 +4427,27 @@ namespace FastExt {
      */
     export class GridOperate {
 
-        /**
-         * 删除数据时弹框提醒
-         */
+
         private _alertDelete: boolean = true;
 
-        /**
-         * 提交数据修改时弹框提醒
-         */
+
         private _alertUpdate: boolean = true;
 
-        /**
-         * 自动提交被修改的数据
-         */
+
         private _autoUpdate: boolean = false;
 
-        /**
-         * 选中grid数据中自动弹出右侧详细面板
-         */
+
         private _autoDetails: boolean = true;
 
-        /**
-         * 鼠标悬浮在数据操作3秒时，弹出预览数据提示
-         */
+
         private _hoverTip: boolean = false;
 
-        /**
-         * 当离开Grid所在的标签页后，再次返回此标签页时将刷新当前标签页的列表数据
-         */
         private _refreshData: boolean = false;
 
 
+        /**
+         * 删除数据时弹框提醒
+         */
         get alertDelete(): boolean {
             return this._alertDelete;
         }
@@ -3727,6 +4456,9 @@ namespace FastExt {
             this._alertDelete = value;
         }
 
+        /**
+         * 提交数据修改时弹框提醒
+         */
         get alertUpdate(): boolean {
             return this._alertUpdate;
         }
@@ -3735,6 +4467,9 @@ namespace FastExt {
             this._alertUpdate = value;
         }
 
+        /**
+         * 自动提交被修改的数据
+         */
         get autoUpdate(): boolean {
             return this._autoUpdate;
         }
@@ -3743,6 +4478,9 @@ namespace FastExt {
             this._autoUpdate = value;
         }
 
+        /**
+         * 选中grid数据中自动弹出右侧详细面板
+         */
         get autoDetails(): boolean {
             return this._autoDetails;
         }
@@ -3751,6 +4489,9 @@ namespace FastExt {
             this._autoDetails = value;
         }
 
+        /**
+         * 鼠标悬浮在数据操作3秒时，弹出预览数据提示
+         */
         get hoverTip(): boolean {
             return this._hoverTip;
         }
@@ -3759,6 +4500,9 @@ namespace FastExt {
             this._hoverTip = value;
         }
 
+        /**
+         * 当离开Grid所在的标签页后，再次返回此标签页时将刷新当前标签页的列表数据
+         */
         get refreshData(): boolean {
             return this._refreshData;
         }
@@ -3767,5 +4511,4 @@ namespace FastExt {
             this._refreshData = value;
         }
     }
-
 }

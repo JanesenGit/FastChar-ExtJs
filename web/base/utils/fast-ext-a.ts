@@ -1,7 +1,7 @@
 /**
  * FastChar-ExtJs提供的二次封装常用功能
  */
-namespace FastExt{
+namespace FastExt {
 
 }
 
@@ -26,3 +26,13 @@ namespace FastEnum{
 namespace FastExtend {
 
 }
+
+/**
+ * 自定义ExtJs组件
+ */
+namespace FastDefine{
+
+}
+
+
+

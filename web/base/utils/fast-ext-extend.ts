@@ -4,13 +4,142 @@
 namespace FastExtend {
 
 
+
+    /**
+     * 字符串类型的相关扩展
+     * @define 使用String对象调用以下方法或属性
+     * @example
+     * 'user.js'.endWidth('.js');
+     */
+    export abstract class StringExtend {
+        constructor() {
+            // @ts-ignore
+            String.prototype.endWith = function (suffix) {
+                if (!suffix || suffix === "" || this.length === 0 || suffix.length > this.length) return false;
+                return this.substring(this.length - suffix.length) === suffix;
+            };
+
+
+            // @ts-ignore
+            String.prototype.startWith = function (prefix) {
+                if (!prefix || prefix === "" || this.length === 0 || prefix.length > this.length) return false;
+                return this.substr(0, prefix.length) === prefix;
+            };
+
+
+            // @ts-ignore
+            String.prototype.firstUpperCase = function () {
+                return this.replace(/^\S/,
+                    function (s) {
+                        return s.toUpperCase();
+                    });
+            };
+
+
+            // @ts-ignore
+            String.prototype.truthLength = function () {
+                return this.replace(/[\u0391-\uFFE5]/g, "aa").length;
+            };
+
+
+            // @ts-ignore
+            String.prototype.trimAllSymbol = function () {
+                return this.replace(/[\ |\~|\`|\!|\@|\#|\$|\%|\^|\&|\*|\(|\)|\-|\_|\+|\=|\||\\|\[|\]|\{|\}|\;|\:|\"|\'|\,|\<|\.|\>|\/|\?/\，/\。/\；/\：/\“/\”/\》/\《/\|/\{/\}/\、/\!/\~/\`]/g, "");
+            };
+
+            // @ts-ignore
+            String.prototype.replaceAll = function (oldStr, newStr) {
+                return this.replace(new RegExp(oldStr, 'g'), newStr);
+            };
+        }
+
+        /**
+         * 判断字符串是否以某个字符结尾
+         * @param suffix 后缀
+         * @returns {boolean}
+         * @example
+         * 'user.js'.endWidth('.js');
+         */
+        abstract endWith(suffix): boolean;
+
+
+        /**
+         * 判断字符串是否以某个字符开始
+         * @param prefix 前缀
+         * @returns {boolean}
+         * @example
+         * 'test.js'.startWith('test')
+         */
+        abstract startWith(prefix): boolean;
+
+        /**
+         * 字符串处理，首字母大写
+         */
+        abstract firstUpperCase(): string;
+
+        /**
+         * 获取字符串实际长度，包含汉字
+         * @returns {number}
+         */
+        abstract truthLength(): number;
+
+        /**
+         * 去除字符串的所有标点符号
+         */
+        abstract trimAllSymbol(): string;
+
+
+        /**
+         * 替换字符
+         * @param oldStr
+         * @param newStr
+         */
+        abstract replaceAll(oldStr, newStr): string;
+
+    }
+
+
+    /**
+     * 数组相关扩展
+     * @define 使用Array对象调用以下方法或属性
+     * @example
+     * let userIds=[1,2,3,4];
+     * userIds.exists(1);
+     */
+    export abstract class ArrayExtend {
+        constructor() {
+
+            // @ts-ignore
+            Array.prototype.exists = function (val) {
+                for (let i = 0; i < this.length; i++) {
+                    if (this[i] === val) {
+                        return true;
+                    }
+                }
+                return false;
+            };
+        }
+
+        /**
+         * 判断是否存在于数组中
+         * @param val
+         * @returns {boolean}
+         * @example
+         * let userIds=[1,2,3,4];
+         * userIds.exists(1);
+         */
+        abstract exists(val): boolean;
+
+    }
+
+
     /**
      * Ext.Component扩展
      * @define 使用Ext.Component对象调用以下方法或属性
      * @example button.help
      */
-    export class Component {
-        private constructor() {
+    export abstract class ComponentExtend {
+        protected constructor() {
         }
 
         /**
@@ -27,9 +156,9 @@ namespace FastExtend {
      * @define 使用Ext.grid.Panel或Ext.tree.Panel对象调用以下所有方法或属性
      * @example grid.entityList
      */
-    export class Grid {
+    export abstract class GridExtend {
 
-        private constructor() {
+        protected constructor() {
         }
 
         /**
@@ -46,9 +175,8 @@ namespace FastExtend {
      * @define 使用Ext.form.FormPanel对象调用以下方法或属性
      * @example formPanel.setFieldValue('loginName','admin')
      */
-    export class FormPanel {
-
-        private constructor() {
+    export abstract class FormPanelExtend {
+        protected constructor() {
             Ext.form.FormPanel.prototype.setFieldValue = function (fieldName, value) {
                 this.getForm().findField(fieldName).setValue(value);
             };
@@ -181,60 +309,53 @@ namespace FastExtend {
          * 设置字段值
          * @param fieldName 字段属性名
          * @param value 字段值
+         * @see {@link FastExtend.FormPanel.constructor}
          */
-        setFieldValue(fieldName, value) {
-
-        }
+        abstract setFieldValue(fieldName, value);
 
         /**
          * 获取字段值
          * @param fieldName 字段属性名
+         * @see {@link FastExtend.FormPanel.constructor}
          */
-        getFieldValue(fieldName) {
-
-        }
+        abstract getFieldValue(fieldName);
 
         /**
          * 获取field对象
          * @param fieldName
+         * @see {@link FastExtend.FormPanel.constructor}
          */
-        getField(fieldName) {
-
-        }
+        abstract getField(fieldName);
 
         /**
          * 快速提交表单
          * @param entity 实体的类对象
          * @param extraParams 扩展参数
          * @param waitMsg 提交时等待的消息
+         * @see {@link FastExtend.FormPanel.constructor}
          */
-        submitForm(entity, extraParams, waitMsg) {
-
-        }
+        abstract submitForm(entity, extraParams, waitMsg);
 
         /**
          * 暂存form表单的数据
          * @param key 暂存的key
+         * @see {@link FastExtend.FormPanel.constructor}
          */
-        saveCache(key) {
-
-        }
+        abstract saveCache(key);
 
         /**
          * 还原form暂存的数据
          * @param key 暂存的key
+         * @see {@link FastExtend.FormPanel.constructor}
          */
-        restoreCache(key) {
-
-        }
+        abstract restoreCache(key);
 
         /**
          * 删除form暂存的数据
          * @param key
+         * @see {@link FastExtend.FormPanel.constructor}
          */
-        deleteCache(key) {
-
-        }
+        abstract deleteCache(key) ;
 
     }
 
@@ -243,7 +364,7 @@ namespace FastExtend {
      * @define 使用Ext.form.field.File对象调用以下方法或属性
      * @example file.multiple
      */
-    export class FileField {
+    export abstract class FileFieldExtend {
         private constructor() {
         }
 
@@ -260,8 +381,8 @@ namespace FastExtend {
      * @define 使用Ext.form.field.Base对象调用以下方法或属性
      * @example input.blur()
      */
-    export class Field {
-        private constructor() {
+    export abstract class FieldExtend {
+        protected constructor() {
             Ext.form.field.Base.prototype.blur = function () {
                 try {
                     if (this.inputEl) {
@@ -276,9 +397,9 @@ namespace FastExtend {
         /**
          * 失去焦点
          * @example Ext.form.field对象，例如： textfield.blur()
+         * @see {@link FastExtend.Field.constructor}
          */
-        blur() {
-        }
+        abstract blur();
 
     }
 
@@ -288,7 +409,7 @@ namespace FastExtend {
      * @define 使用Ext.grid.column.Column对象调用以下方法或属性
      * @example column.toSearchKey()
      */
-    export class Column {
+    export abstract class ColumnExtend {
 
         private constructor() {
 
@@ -306,37 +427,58 @@ namespace FastExtend {
 
 
         /**
-         * 获取搜索列数据的条件属性名
+         * 组件的唯一标识
          */
-        toSearchKey(): string {
-            return null;
-        }
+        code: string;
+
+        /**
+         * 获取搜索列数据的条件属性名
+         * @see {@link FastExt.Grid.configColumnProperty}
+         */
+        abstract toSearchKey(): string;
+
 
         /**
          * 搜索指定值
          * @param value 匹配的值
+         * @see {@link FastExt.Grid.configColumnProperty}
          */
-        searchValue(value): void {
-
-        }
+        abstract searchValue(value): void;
 
 
         /**
          * 清空列的搜索
+         * @see {@link FastExt.Grid.configColumnProperty}
          */
-        clearSearch() {
-
-        }
+        abstract clearSearch() ;
 
 
         /**
          * 触发列的搜索
          * @param requestServer 是否提交到服务器请求
+         * @see {@link FastExt.Grid.configColumnProperty}
          */
-        doSearch(requestServer) {
-
-        }
-
+        abstract doSearch(requestServer);
     }
 
+
+    /**
+     * Ext.menu.Menu的扩展
+     *
+     */
+    export abstract class MenuExtend {
+
+        /**
+         * 是否保持打开，设置true后，失去焦点后将无法自动关闭
+         * @see {@link FastOverrider.MenuOverride.constructor}
+         */
+        holdShow: boolean = false;
+    }
+
+
+    for (let subClass in FastExtend) {
+        FastExtend[subClass]();
+    }
 }
+
+

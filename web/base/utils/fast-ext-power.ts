@@ -6,8 +6,9 @@ namespace FastExt {
 
         /**
          * 允许进行权限配置的类型
+         *  @see {@link FastEnum.PowerType}
          */
-        static types: any = [FastEnum.PowerType.gridcolumn, FastEnum.PowerType.menuitem, FastEnum.PowerType.button];
+        static types: FastEnum.PowerType[] = [FastEnum.PowerType.gridcolumn, FastEnum.PowerType.menuitem, FastEnum.PowerType.button];
 
         /**
          * 是否正在进行配置权限
@@ -23,12 +24,11 @@ namespace FastExt {
         /**
          * 组件权限的集合
          */
-        static powers: any;
-
+        static powers: any = [];
 
         /**
          * 默认的权限配置
-         * @see FastExt.PowerSet
+         *  @see {@link FastExt.PowerSet}
          */
         static defaultPower: FastExt.PowerSet;
 
@@ -114,7 +114,7 @@ namespace FastExt {
          * 添加权限配置
          * @param code 唯一编号
          * @param config 配置
-         * @see FastExt.PowerSet
+         * @see {@link FastExt.PowerSet}
          */
         static pushPower(code, config) {
             let me = this;
@@ -126,7 +126,7 @@ namespace FastExt {
          * 设置权限配置
          * @param code 唯一编号
          * @param config 配置
-         * @see FastExt.PowerSet
+         * @see {@link FastExt.PowerSet}
          */
         static setPower(code, config) {
             let me = this;
@@ -283,29 +283,34 @@ namespace FastExt {
      */
     export class PowerSet {
 
-        /**
-         * 是否允许显示
-         */
         private _show: boolean = true;
 
-        /**
-         * 是否允许编辑
-         */
         private _edit: boolean = true;
 
 
+        /**
+         * 是否允许显示
+         */
         get show(): boolean {
             return this._show;
         }
-
+        /**
+         * 是否允许显示
+         */
         set show(value: boolean) {
             this._show = value;
         }
 
+        /**
+         * 是否允许编辑
+         */
         get edit(): boolean {
             return this._edit;
         }
 
+        /**
+         * 是否允许编辑
+         */
         set edit(value: boolean) {
             this._edit = value;
         }
