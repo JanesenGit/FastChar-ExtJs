@@ -1,4 +1,4 @@
-namespace FastExt{
+namespace FastExt {
 
     /**
      * 数据渲染器，支持column或符合格式的数据
@@ -43,7 +43,7 @@ namespace FastExt{
          * 价格或金钱格式渲染
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
-        static money():any {
+        static money(): any {
             return function (val) {
                 if (Ext.isEmpty(val)) {
                     return "<span style='color: #ccc;'>无</span>";
@@ -56,7 +56,7 @@ namespace FastExt{
          * 纯文本渲染器
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
-        static text():any {
+        static text(): any {
             return function (val) {
                 if (Ext.isEmpty(val)) {
                     return "<span style='color: #ccc;'>无</span>";
@@ -110,7 +110,7 @@ namespace FastExt{
                         " style='object-fit: cover;border:1px solid #cccccc;height:" + imageHeight + ";width: " + imageWidth + "; min-width:14px; min-height:14px; '" +
                         " width='" + imageWidth.replace("px", "") + "'" +
                         " height='" + imageHeight.replace("px", "") + "' " +
-                        " onclick=\"showImage(this,'" + url + "')\"  " +
+                        " onclick=\"FastExt.Dialog.showImage(this,'" + url + "')\"  " +
                         " onerror=\"javascript:this.src = 'images/default_img.png';\"" +
                         " src='" + url + "' " +
                         " />";
@@ -169,7 +169,7 @@ namespace FastExt{
          * @param fileNameAttr 文件名称的属性，只对record有效
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
-        static file(fileNameAttr?):any {
+        static file(fileNameAttr?): any {
             return function (val, m, record) {
                 if (Ext.isEmpty(val) || val === "null") {
                     return "<span style='color: #ccc;'>暂无文件</span>";
@@ -201,7 +201,7 @@ namespace FastExt{
          * 多文件渲染
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
-        static files(): any  {
+        static files(): any {
             return function (val, m, record, rowIndex, colIndex, store, view, details) {
                 try {
                     if (Ext.isEmpty(val) || val === "null") {
@@ -224,15 +224,15 @@ namespace FastExt{
                     let dataId = $.md5(JSON.stringify(data));
                     let detailsList = "";
                     for (let i = 0; i < data.length; i++) {
-                        detailsList += "<div style='margin: 5px;'>"+FastExt.Renders.file()(data[i]) + "</div>";
+                        detailsList += "<div style='margin: 5px;'>" + FastExt.Renders.file()(data[i]) + "</div>";
                     }
                     if (details) {
                         return detailsList;
                     }
                     FastExt.Cache.memory[dataId] = detailsList;
-                    let functionStr = "showAlert('查看文件',MemoryCache['" + dataId + "'],null,false)";
-                    let html = "&nbsp;<a href=\"javascript:" + functionStr + ";\">共有"+data.length+"个文件！</a>&nbsp;";
-                    let detailsId:string = $.md5(html);
+                    let functionStr = "FastExt.Dialog.showAlert('查看文件',MemoryCache['" + dataId + "'],null,false)";
+                    let html = "&nbsp;<a href=\"javascript:" + functionStr + ";\">共有" + data.length + "个文件！</a>&nbsp;";
+                    let detailsId: string = $.md5(html);
                     window[detailsId] = detailsList;
                     return html;
                 } catch (e) {
@@ -246,7 +246,7 @@ namespace FastExt{
          * 多图片渲染
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
-        static images():any {
+        static images(): any {
             return function (val, m, record, rowIndex, colIndex, store, view, details) {
                 try {
                     if (Ext.isEmpty(val) || val === "null") {
@@ -276,7 +276,7 @@ namespace FastExt{
                         return detailsList;
                     }
                     FastExt.Cache.memory[dataId] = urlArray;
-                    let functionStr = "showImage(null,MemoryCache['" + dataId + "'])";
+                    let functionStr = "FastExt.Dialog.showImage(null,MemoryCache['" + dataId + "'])";
                     let html = "<a href=\"javascript:" + functionStr + ";\" details-id='" + dataId + "' style='color: #4279fa;'>共有" + data.length + "张图片！</a>";
                     window[dataId] = detailsList;
                     return html;
@@ -292,14 +292,14 @@ namespace FastExt{
          * 网页内容渲染
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
-        static html() :any{
+        static html(): any {
             return function (val, m, record, rowIndex, colIndex, store, view, details) {
                 if (Ext.isEmpty(val) || val === "null") {
                     return "<span style='color: #ccc;'>无</span>";
                 }
                 let key = $.md5(val);
                 FastExt.Cache.memory[key] = val;
-                let functionStr = "showEditorHtml(this,'查看内容',MemoryCache['" + key + "'])";
+                let functionStr = "FastExt.Dialog.showEditorHtml(this,'查看内容',MemoryCache['" + key + "'])";
                 return "&nbsp;<a href=\"javascript:" + functionStr + ";\">查看内容</a>&nbsp;";
             };
         }
@@ -308,7 +308,7 @@ namespace FastExt{
          * 网页内容渲染为存文本格式
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
-        static html2():any {
+        static html2(): any {
             return function (val, m, record, rowIndex, colIndex, store, view, details) {
                 if (Ext.isEmpty(val) || val === "null") {
                     return "<span style='color: #ccc;'>无</span>";
@@ -333,7 +333,7 @@ namespace FastExt{
          * @param entityId 实体ID属性
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
-        static link(name, entityCode, entityId):any {
+        static link(name, entityCode, entityId): any {
             return function (val, m, record) {
                 try {
                     if (Ext.isEmpty(val) || val === "null") {
@@ -356,7 +356,7 @@ namespace FastExt{
          * @param targetFunction 获取目标实体的函数。默认为：getTargetEntity
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
-        static target(targetId, targetType, targetFunction?: string) :any{
+        static target(targetId, targetType, targetFunction?: string): any {
             return function (val, m, record) {
                 try {
                     if (Ext.isEmpty(val) || val === "null") {
@@ -391,7 +391,7 @@ namespace FastExt{
          * @param titleName 链接的标题属性名
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
-        static map(lngName, latName, titleName):any {
+        static map(lngName, latName, titleName): any {
             return function (val, m, record) {
                 try {
                     if (Ext.isEmpty(val) || val === "null") {
@@ -402,9 +402,9 @@ namespace FastExt{
                     let mapTitle = record.get(titleName);
                     if (lng && lat) {
                         let lnglat = lng + "," + lat;
-                        let functionStr = "showAddressInMap(null,'" + lnglat + "','')";
+                        let functionStr = "FastExt.Map.showAddressInMap(null,'" + lnglat + "','')";
                         if (mapTitle) {
-                            functionStr = "showAddressInMap(null,'" + lnglat + "','" + mapTitle + "')";
+                            functionStr = "FastExt.Map.showAddressInMap(null,'" + lnglat + "','" + mapTitle + "')";
                         }
                         return "&nbsp;<a href=\"javascript:" + functionStr + ";\" >" + val + "</a>&nbsp;";
                     }
@@ -423,7 +423,7 @@ namespace FastExt{
          * @param rotateName 图片旋转的角度
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
-        static mapImgLayer(imgUrlName,southWestLngLatName, northEastLngLatName,rotateName):any {
+        static mapImgLayer(imgUrlName, southWestLngLatName, northEastLngLatName, rotateName): any {
             return function (val, m, record) {
                 try {
                     if (Ext.isEmpty(val) || val === "null") {
@@ -437,7 +437,7 @@ namespace FastExt{
                         imgUrl = FastExt.Image.rotateOSSImgUrl(imgUrl, rotate);
                     }
                     if (imgUrl && southWestLngLat && northEastLngLat) {
-                        let functionStr = "showImgLayer(null,'" + imgUrl + "','" + southWestLngLat + "','" + northEastLngLat + "')";
+                        let functionStr = " FastExt.Map.showImgLayerInMap(null,'" + imgUrl + "','" + southWestLngLat + "','" + northEastLngLat + "')";
                         return "&nbsp;<a href=\"javascript:" + functionStr + ";\" >" + val + "</a>&nbsp;";
                     }
                     return val;
@@ -451,7 +451,7 @@ namespace FastExt{
          * 将数据以密码格式渲染
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
-        static password() :any{
+        static password(): any {
             return function (val, m, record, rowIndex, colIndex, store, view, details) {
                 if (Ext.isEmpty(val)) {
                     return "<span style='color: #ccc;'>无</span>";
@@ -464,7 +464,7 @@ namespace FastExt{
          * 将数据以超链接格式渲染
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
-        static href():any {
+        static href(): any {
             return function (val, m, record) {
                 if (Ext.isEmpty(val) || val === "null") {
                     return "<span style='color: #ccc;'>无</span>";
@@ -504,7 +504,7 @@ namespace FastExt{
          * 将毫秒格式的数据格式渲染，例如：1秒或1分20秒
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
-        static duration():any {
+        static duration(): any {
             return function (val, m, record) {
                 try {
                     if (Ext.isEmpty(val) || val === "null") {
@@ -533,7 +533,7 @@ namespace FastExt{
          * @param format
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
-        static dateFormat(format?:string) :any{
+        static dateFormat(format?: string): any {
             return function (val, m, record) {
                 try {
                     if (Ext.isEmpty(val) || val === "null") {
@@ -557,7 +557,7 @@ namespace FastExt{
          * @param enumValue 枚举值的属性名
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
-        static enum(enumName, enumValue) :any{
+        static enum(enumName, enumValue): any {
             return function (val) {
                 try {
                     if (Ext.isEmpty(val)) {

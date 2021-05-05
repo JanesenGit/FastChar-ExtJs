@@ -1209,7 +1209,7 @@ namespace FastDefine{
      * 地图位置组件
      */
     export abstract class MapField {
-        constructor() {
+        protected constructor() {
             Ext.define("Fast.ext.Map", {
                 alias: ['widget.map', 'widget.mapfield'],
                 extend: 'Ext.form.FieldContainer',

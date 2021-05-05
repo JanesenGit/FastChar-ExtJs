@@ -3660,9 +3660,20 @@ namespace FastExt {
             window["files"] = FastExt.FileModule;
             window["getPageToolBar"] = FastExt.Grid.getPageToolBar;
             window["getDetailsPanel"] = FastExt.Grid.getDetailsPanel;
-            window["showWait"] = FastExt.Dialog.showWait;
-            window["hideWait"] = FastExt.Dialog.hideWait;
             window["system"] = FastExt.System;
+            window["toBool"] = FastExt.Base.toBool;
+            window["deleteGridData"] = FastExt.Grid.deleteGridData;
+            window["updateGridData"] = FastExt.Grid.updateGridData;
+            window["runCallBack"] = FastExt.Base.runCallBack;
+            window["showDetailsWindow"] = FastExt.Grid.showDetailsWindow;
+
+
+            for (const dialogKey in FastExt.Dialog) {
+                window[dialogKey] = FastExt.Dialog[dialogKey];
+            }
+            for (const componentKey in FastExt.Component) {
+                window[componentKey] = FastExt.Component[componentKey];
+            }
         }
     }
 

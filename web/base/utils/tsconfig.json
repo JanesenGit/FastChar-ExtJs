@@ -3,12 +3,12 @@
     "module": "AMD",
     "target": "es5",
     "sourceMap": false,
-    "outFile": "./fast-ext-utils.js"
+    "outFile": "./fast-ext-utils.js",
   },
   "exclude": [
     "node_modules",
     "docs",
-    "dist",
+    "dist"
 //    "fast-ext-a.ts"
   ]
 }
