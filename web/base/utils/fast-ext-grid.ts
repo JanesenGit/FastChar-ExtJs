@@ -72,9 +72,9 @@ namespace FastExt {
 
         /**
          * 添加grid的右键菜单选项
-         * @param grid
-         * @param target
-         * @param index
+         * @param grid Grid对象
+         * @param target 菜单Ext.menu.Item
+         * @param index 插入位置
          */
         static addGridContextMenu(grid, target?, index?) {
             if (grid.contextMenu && target) {
@@ -98,7 +98,7 @@ namespace FastExt {
 
         /**
          * 配置Grid默认的右键菜单功能
-         * @param grid
+         * @param grid Grid对象
          */
         static configGridContextMenu(grid) {
             let index = 0;
@@ -1061,8 +1061,8 @@ namespace FastExt {
 
         /**
          * 构建grid列表右侧详细面板
-         * @param grid
-         * @param fromWindow
+         * @param grid Grid对象
+         * @param fromWindow 是否添加到窗体中
          * @private
          */
         static getDetailsPanel(grid, fromWindow): any {
@@ -1663,8 +1663,8 @@ namespace FastExt {
 
         /**
          * 弹出设置grid操作界面
-         * @param obj
-         * @param grid
+         * @param obj 动画对象
+         * @param grid Grid对象
          * @see {@link FastExt.GridOperate}
          */
         static setGrid(obj, grid) {
@@ -2105,7 +2105,7 @@ namespace FastExt {
          * @param grid gri的对象
          * @param column 列对象
          * @param type 计算方式
-         * @see FastEnum.ComputeType
+         * @see {@link FastEnum.ComputeType}
          */
         static showColumnCompute(grid, column, type?: FastEnum.ComputeType) {
             try {
@@ -3016,7 +3016,7 @@ namespace FastExt {
         /**
          * 获取搜索列的输入组件
          * @param column
-         * @param where
+         * @param where 搜索条件，默认 { compare: '=',value: ''}
          */
         static buildSearchItem(column, where?): any {
             try {
