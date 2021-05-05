@@ -3667,13 +3667,21 @@ namespace FastExt {
             window["runCallBack"] = FastExt.Base.runCallBack;
             window["showDetailsWindow"] = FastExt.Grid.showDetailsWindow;
 
+            window["showWait"] = FastExt.Dialog.showWait;
+            window["hideWait"] = FastExt.Dialog.hideWait;
+            window["toast"] = FastExt.Dialog.toast;
+            window["showAlert"] = FastExt.Dialog.showAlert;
+            window["showLink"] = FastExt.Dialog.showLink;
+            window["showCode"] = FastExt.Dialog.showCode
+            window["showEditorHtml"] = FastExt.Dialog.showEditorHtml;
+            window["showException"] = FastExt.Dialog.showException;
+            window["showJson"] = FastExt.Dialog.showJson;
+            window["showVideo"] = FastExt.Dialog.showVideo;
+            window["showImage"] = FastExt.Dialog.showImage;
+            window["showText"] = FastExt.Dialog.showText;
 
-            for (const dialogKey in FastExt.Dialog) {
-                window[dialogKey] = FastExt.Dialog[dialogKey];
-            }
-            for (const componentKey in FastExt.Component) {
-                window[componentKey] = FastExt.Component[componentKey];
-            }
+            window["shakeComment"] = FastExt.Component.shakeComment;
+
         }
     }
 
