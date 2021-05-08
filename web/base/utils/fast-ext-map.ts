@@ -31,7 +31,8 @@ namespace FastExt{
                 let showInputPoint = function (title, pointType?) {
                     Ext.Msg.prompt(title, "请输入坐标经纬度(lng,lat)", function (btn, text) {
                         if (btn === 'ok') {
-                            text = text.toString().replaceAll(" ", "")
+                            text = text.toString()
+                                .replaceAll(" ", "")
                                 .replaceAll("，", ",");
                             if (window["mapFrame"]) {
                                 if (pointType) {
@@ -68,6 +69,7 @@ namespace FastExt{
                             id: 'txtSearch',
                             columnWidth: 1,
                             allowBlank: false,
+                            useHistory: true,
                             emptyText: '输入地址',
                             xtype: 'textfield'
                         }, {

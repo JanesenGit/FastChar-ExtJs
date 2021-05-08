@@ -1,10 +1,12 @@
+// noinspection TypeScriptValidateJSTypes
+
 namespace FastDefine{
 
     /**
      * 枚举下拉框组件
      */
     export abstract class EnumComboBox {
-        constructor() {
+        protected constructor() {
             Ext.define("Fast.ext.EnumComboBox", {
                 alias: ['widget.enumcombobox', 'widget.enumcombo'],
                 extend: 'Ext.form.field.ComboBox',
@@ -45,7 +47,6 @@ namespace FastDefine{
                     me.callParent();
                 }
             });
-
         }
     }
 
@@ -54,7 +55,7 @@ namespace FastDefine{
      * 文件上传组件
      */
     export abstract class FastFileField{
-        constructor() {
+        protected constructor() {
             Ext.define("Fast.ext.FastFile", {
                 extend: 'Ext.form.field.Text',
                 alias: ['widget.fastfile', 'widget.fastfilefield'],

@@ -6,11 +6,10 @@ namespace FastExt {
      */
     export class Cache {
 
-
         /**
          * 内存缓存配置对象
          */
-        static memory: object;
+        static memory: object = {};
 
         /**
          * 设置缓存，保存在本地浏览器,localStorage

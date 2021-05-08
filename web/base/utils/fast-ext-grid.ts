@@ -2031,10 +2031,10 @@ namespace FastExt {
                                 menuDisabled: true,
                                 columns: columns
                             };
-                            waitRemove=waitRemove.concat(columns);
+                            waitRemove = waitRemove.concat(columns);
                         }
                         for (let i = 0; i < waitRemove.length; i++) {
-                            newColumns=Ext.Array.remove(newColumns, waitRemove[i]);
+                            newColumns = Ext.Array.remove(newColumns, waitRemove[i]);
                         }
                         newColumns.sort(function (a, b) {
                             return a.index - b.index;
@@ -3555,7 +3555,7 @@ namespace FastExt {
                 subtext: '清空数据@' + menuText,
                 iconCls: 'extIcon extClear grayColor',
                 handler: function () {
-                    let menuText =  FastExt.Store.getStoreMenuText(dataStore.grid.getStore());
+                    let menuText = FastExt.Store.getStoreMenuText(dataStore.grid.getStore());
                     let confirmFunction = function (button, text) {
                         if (button === "yes") {
                             FastExt.System.validOperate("清空【" + menuText + "】数据", function () {
@@ -3563,9 +3563,9 @@ namespace FastExt {
                                 let storeParams = dataStore.grid.getStore().proxy.extraParams;
                                 let params = {"entityCode": dataStore.entity.entityCode, "all": true};
                                 if (dataStore.grid.getStore().entity.menu) {
-                                    params["menu"] =  FastExt.Store.getStoreMenuText(dataStore.grid.getStore());
+                                    params["menu"] = FastExt.Store.getStoreMenuText(dataStore.grid.getStore());
                                 }
-                                FastExt.Server.deleteEntity( FastExt.Json.mergeJson(params, storeParams), function (success, message) {
+                                FastExt.Server.deleteEntity(FastExt.Json.mergeJson(params, storeParams), function (success, message) {
                                     FastExt.Dialog.hideWait();
                                     if (success) {
                                         dataStore.loadPage(1);
@@ -4223,7 +4223,7 @@ namespace FastExt {
                             }
                             if (!d.groupHeaderText) {
                                 d.groupHeaderText = lastGroupNon;
-                            }else{
+                            } else {
                                 lastGroupNon++;
                             }
                             data.push(d);
@@ -4253,8 +4253,8 @@ namespace FastExt {
                             expandTip: null,
                             collapseTip: null,
                             groupHeaderTpl: [
-                                '<b>{name:this.formatName}</b>',{
-                                    formatName: function(name) {
+                                '<b>{name:this.formatName}</b>', {
+                                    formatName: function (name) {
                                         if (Ext.isNumeric(name)) {
                                             return "基本属性";
                                         }
@@ -4334,7 +4334,25 @@ namespace FastExt {
                                 obj.focus();
                             }
                         },
-                        items: [detailsGrid]
+                        items: [detailsGrid],
+                        buttons: [
+                            {
+                                text: '管理界面',
+                                iconCls: 'extIcon extWindow whiteColor',
+                                handler: function () {
+                                    let menu = FastExt.System.searchMenuByEntityCode(entity.entityCode);
+                                    if (menu) {
+                                        if (FastExt.System.lastTabId === menu.id) {
+                                            FastExt.Component.shakeComment(Ext.getCmp(menu.id));
+                                            return;
+                                        }
+                                        FastExt.System.selectMenu(menu.id);
+                                    }else{
+                                        FastExt.Dialog.showAlert("系统提醒", "打开失败！您或没有此功能的管理权限！");
+                                    }
+                                }
+                            }
+                        ]
                     });
                     win.show();
                 } else {

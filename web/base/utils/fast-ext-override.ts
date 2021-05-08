@@ -773,8 +773,22 @@ namespace FastOverrider {
                 })
             });
 
-
             Ext.override(Ext.form.field.Text, {
+                validate: function () {
+                    let result =  this.callParent(arguments);
+                    if (result && this.xtype === "textfield" && !this.disabled && !this.readOnly&&this.useHistory) {
+                        let value = this.getValue();
+                        let cacheHistory = FastExt.Cache.getCache(this.code);
+                        if (!cacheHistory) {
+                            cacheHistory = [];
+                        }
+                        if (!cacheHistory.exists(value)) {
+                            cacheHistory.push(value);
+                            FastExt.Cache.setCache(this.code, cacheHistory);
+                        }
+                    }
+                    return result;
+                },
                 initComponent: Ext.Function.createSequence(Ext.form.field.Text.prototype.initComponent, function () {
                     let me = this;
                     if (me.inputType === 'password') {
@@ -819,6 +833,89 @@ namespace FastOverrider {
                                 }
                             }
                         });
+                    }else if (me.xtype === "textfield" && !me.disabled && !me.readOnly && this.useHistory) {
+                        me.checkHistory = function () {
+                            if (!this.code) {
+                                this.code = FastExt.Power.getPowerCode(this);
+                            }
+                            let cacheHistory = FastExt.Cache.getCache(this.code);
+                            if (cacheHistory && cacheHistory.length > 0) {
+                                this.getTrigger('history').show();
+                                return true;
+                            } else {
+                                this.getTrigger('history').hide();
+                                return false;
+                            }
+                        };
+                        me.clearHistory = function () {
+                            if (!this.code) {
+                                this.code = FastExt.Power.getPowerCode(this);
+                            }
+                            FastExt.Cache.setCache(this.code, []);
+                            FastExt.Dialog.toast("已清空历史记录！");
+                            me.checkHistory();
+                        };
+                        me.showHistory = function () {
+                            if (!this.code) {
+                                this.code = FastExt.Power.getPowerCode(this);
+                            }
+                            this.historyMenu = new Ext.menu.Menu({
+                                padding: '0 0 0 0',
+                                power: false,
+                                showSeparator: false,
+                                maxHeight: 300,
+                                style: {
+                                    background: "#ffffff"
+                                }
+                            });
+                            this.historyMenuHandler = function () {
+                                me.setValue(this.text);
+                            };
+                            let cacheHistory = FastExt.Cache.getCache(this.code);
+                            if (!cacheHistory) {
+                                return;
+                            }
+                            this.historyMenu.add({
+                                text: "清空历史记录",
+                                iconCls: 'extIcon extClear',
+                                handler: function () {
+                                    me.clearHistory();
+                                }
+                            });
+                            for (let i = 0; i < cacheHistory.length; i++) {
+                                let text = cacheHistory[i];
+                                this.historyMenu.add({
+                                    text: text,
+                                    iconCls: 'extIcon extHistory',
+                                    handler: this.historyMenuHandler
+                                });
+                            }
+                            this.historyMenu.setWidth(Math.max(this.bodyEl.getWidth(), 200));
+                            this.historyMenu.showBy(this.bodyEl, "tl-bl?");
+                        };
+                        me.hideHistory = function () {
+                            if (this.historyMenu) {
+                                this.historyMenu.close();
+                            }
+                        };
+                        me.on("change", function (obj, newValue, oldValue) {
+                            obj.checkHistory();
+                        });
+                        me.on("afterrender", function (obj, newValue, oldValue) {
+                            obj.checkHistory();
+                        });
+                        me.setTriggers({
+                            history: {
+                                cls: 'extIcon extHistory',
+                                hidden: true,
+                                handler: function () {
+                                    if (me.up("menu")) {
+                                        me.up("menu").holdShow = true;
+                                    }
+                                    me.showHistory();
+                                }
+                            },
+                        });
                     }
                 })
             });
@@ -838,14 +935,14 @@ namespace FastOverrider {
                     }
                     let me = this;
                     me.power = FastExt.Base.toBool(me.power, true);
-                    if (!me.power) {
-                        return;
-                    }
-                    if (me.up("[power=false]")) {
-                        return;
-                    }
                     if (me.power && (me.getXTypes().indexOf("field/") > 0 || Ext.Array.contains(FastExt.Power.types, me.getXType()))) {
                         me.code = FastExt.Power.getPowerCode(me);
+                        if (!me.power) {
+                            return;
+                        }
+                        if (me.up("[power=false]")) {
+                            return;
+                        }
                         if (me.code) {
                             me.managerPower = FastExt.Power.checkManagerPower(me);
                             FastExt.Power.setPower(me.code, FastExt.Base.copy(me.managerPower));
@@ -863,7 +960,6 @@ namespace FastOverrider {
                                     me.setReadOnly(true);
                                 }
                             }
-
                             if (FastExt.Power.config) {
                                 me.powerConfig = FastExt.Power.checkPower(me.code);
                                 FastExt.Power.setPowerStyle(me);

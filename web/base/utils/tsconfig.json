@@ -9,6 +9,5 @@
     "node_modules",
     "docs",
     "dist"
-//    "fast-ext-a.ts"
   ]
 }

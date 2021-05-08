@@ -1,10 +1,4 @@
-/**
- * 扩展ExtJs常用组件中的属性或方法
- */
 namespace FastExtend {
-
-
-
     /**
      * 字符串类型的相关扩展
      * @define 使用String对象调用以下方法或属性
@@ -167,6 +161,11 @@ namespace FastExtend {
          * 如果配置属性值为true，则grid会自动配置fastchar-extjs提供的其他功能或属性！
          */
         entityList: boolean;
+
+        /**
+         * 标识是否是标签页打开的数据列表
+         */
+        tabPanelList: boolean = false;
     }
 
 
@@ -397,12 +396,47 @@ namespace FastExtend {
         /**
          * 失去焦点
          * @example Ext.form.field对象，例如： textfield.blur()
-         * @see {@link FastExtend.Field.constructor}
+         * @see {@link FastExtend.FieldExtend.constructor}
          */
         abstract blur();
 
     }
 
+
+    /**
+     * Ext.form.field.Text扩展
+     * @define 使用Ext.form.field.Text对象调用以下方法或属性
+     * @example input.blur()
+     */
+    export abstract class TextFieldExtend {
+        protected constructor() {
+        }
+
+        /**
+         * 是否开启输入历史记录的功能
+         */
+        useHistory: boolean = false;
+
+        /**
+         * 显示输入框的历史记录菜单，当useHistory为true时有效
+         */
+        abstract showHistory();
+
+        /**
+         * 隐藏输入框的历史记录菜单，当useHistory为true时有效
+         */
+        abstract hideHistory();
+
+        /**
+         * 检测输入框是否有历史记录，当useHistory为true时有效
+         */
+        abstract checkHistory(): boolean;
+
+        /**
+         * 清空输入框的历史记录，当useHistory为true时有效
+         */
+        abstract clearHistory();
+    }
 
     /**
      * Ext.grid.column.Column的扩展

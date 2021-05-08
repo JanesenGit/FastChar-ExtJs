@@ -558,10 +558,7 @@ namespace FastExt {
                                         let selection = get('treelist.selection');
                                         if (selection) {
                                             if (selection.data.leaf) {
-                                                me.showTab(selection.data.method,
-                                                    selection.data.id,
-                                                    selection.data.text,
-                                                    selection.data.icon);
+                                                me.showTab(selection.data.method, selection.data.id, selection.data.text, selection.data.icon);
                                             }
                                         }
                                         return selection;
@@ -1222,7 +1219,7 @@ namespace FastExt {
          * @param menuId 菜单Id
          * @param justParent 是否只选中父类
          */
-        static selectMenu(menuId, justParent) {
+        static selectMenu(menuId, justParent?) {
             try {
                 let me = this;
                 if (Ext.isEmpty(justParent)) {
@@ -1261,6 +1258,32 @@ namespace FastExt {
             let treelist = Ext.getCmp("leftTreeList");
             let record = treelist.getStore().getNodeById(menuId);
             return record != null;
+        }
+
+        /**
+         * 根据实体编号搜索左侧菜单对象
+         * @param entityCode
+         */
+        static searchMenuByEntityCode(entityCode) {
+            let filterMenu = function (menuArray) {
+                if (!menuArray) {
+                    return null;
+                }
+                for (let i = 0; i < menuArray.length; i++) {
+                    let menu = menuArray[i];
+                    if (menu.method && menu.method.indexOf(entityCode) >= 0) {
+                        return menu;
+                    }
+                    if (menu.children) {
+                        let result = filterMenu(menu.children);
+                        if (result) {
+                            return result;
+                        }
+                    }
+                }
+                return null;
+            };
+            return filterMenu(this.menus);
         }
 
 

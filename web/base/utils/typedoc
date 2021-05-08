@@ -1,6 +1,6 @@
 #!/bin/bash
-printf "开始构建TypeScript文档，进入目录\n `dirname $0` \n\n"
+printf "开始构建TypeScript文档，进入目录\n $(dirname $0) \n\n"
 
-cd `dirname $0`
+cd $(dirname $0)
 
 typedoc

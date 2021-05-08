@@ -300,7 +300,7 @@ namespace FastExt{
             let isDebug = FastExt.System.getExt("debug").value;
             if (isDebug) {
                 let win = Ext.create('Ext.window.Window', {
-                    title: '系统异常' + from,
+                    title: '系统异常' ,
                     height: 180,
                     width: 270,
                     layout: 'fit',
@@ -311,7 +311,7 @@ namespace FastExt{
                     modal: true,
                     draggable: false,
                     iconCls: 'extIcon extError',
-                    html: "<div  style='padding:15px;background: #fff;' align='center'>系统发生异常，请及时告知系统管理员！</div>",
+                    html: "<div  style='padding:15px;background: #fff;' align='center'>【"+from+"】系统发生异常，请及时告知系统管理员！</div>",
                     buttons: [{
                         text: '下次再说',
                         flex: 1,

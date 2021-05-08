@@ -198,7 +198,7 @@ namespace FastExt {
          * 判断record是否被修改过
          * @param record [Ext.data.Model]
          */
-        static isModified(record):boolean {
+        static isModified(record): boolean {
             for (let name in record.data) {
                 try {
                     if (record.isModified(name)) {
@@ -255,7 +255,7 @@ namespace FastExt {
                     }
                 },
                 listeners: {
-                    beforeload:  function ( store, options, eOpts) {
+                    beforeload: function (store, options, eOpts) {
                         try {
                             if (!store.entity || !store.entity.entityCode) {
                                 return false;
@@ -331,11 +331,11 @@ namespace FastExt {
             config.autoLoad = false;
             let entityStore;
             if (tree) {
-                config["root"]={
+                config["root"] = {
                     expanded: true
                 }
                 entityStore = Ext.create('Ext.data.TreeStore', config);
-            }else{
+            } else {
                 entityStore = Ext.create('Ext.data.Store', config);
             }
             entityStore.on("load", function (store) {
@@ -459,7 +459,7 @@ namespace FastExt {
          * 获取比较符数据源
          * @return Ext.data.Store
          */
-        static getCompareDataStore():any {
+        static getCompareDataStore(): any {
             return Ext.create('Ext.data.Store', {
                 data: [
                     {
