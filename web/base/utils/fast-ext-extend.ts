@@ -142,6 +142,10 @@ namespace FastExtend {
          * 如果配置属性值为true，则在拖拽或改变控件大小时会禁用本组件，避免鼠标事件丢失问题
          */
         iframePanel: boolean = false;
+
+        /**
+         * 组件功能的使用介绍，配置后，右键鼠标即可查看内容
+         */
         help: string;
     }
 
@@ -413,7 +417,7 @@ namespace FastExtend {
         }
 
         /**
-         * 是否开启输入历史记录的功能
+         * 是否开启输入历史记录的功能，当调用validate方法是会触发记录，将数据保存到历史记录中
          */
         useHistory: boolean = false;
 

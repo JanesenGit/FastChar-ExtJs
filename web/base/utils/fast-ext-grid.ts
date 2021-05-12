@@ -62,8 +62,13 @@ namespace FastExt {
                     FastExt.Grid.configGridTip(grid);
                     grid.setLoading(false);
                     grid.getStore().grid = grid;
-                    if (!grid.getStore().isLoaded()) {
-                        grid.getStore().loadPage(1);
+                    if (FastExt.System.silenceGlobalSave) {
+                        tabContainer.close();
+                        FastExt.System.doNextSilenceMenu();
+                    }else{
+                        if (!grid.getStore().isLoaded()) {
+                            grid.getStore().loadPage(1);
+                        }
                     }
                 });
             }
@@ -635,43 +640,7 @@ namespace FastExt {
                                     text: '下载模板',
                                     iconCls: 'extIcon extExcelModule searchColor',
                                     handler: function () {
-                                        FastExt.Dialog.showWait("正在生成中……");
-                                        let params: any = {entityCode: grid.getStore().entity.entityCode};
-                                        if (grid.getStore().entity.menu) {
-                                            params.title = grid.getStore().entity.menu.text;
-                                        }
-                                        Ext.each(grid.getColumns(), function (item, index) {
-                                            //排除文件类
-                                            if (FastExt.Grid.isFileColumn(item) || FastExt.Grid.isFilesColumn(item)
-                                                || !FastExt.Base.toBool(item.excelHeader, true)
-                                                || item.isHidden()) {
-                                                return;
-                                            }
-                                            if (!Ext.isEmpty(item.dataIndex)) {
-                                                let indexStr = index;
-                                                if (index < 10) {
-                                                    indexStr = "0" + index;
-                                                }
-                                                params["column[" + indexStr + "].width"] = item.width;
-                                                params["column[" + indexStr + "].text"] = item.configText;
-                                                params["column[" + indexStr + "].groupHeaderText"] = item.groupHeaderText;
-                                                params["column[" + indexStr + "].enum"] = FastExt.Grid.getColumnEnumName(item);
-                                                params["column[" + indexStr + "].type"] = FastExt.Grid.getColumnFieldType(item);
-                                                params["column[" + indexStr + "].dataIndex"] = item.dataIndex;
-                                                if (FastExt.Grid.isLinkColumn(item)) {
-                                                    params["column[" + indexStr + "].dataIndex"] = item.field.name;
-                                                }
-                                            }
-                                        });
-                                        FastExt.Server.excelModule(params, function (success, data, message) {
-                                            FastExt.Dialog.hideWait();
-                                            if (success) {
-                                                FastExt.Dialog.toast("生成成功！");
-                                                location.href = "attach/" + data;
-                                            } else {
-                                                Ext.Msg.alert('系统提醒', "生成失败！" + message);
-                                            }
-                                        });
+                                        FastExt.Grid.downExcelModel(grid);
                                     }
                                 },
                                 {
@@ -679,7 +648,7 @@ namespace FastExt {
                                     iconCls: 'extIcon extExcelImport searchColor',
                                     handler: function () {
                                         let params = {entityCode: grid.getStore().entity.entityCode};
-                                        FastExt.File.importExcel(this, params, grid.importExcelItems).then(function (data) {
+                                        FastExt.Grid.importExcel(this, params, grid.importExcelItems).then(function (data) {
                                             if (data) {
                                                 grid.getStore().loadPage(1);
                                             }
@@ -687,6 +656,25 @@ namespace FastExt {
                                     }
                                 }
                             ]
+                        },
+                        {
+                            iconCls: 'extIcon extDownload searchColor',
+                            text: '下载数据',
+                            handler: function () {
+                                FastExt.Grid.downDataGrid(grid);
+                            }
+                        },
+                        {
+                            iconCls: 'extIcon extUpload searchColor',
+                            text: '上传数据',
+                            handler: function () {
+                                let params = {entityCode: grid.getStore().entity.entityCode};
+                                FastExt.Grid.loadDataGrid(this, params).then(function (data) {
+                                    if (data) {
+                                        grid.getStore().loadPage(1);
+                                    }
+                                });
+                            }
                         },
                         {
                             iconCls: 'extIcon extSet',
@@ -987,13 +975,7 @@ namespace FastExt {
                             beforehide: function (obj, epts) {
                                 let fieldObj = obj.items.get(0).items.get(0);
                                 if (!fieldObj.isValid()) {
-                                    let currError = fieldObj.getErrors();
-                                    if (currError.length === 0) {
-                                        currError = [fieldObj.invalidText];
-                                    }
-                                    if (Ext.isEmpty(currError[0])) {
-                                        currError[0] = "数据错误！";
-                                    }
+                                    let currError = FastExt.Form.getFieldError(fieldObj);
                                     FastExt.Dialog.toast(currError[0]);
                                     FastExt.Component.shakeComment(obj, function () {
                                         obj.holdShow = false;
@@ -1049,7 +1031,9 @@ namespace FastExt {
                 if (!grid) {
                     return;
                 }
-                grid.setLoading("初始化配置中……");
+                if (!FastExt.System.silenceGlobalSave) {
+                    grid.setLoading("初始化配置中……");
+                }
                 FastExt.Grid.restoreGridOperate(grid).then(function () {
                     FastExt.Grid.restoreGridColumn(grid).then(function () {
                         resolve(true);
@@ -1228,8 +1212,14 @@ namespace FastExt {
                             groupHeaderText: column.groupHeaderText,
                             renderer: column.renderer,
                             index: column.getIndex(),
-                            record: record
+                            record: record,
+                            linkColumn: column,
+                            configEditor: FastExt.Base.toBool(column.editable, true),
+                            editor: false
                         };
+                        if (Ext.isEmpty(column.field)) {
+                            item.configEditor = false;
+                        }
                         if (!item.groupHeaderText) {
                             item.groupHeaderText = lastGroupNon;
                         } else {
@@ -1278,6 +1268,27 @@ namespace FastExt {
                                 return val;
                             }
                         }
+                    },
+                    {
+                        xtype: 'actioncolumn',
+                        width: 50,
+                        sortable: false,
+                        menuDisabled: true,
+                        items: [{
+                            iconCls: 'extIcon extEdit',
+                            tooltip: '编辑数据',
+                            align: 'center',
+                            isDisabled: function (view, rowIndex, colIndex,item,record) {
+                                return !FastExt.Base.toBool(record.get("editor"), false);
+                            },
+                            getClass: function (v, metadata, record) {
+                                if (FastExt.Base.toBool(record.get("editor"), false)) {
+                                    return "extIcon extEdit";
+                                }
+                                return "";
+                            },
+                            handler: FastExt.Grid.showDetailsEditMenu
+                        }]
                     }],
                 tbar: {
                     flex: 1,
@@ -1354,9 +1365,18 @@ namespace FastExt {
                     enableTextSelection: true
                 },
                 listeners: {
+                    itemmouseenter: function (obj, record, item, index, e, eOpts) {
+                        record.set("editor", record.get("configEditor"));
+                    },
+                    itemmouseleave: function (obj, record, item, index, e, eOpts) {
+                        record.set("editor", false);
+                    },
                     itemdblclick: function () {
                         try {
                             let data = this.getSelectionModel().getSelection();
+                            if (data.length == 0) {
+                                return;
+                            }
                             FastExt.Grid.scrollToColumn(this.superGrid, data[0].get("dataIndex"), data[0].get("text"));
                         } catch (e) {
                             FastExt.Dialog.showException(e, "details:itemdblclick");
@@ -1882,6 +1902,355 @@ namespace FastExt {
             });
         }
 
+        /**
+         * 下载实体表格导入的数据模板
+         * @param grid
+         */
+        static downExcelModel(grid) {
+            FastExt.Dialog.showWait("正在生成中……");
+            let params: any = {entityCode: grid.getStore().entity.entityCode};
+            if (grid.getStore().entity.menu) {
+                params.title = grid.getStore().entity.menu.text;
+            }
+            Ext.each(grid.getColumns(), function (item, index) {
+                //排除文件类
+                if (FastExt.Grid.isFileColumn(item) || FastExt.Grid.isFilesColumn(item)
+                    || !FastExt.Base.toBool(item.excelHeader, true)
+                    || item.isHidden()) {
+                    return;
+                }
+                if (!Ext.isEmpty(item.dataIndex)) {
+                    let indexStr = index;
+                    if (index < 10) {
+                        indexStr = "0" + index;
+                    }
+                    params["column[" + indexStr + "].width"] = item.width;
+                    params["column[" + indexStr + "].text"] = item.configText;
+                    params["column[" + indexStr + "].groupHeaderText"] = item.groupHeaderText;
+                    params["column[" + indexStr + "].enum"] = FastExt.Grid.getColumnEnumName(item);
+                    params["column[" + indexStr + "].type"] = FastExt.Grid.getColumnFieldType(item);
+                    params["column[" + indexStr + "].dataIndex"] = item.dataIndex;
+                    if (FastExt.Grid.isLinkColumn(item)) {
+                        params["column[" + indexStr + "].dataIndex"] = item.field.name;
+                    }
+                }
+            });
+            FastExt.Server.excelModule(params, function (success, data, message) {
+                FastExt.Dialog.hideWait();
+                if (success) {
+                    FastExt.Dialog.toast("生成成功！");
+                    location.href = "attach/" + data;
+                } else {
+                    Ext.Msg.alert('系统提醒', "生成失败！" + message);
+                }
+            });
+        }
+
+        /**
+         * 导入实体的excel数据
+         * @param obj
+         * @param params 接口参数
+         * @param formItems 配置扩展表单组件
+         * @param serverUrl 服务器地址
+         */
+        static importExcel(obj, params, formItems?, serverUrl?: string) {
+            return new Ext.Promise(function (resolve, reject) {
+                if (!formItems) {
+                    formItems = [];
+                } else {
+                    formItems = Ext.Array.clone(formItems);
+                }
+                if (!serverUrl) {
+                    serverUrl = FastExt.Server.importEntityExcelUrl();
+                }
+                formItems.push({
+                    xtype: 'filefield',
+                    fieldLabel: 'Excel文件',
+                    buttonText: '选择文件',
+                    allowBlank: false,
+                    name: 'file',
+                    columnWidth: 1,
+                    listeners: {
+                        change: function (obj, value, eOpts) {
+                            if (value != null && value.length != 0) {
+                                if (!FastExt.FileModule.excel().reg.test(value)) {
+                                    formPanel.form.reset();
+                                    Ext.Msg.alert('系统提醒', "请上传有效的Excel文档！");
+                                }
+                            }
+                        }
+                    }
+                });
+                let formPanel = Ext.create('Ext.form.FormPanel', {
+                    url: serverUrl,
+                    method: 'POST',
+                    margin: '5',
+                    fileUpload: true,
+                    width: 400,
+                    callBacked: false,
+                    border: 0,
+                    layout: 'column',
+                    defaults: {
+                        labelWidth: 80,
+                        margin: '5 5 5 5',
+                        labelAlign: 'right',
+                        emptyText: '请填写'
+                    },
+                    items: formItems,
+                    doSubmit: function () {
+                        let form = formPanel.form;
+                        if (form.isValid()) {
+                            let myMask = new Ext.LoadMask({
+                                msg: '正在导入中…',
+                                target: uploadWin
+                            });
+                            myMask.show();
+                            form.submit({
+                                params: params,
+                                success: function (form, action) {
+                                    myMask.destroy();
+                                    Ext.Msg.alert('系统提醒', action.result.message, function () {
+                                        FastExt.Base.runCallBack(resolve, action.result);
+                                        uploadWin.close();
+                                    });
+                                },
+                                failure: function (form, action) {
+                                    myMask.destroy();
+                                    Ext.Msg.alert('系统提醒', "导入失败！" + action.result.message);
+                                }
+                            });
+                        }
+                    },
+                    listeners: {
+                        'render': function (obj) {
+                            try {
+                                new Ext.util.KeyMap({
+                                    target: obj.getEl(),
+                                    key: 13,
+                                    fn: formPanel.doSubmit,
+                                    scope: Ext.getBody()
+                                });
+                            } catch (e) {
+                                console.error(e);
+                            }
+                        }
+                    }
+                });
+                let btnSubmitId = "btnSubmit" + new Date().getTime();
+                let uploadWin = Ext.create('Ext.window.Window', {
+                    title: "导入Excel数据",
+                    layout: 'fit',
+                    resizable: false,
+                    scrollable: false,
+                    items: [formPanel],
+                    modal: true,
+                    iconCls: 'extIcon extUpload',
+                    animateTarget: obj,
+                    constrain: true,
+                    buttons: [
+                        {
+                            text: '重置',
+                            width: 88,
+                            iconCls: 'extIcon extReset',
+                            handler: function () {
+                                formPanel.form.reset();
+                            }
+                        },
+                        {
+                            text: '上传',
+                            width: 88,
+                            id: btnSubmitId,
+                            iconCls: 'extIcon extOk',
+                            handler: function () {
+                                formPanel.doSubmit();
+                            }
+                        }],
+                    listeners: {
+                        show: function (winObj, eOpts) {
+                            if (formItems.length === 1) {
+                                formPanel.getForm().findField('file').fileInputEl.dom.click();
+                                Ext.getCmp(btnSubmitId).focus();
+                            }
+                        }
+                    }
+                });
+                uploadWin.show();
+            });
+        }
+
+
+        /**
+         * 下载实体数据
+         * @param grid
+         */
+        static downDataGrid(grid) {
+            if (!grid.getStore().entity) {
+                Ext.Msg.alert('系统提醒', '下载失败！Grid的DataStore未绑定Entity!');
+                return;
+            }
+            let message = "您确定下载当前条件下的所有数据吗？";
+            let data = grid.getSelection();
+            if (data.length > 0) {
+                message = "您确定下载选中的" + data.length + "条数据吗？";
+            }
+
+            Ext.Msg.confirm("系统提醒", message, function (button, text) {
+                if (button === "yes") {
+                    let storeParams = grid.getStore().proxy.extraParams;
+                    let params: any = {};
+                    if (grid.getStore().entity.menu) {
+                        params.title = grid.getStore().entity.menu.text;
+                    }
+
+                    if (data.length > 0) {
+                        for (let i = 0; i < data.length; i++) {
+                            let record = data[i];
+                            for (let j = 0; j < grid.getStore().entity.idProperty.length; j++) {
+                                let idName = grid.getStore().entity.idProperty[j];
+                                let key = "where['" + idName + "#']";
+                                if (!params[key]) {
+                                    params[key] = [];
+                                }
+                                params[key].push(record.get(idName));
+                            }
+                        }
+                    }
+                    FastExt.Dialog.showWait("正在下载中……");
+                    FastExt.Server.downData(FastExt.Json.mergeJson(params, storeParams), function (success, message, data) {
+                        FastExt.Dialog.hideWait();
+                        if (success) {
+                            FastExt.Dialog.toast(message);
+                            location.href = "attach/" + data;
+                        } else {
+                            Ext.Msg.alert('系统提醒', message);
+                        }
+                    });
+                }
+            });
+        }
+
+
+        /**
+         * 上传实体数据
+         * @param obj
+         * @param params 接口参数
+         * @param serverUrl 服务器地址
+         */
+        static loadDataGrid(obj, params) {
+            return new Ext.Promise(function (resolve, reject) {
+                let formPanel = Ext.create('Ext.form.FormPanel', {
+                    url: FastExt.Server.loadEntityDataUrl(),
+                    method: 'POST',
+                    margin: '5',
+                    fileUpload: true,
+                    width: 400,
+                    callBacked: false,
+                    border: 0,
+                    layout: 'column',
+                    defaults: {
+                        labelWidth: 80,
+                        margin: '5 5 5 5',
+                        labelAlign: 'right',
+                        emptyText: '请填写'
+                    },
+                    items: [{
+                        xtype: 'filefield',
+                        fieldLabel: '数据文件',
+                        buttonText: '选择文件',
+                        allowBlank: false,
+                        name: 'file',
+                        columnWidth: 1,
+                        listeners: {
+                            change: function (obj, value, eOpts) {
+                                if (value != null && value.length != 0) {
+                                    if (!FastExt.FileModule.data().reg.test(value)) {
+                                        formPanel.form.reset();
+                                        Ext.Msg.alert('系统提醒', "请上传有效的数据文件！");
+                                    }
+                                }
+                            }
+                        }
+                    }],
+                    doSubmit: function () {
+                        let form = formPanel.form;
+                        if (form.isValid()) {
+                            let myMask = new Ext.LoadMask({
+                                msg: '正在上传中…',
+                                target: uploadWin
+                            });
+                            myMask.show();
+                            form.submit({
+                                params: params,
+                                success: function (form, action) {
+                                    myMask.destroy();
+                                    Ext.Msg.alert('系统提醒', action.result.message, function () {
+                                        FastExt.Base.runCallBack(resolve, action.result);
+                                        uploadWin.close();
+                                    });
+                                },
+                                failure: function (form, action) {
+                                    myMask.destroy();
+                                    Ext.Msg.alert('系统提醒', "上传失败！" + action.result.message);
+                                }
+                            });
+                        }
+                    },
+                    listeners: {
+                        'render': function (obj) {
+                            try {
+                                new Ext.util.KeyMap({
+                                    target: obj.getEl(),
+                                    key: 13,
+                                    fn: formPanel.doSubmit,
+                                    scope: Ext.getBody()
+                                });
+                            } catch (e) {
+                                console.error(e);
+                            }
+                        }
+                    }
+                });
+                let btnSubmitId = "btnSubmit" + new Date().getTime();
+                let uploadWin = Ext.create('Ext.window.Window', {
+                    title: "上传实体数据",
+                    layout: 'fit',
+                    resizable: false,
+                    scrollable: false,
+                    items: [formPanel],
+                    modal: true,
+                    iconCls: 'extIcon extUpload',
+                    animateTarget: obj,
+                    constrain: true,
+                    buttons: [
+                        {
+                            text: '重置',
+                            width: 88,
+                            iconCls: 'extIcon extReset',
+                            handler: function () {
+                                formPanel.form.reset();
+                            }
+                        },
+                        {
+                            text: '上传',
+                            width: 88,
+                            id: btnSubmitId,
+                            iconCls: 'extIcon extOk',
+                            handler: function () {
+                                formPanel.doSubmit();
+                            }
+                        }],
+                    listeners: {
+                        show: function (winObj, eOpts) {
+                            formPanel.getForm().findField('file').fileInputEl.dom.click();
+                            Ext.getCmp(btnSubmitId).focus();
+                        }
+                    }
+                });
+                uploadWin.show();
+            });
+        }
+
+
 
         /**
          * 保存Grid的列表配置
@@ -1895,36 +2264,39 @@ namespace FastExt {
             return new Ext.Promise(function (resolve, reject) {
                 try {
                     let columnInfos = {};
-                    Ext.each(grid.getColumns(), function (item, index) {
-                        if (!Ext.isEmpty(item.dataIndex)) {
+                    Ext.each(grid.getColumns(), function (column, index) {
+                        if (!Ext.isEmpty(column.dataIndex)) {
                             if (!FastExt.System.isSuperRole()) {
-                                if (!item.hideable && item.hidden) {
+                                if (!column.hideable && column.hidden) {
                                     //没有权限的列或者不需要显示的列
                                     return;
                                 }
                             }
                             let columnInfo = {column: true};
-                            columnInfo["width"] = item.width;
-                            columnInfo["hidden"] = item.isHidden();
-                            columnInfo["locked"] = item.isLocked();
-                            columnInfo["text"] = item.configText;
-                            columnInfo["dataIndex"] = item.dataIndex;
-                            columnInfo["groupHeaderText"] = item.groupHeaderText;
+                            columnInfo["width"] = column.width;
+                            columnInfo["hidden"] = column.isHidden();
+                            columnInfo["locked"] = column.isLocked();
+                            columnInfo["text"] = column.configText;
+                            columnInfo["dataIndex"] = column.dataIndex;
+                            columnInfo["groupHeaderText"] = column.groupHeaderText;
                             if (grid.getStore().entity) {
                                 columnInfo["entityCode"] = grid.getStore().entityCode;
                             }
-                            let sortConfig = grid.getStore().getSorters().getByKey(item.dataIndex);
+                            let sortConfig = grid.getStore().getSorters().getByKey(column.dataIndex);
                             if (sortConfig) {
                                 columnInfo["sortDirection"] = sortConfig.getDirection();
                             }
-                            columnInfo["searchLink"] = item.searchLink;
-                            columnInfo["index"] = item.getIndex();
+                            columnInfo["searchLink"] = column.searchLink;
+                            columnInfo["index"] = column.getIndex();
 
-                            let rendererStr = item.renderer.toString();
+                            let rendererStr = column.renderer.toString();
                             rendererStr = "function " + rendererStr.substring(rendererStr.indexOf("("));
                             columnInfo["renderer"] = rendererStr;
-                            columnInfo["rendererFunction"] = item.rendererFunction;
-                            columnInfos[item.code] = columnInfo;
+                            columnInfo["rendererFunction"] = column.rendererFunction;
+                            if (FastExt.Base.toBool(column.editable, true)) {
+                                columnInfo["editorField"] = FastExt.Grid.getColumnSimpleEditorJson(column);
+                            }
+                            columnInfos[column.code] = columnInfo;
                         }
                     });
 
@@ -2047,7 +2419,9 @@ namespace FastExt {
                                 comboPage.setValue(pageTool.pageSize);
                             }
                         }
-                        grid.getStore().sort(sorts);
+                        if (!FastExt.System.silenceGlobalSave) {
+                            grid.getStore().sort(sorts);
+                        }
                         grid.reconfigure(newColumns);
                         resolve();
                     });
@@ -2206,6 +2580,7 @@ namespace FastExt {
          * 获取列的编辑控件
          * @param column 列对象
          * @param search 列的搜索对象json
+         * @return editor {}
          */
         static getColumnSimpleEditor(column, search?): any {
             try {
@@ -2234,7 +2609,9 @@ namespace FastExt {
                     editor.xtype = "textfield";
                 }
                 editor.dataIndex = column.dataIndex;
-                editor.columnSearchField = true;
+                if (search) {
+                    editor.columnSearchField = true;
+                }
                 return editor;
             } catch (e) {
                 console.error(e);
@@ -2242,6 +2619,20 @@ namespace FastExt {
             return null;
 
         }
+
+        /**
+         * 获取列的编辑控件json字符串
+         * @param column 列对象
+         * @param search 列的搜索对象json
+         */
+        static getColumnSimpleEditorJson(column, search?): string {
+            let columnSimpleEditor = FastExt.Grid.getColumnSimpleEditor(column, search);
+            if (columnSimpleEditor) {
+                return FastExt.Json.objectToJson(columnSimpleEditor);
+            }
+            return null;
+        }
+
 
         /**
          * 弹出批量编辑列数的菜单
@@ -2297,12 +2688,17 @@ namespace FastExt {
                     showSeparator: false,
                     layout: 'fit',
                     doUpdate: function () {
+                        let me = this;
+                        let fieldObj = me.items.get(0).items.get(0);
+                        if (!fieldObj.isValid()) {
+                            FastExt.Component.shakeComment(me);
+                            FastExt.Dialog.toast(FastExt.Form.getFieldError(fieldObj)[0]);
+                            return;
+                        }
                         let btn = this.down("button[name='confirm']");
                         btn.setText("稍等");
                         btn.setDisabled(true);
-                        let me = this;
                         new Ext.Promise(function (resolve, reject) {
-                            let fieldObj = me.items.get(0).items.get(0);
                             putRecord(fieldObj);
                             fieldObj.setValue(null);
                             resolve();
@@ -2315,7 +2711,10 @@ namespace FastExt {
                     items: [
                         {
                             xtype: 'panel',
-                            layout: 'hbox',
+                            layout: {
+                                type: 'hbox',
+                                align: 'stretch'
+                            },
                             style: {
                                 background: "#ffffff",
                                 borderWidth: 1,
@@ -2340,14 +2739,6 @@ namespace FastExt {
                         show: function (obj, epts) {
                             let fieldObj = obj.items.get(0).items.get(0);
                             fieldObj.focus();
-                        },
-                        beforehide: function (obj, epts) {
-                            let fieldObj = obj.items.get(0).items.get(0);
-                            if (!fieldObj.isValid()) {
-                                FastExt.Component.shakeComment(obj);
-                                FastExt.Dialog.toast(fieldObj.getErrors()[0]);
-                            }
-                            return fieldObj.isValid();
                         }
                     }
                 });
@@ -2948,7 +3339,7 @@ namespace FastExt {
             try {
                 column.configText = column.text;
                 column.toSearchKey = function (where, i) {
-                    return "where['" + this.getIndex() + i + this.dataIndex + where.compare + "']";
+                    return "where['@" + this.getIndex() + FastExt.Base.toString(where.link, "&") + this.dataIndex + where.compare + ":index" + i + "']";
                 };
                 column.searchValue = function (value) {
                     let me = this;
@@ -2956,6 +3347,7 @@ namespace FastExt {
                         me.where = [];
                     }
                     let where = {
+                        link: '&',
                         compare: '=',
                         value: value
                     };
@@ -3014,6 +3406,22 @@ namespace FastExt {
         }
 
         /**
+         * 配置列的默认相关的事件功能
+         * @param column
+         */
+        static configColumnListener(column) {
+            try {
+                column.on("blur", function (obj, event, eOpts) {
+                    // if (obj.searchMenu) {
+                    //     obj.searchMenu.hide();
+                    // }
+                });
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        /**
          * 获取搜索列的输入组件
          * @param column
          * @param where 搜索条件，默认 { compare: '=',value: ''}
@@ -3025,6 +3433,7 @@ namespace FastExt {
                     return;
                 }
 
+                editorField.validator = null;
                 editorField.flex = 1;
                 editorField.margin = '2 2 0 0';
                 editorField.repeatTriggerClick = false;
@@ -3069,6 +3478,7 @@ namespace FastExt {
 
                 if (!where) {
                     where = {
+                        link: '&',
                         compare: '=',
                         value: ''
                     };
@@ -3078,6 +3488,7 @@ namespace FastExt {
                         where.compare = '>';
                     }
                 }
+
                 editorField.value = where.value;
                 editorField.submitValue = false;
                 editorField.name = "value";
@@ -3088,7 +3499,10 @@ namespace FastExt {
                     border: 0,
                     flex: 1,
                     region: 'center',
-                    layout: 'hbox',
+                    layout: {
+                        type: 'hbox',
+                        align: 'stretch'
+                    },
                     toParam: function () {
                         let params = {};
                         this.items.each(function (item) {
@@ -3114,6 +3528,8 @@ namespace FastExt {
                             if (Ext.isFunction(item.getValue)) {
                                 if (item.getName() === 'compare') {
                                     item.setValue(where.compare);
+                                } else if (item.getName() === 'link') {
+                                    item.setValue(where.link);
                                 } else {
                                     item.setValue(where.value);
                                 }
@@ -3121,6 +3537,27 @@ namespace FastExt {
                         });
                     },
                     items: [
+                        {
+                            xtype: 'combo',
+                            name: 'link',
+                            value: FastExt.Base.toString(where.link, "&"),
+                            margin: '2 2 0 2',
+                            width: 35,
+                            valueField: 'text',
+                            editable: false,
+                            hideTrigger: true,
+                            tpl: Ext.create('Ext.XTemplate',
+                                '<ul class="x-list-plain"><tpl for=".">',
+                                '<li role="option" class="x-boundlist-item" style="font-size: 12px;">{desc}</li>',
+                                '</tpl></ul>'
+                            ),
+                            listeners: {
+                                afterrender: function (obj, eOpts) {
+                                    obj.getPicker().setMinWidth(100);
+                                }
+                            },
+                            store: FastExt.Store.getCompareLinkDataStore()
+                        },
                         {
                             xtype: 'combo',
                             name: 'compare',
@@ -3177,6 +3614,7 @@ namespace FastExt {
                         padding: '0 0 0 0',
                         power: false,
                         showSeparator: false,
+                        columnSearchMenu: true,
                         style: {
                             background: "#ffffff"
                         },
@@ -3214,7 +3652,10 @@ namespace FastExt {
                         items: [
                             {
                                 xtype: 'panel',
-                                layout: 'hbox',
+                                layout: {
+                                    type: 'hbox',
+                                    align: 'stretch'
+                                },
                                 margin: '2',
                                 border: 0,
                                 items: [
@@ -3239,6 +3680,7 @@ namespace FastExt {
                             }],
                         listeners: {
                             show: function (obj, epts) {
+                                column.addCls("x-column-header-open");
                                 if (obj.items.length === 1) {
                                     obj.addSearchItem();
                                 }
@@ -3254,6 +3696,9 @@ namespace FastExt {
                                 } catch (e) {
                                     console.error(e);
                                 }
+                            },
+                            hide: function (obj, epts) {
+                                column.removeCls("x-column-header-open");
                             }
                         }
                     });
@@ -3273,7 +3718,7 @@ namespace FastExt {
                     }
                 }
 
-                column.searchMenu.setWidth(Math.max(column.width, 200));
+                column.searchMenu.setWidth(Math.max(parseInt(column.getWidth()), 200));
                 column.searchMenu.showBy(column, "tl-bl?");
                 return true;
             } catch (e) {
@@ -3494,6 +3939,9 @@ namespace FastExt {
                 store: FastExt.Store.getPageDataStore(),
                 listeners: {
                     change: function (obj, newValue, oldValue) {
+                        if (FastExt.System.silenceGlobalSave) {
+                            return;
+                        }
                         if (newValue != null && newValue != 0) {
                             let pageRecord = obj.getStore().getById(newValue);
                             if (!pageRecord) {
@@ -4214,11 +4662,20 @@ namespace FastExt {
                             let d = {
                                 value: record.get(column.dataIndex),
                                 groupHeaderText: column.groupHeaderText,
-                                record: record
+                                record: record,
+                                entity: entity,
+                                configEditor: false,
+                                editor: false
                             };
                             for (let c in column) {
                                 if (column.hasOwnProperty(c)) {
                                     d[c] = column[c];
+                                }
+                            }
+                            if (!Ext.isEmpty(column["editorField"])) {
+                                let fieldObj = FastExt.Json.jsonToObject(column["editorField"]);
+                                if (fieldObj != null && !Ext.isEmpty(fieldObj.xtype)) {
+                                    d.configEditor = true;
                                 }
                             }
                             if (!d.groupHeaderText) {
@@ -4233,9 +4690,9 @@ namespace FastExt {
                         return a.index - b.index;
                     });
                     let detailsStore = Ext.create('Ext.data.Store', {
+                        fields: [],
                         autoLoad: false,
-                        groupField: 'groupHeaderText',
-                        fields: []
+                        groupField: 'groupHeaderText'
                     });
                     detailsStore.loadData(data);
                     detailsStore.sort('index', 'ASC');
@@ -4304,14 +4761,63 @@ namespace FastExt {
                                         return val;
                                     }
                                 }
-                            }],
+                            },
+                            {
+                                xtype: 'actioncolumn',
+                                width: 50,
+                                sortable: false,
+                                menuDisabled: true,
+                                items: [{
+                                    iconCls: 'extIcon extEdit',
+                                    tooltip: '编辑数据',
+                                    align: 'center',
+                                    isDisabled: function (view, rowIndex, colIndex, item, record) {
+                                        return !FastExt.Base.toBool(record.get("editor"), false);
+                                    },
+                                    getClass: function (v, metadata, record) {
+                                        if (FastExt.Base.toBool(record.get("editor"), false)) {
+                                            return "extIcon extEdit";
+                                        }
+                                        return "";
+                                    },
+                                    handler: FastExt.Grid.showDetailsEditMenu
+                                }]
+                            }
+                        ],
                         viewConfig: {
                             loadMask: {
                                 msg: '正在为您在加载数据…'
                             },
                             enableTextSelection: true
+                        },
+                        listeners: {
+                            itemmouseenter: function (obj, record, item, index, e, eOpts) {
+                                record.set("editor", record.get("configEditor"));
+                            },
+                            itemmouseleave: function (obj, record, item, index, e, eOpts) {
+                                record.set("editor", false);
+                            }
                         }
                     });
+                    let winButtons = [];
+                    if (FastExt.System.searchMenuByEntityCode(entity.entityCode)) {
+                        winButtons.push({
+                            text: '管理界面',
+                            iconCls: 'extIcon extWindow whiteColor',
+                            handler: function () {
+                                let menu = FastExt.System.searchMenuByEntityCode(entity.entityCode);
+                                if (menu) {
+                                    if (FastExt.System.lastTabId === menu.id) {
+                                        FastExt.Component.shakeComment(Ext.getCmp(menu.id));
+                                        return;
+                                    }
+                                    FastExt.System.selectMenu(menu.id);
+                                } else {
+                                    FastExt.Dialog.showAlert("系统提醒", "打开失败！您或没有此功能的管理权限！");
+                                }
+                            }
+                        });
+                    }
 
                     let winWidth = parseInt((document.body.clientWidth * 0.3).toFixed(0));
                     let winHeight = parseInt((document.body.clientHeight * 0.6).toFixed(0));
@@ -4335,24 +4841,7 @@ namespace FastExt {
                             }
                         },
                         items: [detailsGrid],
-                        buttons: [
-                            {
-                                text: '管理界面',
-                                iconCls: 'extIcon extWindow whiteColor',
-                                handler: function () {
-                                    let menu = FastExt.System.searchMenuByEntityCode(entity.entityCode);
-                                    if (menu) {
-                                        if (FastExt.System.lastTabId === menu.id) {
-                                            FastExt.Component.shakeComment(Ext.getCmp(menu.id));
-                                            return;
-                                        }
-                                        FastExt.System.selectMenu(menu.id);
-                                    }else{
-                                        FastExt.Dialog.showAlert("系统提醒", "打开失败！您或没有此功能的管理权限！");
-                                    }
-                                }
-                            }
-                        ]
+                        buttons: winButtons
                     });
                     win.show();
                 } else {
@@ -4438,6 +4927,117 @@ namespace FastExt {
             return Ext.create('Ext.grid.Panel', FastExt.Json.mergeJson(gridConfig, configGrid));
         }
 
+
+        /**
+         * 显示详情界面单行属性编辑框菜单
+         * @param view
+         * @param rowIndex
+         * @param colIndex
+         * @param item
+         * @param e
+         * @param record
+         * @private
+         */
+        private static showDetailsEditMenu(view, rowIndex, colIndex, item, e, record) {
+
+            let editorField: any;
+            if (record.get("linkColumn")) {
+                editorField = Ext.create(FastExt.Grid.getColumnSimpleEditor(record.get("linkColumn")));
+            }else{
+                editorField = Ext.create(FastExt.Json.jsonToObject(record.get("editorField")));
+            }
+            if (!editorField) {
+                FastExt.Dialog.toast("此属性无法编辑！");
+                return;
+            }
+            view.getSelectionModel().selectRange(rowIndex, rowIndex);
+            let cell = view.getCell(record, 1);
+            editorField.flex = 1;
+            editorField.emptyText = "请输入";
+            editorField.region = 'center';
+
+            if (FastExt.Base.toString(editorField.inputType, "none") !== "password") {
+                if (Ext.isFunction(editorField.setValue)) {
+                    let value = record.get("value");
+                    if (Ext.isObject(value) || Ext.isArray(value)) {
+                        editorField.setValue(JSON.stringify(value), record.get("record"));
+                    } else {
+                        editorField.setValue(value, record.get("record"));
+                    }
+                }
+            }
+
+            let putRecord = function (fieldObj) {
+                if (fieldObj.isValid()) {
+                    if (!Ext.isEmpty(fieldObj.getValue())) {
+                        FastExt.Store.setRecordValue(record.get("record"), record.get("dataIndex"), fieldObj);
+                        FastExt.Store.setRecordValue(record, "value", fieldObj);
+                        FastExt.Store.commitStoreUpdate(record.get("record").store).then(function (success) {
+                            if (success) {
+                                record.store.commitChanges();
+                            }
+                        });
+                    }
+                }
+            };
+            if (Ext.isFunction(editorField.showWindow)) {
+                editorField.showWindow(cell, function (result) {
+                    putRecord(result);
+                });
+                return;
+            }
+            let menu = Ext.create('Ext.menu.Menu', {
+                showSeparator: false,
+                layout: 'fit',
+                doUpdate: function () {
+                    let me = this;
+                    let fieldObj = me.items.get(0).items.get(0);
+                    if (!fieldObj.isValid()) {
+                        FastExt.Component.shakeComment(me);
+                        FastExt.Dialog.toast(FastExt.Form.getFieldError(fieldObj)[0]);
+                        return;
+                    }
+                    putRecord(fieldObj);
+                    me.hide();
+                },
+                items: [
+                    {
+                        xtype: 'panel',
+                        layout: {
+                            type: 'hbox',
+                            align: 'stretch'
+                        },
+                        style: {
+                            background: "#ffffff",
+                            borderWidth: 1,
+                            borderColor: "#ffffff",
+                            color: '#eeeee'
+                        },
+                        border: 0,
+                        items: [editorField,
+                            {
+                                xtype: 'button',
+                                text: '确定',
+                                name: 'confirm',
+                                region: 'east',
+                                width: 60,
+                                margin: '0 0 0 2',
+                                handler: function () {
+                                    menu.doUpdate();
+                                }
+                            }
+                        ]
+                    }],
+                listeners: {
+                    show: function (obj, epts) {
+                        let fieldObj = obj.items.get(0).items.get(0);
+                        fieldObj.focus();
+                    }
+                }
+            });
+            menu.setWidth(cell.getWidth());
+            menu.showBy(cell, "tl");
+        }
     }
 
     /**

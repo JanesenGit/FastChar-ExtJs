@@ -7,11 +7,6 @@ namespace FastExt {
         }
 
         /**
-         * 首页头部线形状进度条
-         */
-        static progressLine: "ProgressBar.Line";
-
-        /**
          * 获取浏览器的操作系统
          */
         static getOS(): string {
@@ -111,35 +106,6 @@ namespace FastExt {
                 }
             }
             return newObj;
-        }
-
-
-        /**
-         * 获得首页头部线形状进度条
-         * @param toColor
-         * @returns {ProgressBar.Line}
-         */
-        static getProgressLine(toColor: string): any {
-            if (Ext.isEmpty(toColor)) {
-                toColor = "#f8c633";
-            }
-            if (!Base.progressLine) {
-                Base.progressLine = new ProgressBar.Line('#progress', {
-                    color: toColor,
-                    duration: 1000,
-                    easing: 'easeInOut',
-                    from: {
-                        color: '#9c58b6'
-                    },
-                    to: {
-                        color: toColor
-                    },
-                    step: function (state, line, attachment) {
-                        line.path.setAttribute('stroke', state.color);
-                    }
-                });
-            }
-            return Base.progressLine;
         }
 
 
@@ -488,5 +454,20 @@ namespace FastExt {
             return url.match(re) && url.match(re)[1];
         }
 
+
+        /**
+         * 将对象转换为字符类型
+         * @param value 对象
+         * @param defaultValue 默认值，当对象数据为空时返回
+         */
+        static toString(value, defaultValue): string {
+            if (Ext.isEmpty(defaultValue)) {
+                defaultValue = value;
+            }
+            if (Ext.isEmpty(value)) {
+                return defaultValue;
+            }
+            return value.toString();
+        }
     }
 }

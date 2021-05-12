@@ -6,7 +6,7 @@
   "name": "FastChar-ExtJs文档",
   "theme": "minimal",
   "version": false,
-  "excludePrivate": true,
+  "excludePrivate": false,
   "disableSources": false,
   "hideGenerator": true
 }

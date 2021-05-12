@@ -1,9 +1,9 @@
-namespace FastExt{
+namespace FastExt {
 
     /**
      * 全局弹框相关操作
      */
-    export class Dialog{
+    export class Dialog {
 
         /**
          * 显示等待窗口
@@ -103,7 +103,7 @@ namespace FastExt{
          * @param url 网页地址
          * @param config 扩展Ext.window.Window的配置 json对象
          */
-        static showLink(obj, title, url,config) {
+        static showLink(obj, title, url, config) {
             let winWidth = parseInt((document.body.clientWidth * 0.4).toFixed(0));
             let winHeight = parseInt((document.body.clientHeight * 0.6).toFixed(0));
             let iframePanel = Ext.create('Ext.panel.Panel', {
@@ -157,7 +157,7 @@ namespace FastExt{
          * @param content 内容
          * @param config 扩展Ext.window.Window的配置 json对象
          */
-        static showEditorHtml(obj, title, content,config?) {
+        static showEditorHtml(obj, title, content, config?) {
             let winWidth = parseInt((document.body.clientWidth * 0.4).toFixed(0));
             let winHeight = parseInt((document.body.clientHeight * 0.6).toFixed(0));
             let win = Ext.create('Ext.window.Window', {
@@ -234,7 +234,7 @@ namespace FastExt{
          * @param value 代码内容
          * @param linenumber 是否显示代码行数
          */
-        static showCode(obj, value, linenumber?:boolean) {
+        static showCode(obj, value, linenumber?: boolean) {
             try {
                 if (obj) {
                     obj.blur();
@@ -284,7 +284,6 @@ namespace FastExt{
         static showException(e, from?: string) {
             if (!e) return;
             FastExt.Dialog.hideWait();
-            console.error(e);
             let message = e;
             if (e instanceof Error) {
                 message = e.stack;
@@ -300,7 +299,7 @@ namespace FastExt{
             let isDebug = FastExt.System.getExt("debug").value;
             if (isDebug) {
                 let win = Ext.create('Ext.window.Window', {
-                    title: '系统异常' ,
+                    title: '系统异常',
                     height: 180,
                     width: 270,
                     layout: 'fit',
@@ -311,7 +310,7 @@ namespace FastExt{
                     modal: true,
                     draggable: false,
                     iconCls: 'extIcon extError',
-                    html: "<div  style='padding:15px;background: #fff;' align='center'>【"+from+"】系统发生异常，请及时告知系统管理员！</div>",
+                    html: "<div  style='padding:15px;background: #fff;' align='center'>【" + from + "】系统发生异常，请及时告知系统管理员！</div>",
                     buttons: [{
                         text: '下次再说',
                         flex: 1,
@@ -328,6 +327,7 @@ namespace FastExt{
                 });
                 win.show();
             }
+            console.error(e);
         }
 
 
@@ -346,6 +346,7 @@ namespace FastExt{
                 title: title,
                 message: message,
                 modal: modal,
+                defaultFocus : 1,
                 buttons: Ext.MessageBox.OK,
                 fn: callBack,
                 minWidth: 250
@@ -359,14 +360,14 @@ namespace FastExt{
          * @param callBack 回调函数
          * @param modal 是否有背景阴影层
          */
-        static showImage(obj, url, callBack, modal?:boolean) {
+        static showImage(obj, url, callBack, modal?: boolean) {
             if (Ext.isEmpty(modal)) {
                 modal = false;
             }
             let jsonData = [];
             if (Ext.isArray(url)) {
-                jsonData=url
-            }else{
+                jsonData = url
+            } else {
                 jsonData.push({
                     "url": url
                 });
@@ -848,7 +849,7 @@ namespace FastExt{
                         background: "#ffffff"
                     },
                     alwaysOnTop: true,
-                    width: 350,
+                    width: 330,
                     height: 400,
                     listeners: {
                         hide: function (obj, epts) {
@@ -981,13 +982,6 @@ namespace FastExt{
                 defaultValue = "#42445a";
             }
             return new Ext.Promise(function (resolve, reject) {
-                window["onColorPickerLoadDone"] = function (colorPicker) {
-                    colorPicker.on('change', function (color, source, instance) {
-                        if (Ext.isFunction(onColorChange)) {
-                            onColorChange(color, source, instance)
-                        }
-                    });
-                };
                 let menu = Ext.create('Ext.menu.Menu', {
                     showSeparator: false,
                     layout: 'border',
@@ -1015,11 +1009,21 @@ namespace FastExt{
                             border: 0,
                             listeners: {
                                 afterrender: function () {
+                                    let me = this;
+                                    window["onColorPickerLoadDone"] = function (colorPicker) {
+                                        me.setLoading(false);
+                                        colorPicker.on('change', function (color, source, instance) {
+                                            if (Ext.isFunction(onColorChange)) {
+                                                onColorChange(color, source, instance)
+                                            }
+                                        });
+                                    };
+                                    me.setLoading("加载控件中……");
                                     let url = FastExt.System.formatUrlVersion('base/colorpicker/index.html',
                                         {
                                             color: defaultValue.replace("#", "")
                                         });
-                                    this.update("<iframe name='colorPickerFrame'  src='" + url + "' width='100%' height='100%' frameborder='0' scrolling='no' />");
+                                    me.update("<iframe name='colorPickerFrame'  src='" + url + "' width='100%' height='100%' frameborder='0' scrolling='no' />");
                                 }
                             }
                         }]

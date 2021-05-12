@@ -275,6 +275,9 @@ namespace FastExt {
                                     tree.parentIdValue = -1;
                                 }
                                 newParams["page"] = -1;
+                                newParams["fromTree"] = true;
+                                newParams["treeParentIdName"] = tree.parentIdName;
+
                                 let parentValue = options.node.data[tree.idName];
                                 if (Ext.isEmpty(parentValue)) {
                                     parentValue = tree.parentIdValue;
@@ -310,8 +313,7 @@ namespace FastExt {
 
 
                                 FastExt.Grid.checkColumnSearch(store.grid);
-                            }
-                            if (store.grid) {
+
                                 if (Ext.isFunction(store.grid.onBeforeLoad)) {
                                     let result = store.grid.onBeforeLoad(store.grid, store, newParams);
                                     if (!FastExt.Base.toBool(result, true)) {
@@ -331,8 +333,10 @@ namespace FastExt {
             config.autoLoad = false;
             let entityStore;
             if (tree) {
-                config["root"] = {
-                    expanded: true
+                if (!FastExt.System.silenceGlobalSave) {
+                    config["root"] = {
+                        expanded: true
+                    };
                 }
                 entityStore = Ext.create('Ext.data.TreeStore', config);
             } else {
@@ -506,6 +510,29 @@ namespace FastExt {
             });
         }
 
+
+        /**
+         * 获取比较运算式的连接符
+         * @return Ext.data.Store
+         */
+        static getCompareLinkDataStore(): any {
+            return Ext.create('Ext.data.Store', {
+                data: [
+                    {
+                        id: 0,
+                        text: '&',
+                        desc: '并且'
+                    },
+                    {
+                        id: 1,
+                        text: '||',
+                        desc: '或者'
+                    }
+                ]
+            });
+        }
+
+
         /**
          * 获取grid列的数据源
          * @param grid
@@ -629,8 +656,10 @@ namespace FastExt {
                     record.set(dataIndex, value);
                 }
             }
-            if (FastExt.Base.toBool(field.autoUpdate, false)) {
-                FastExt.Store.commitStoreUpdate(record.store);
+            if (record.store) {
+                if (FastExt.Base.toBool(field.autoUpdate, false)) {
+                    FastExt.Store.commitStoreUpdate(record.store);
+                }
             }
         }
 

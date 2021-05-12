@@ -1931,7 +1931,7 @@ namespace FastDefine{
                     if (me.getMenu() != null) {
                         me.getMenu().holdShow = true;
                     }
-                    FastExt.Dialog.showFastDatePicker(me, me.getValue(), this.format).then(function (dateValue) {
+                    FastExt.Dialog.showFastDatePicker(me.bodyEl, me.getValue(), this.format).then(function (dateValue) {
                         if (me.getMenu() != null) {
                             me.getMenu().holdShow = false;
                         }

@@ -1,6 +1,6 @@
-namespace FastExt{
+namespace FastExt {
 
-    export class File{
+    export class File {
 
         /**
          * 格式化文件的大小长度
@@ -27,7 +27,7 @@ namespace FastExt{
          * uploadFile(this,[file.image(),file.excel()])
          * @return Ext.Promise
          */
-        static uploadFile(obj, fileModules, multiple?:boolean, useEditUrl?:boolean):any {
+        static uploadFile(obj, fileModules, multiple?: boolean, useEditUrl?: boolean): any {
             return new Ext.Promise(function (resolve, reject) {
                 let title = "上传文件", type = "files", width = -1, height = -1, name = "file";
                 if (!FastExt.FileModule.validate(fileModules, "fileModules")) {
@@ -76,9 +76,16 @@ namespace FastExt{
                                         let errorMsg = "";
                                         for (let i = 0; i < fileModules.length; i++) {
                                             let fileModule = fileModules[i];
-                                            if (fileModule.reg.test(value)) {
-                                                formPanel.doSubmit();
-                                                return;
+                                            if (fileModule.reg) {
+                                                if (fileModule.reg.test(value)) {
+                                                    formPanel.doSubmit();
+                                                    return;
+                                                }
+                                            }else if (fileModule.regStr) {
+                                                if (new RegExp(fileModule.regStr).test(value)) {
+                                                    formPanel.doSubmit();
+                                                    return;
+                                                }
                                             }
                                             errorMsg = errorMsg + "或" + fileModule.tipMsg;
                                         }
@@ -137,7 +144,7 @@ namespace FastExt{
                                     fileModel.onFileSelect(formPanel.getForm().findField(name)).then(function (error) {
                                         if (Ext.isEmpty(error)) {
                                             onFileSelectRun(i + 1);
-                                        }else{
+                                        } else {
                                             myMask.destroy();
                                             formPanel.form.reset();
                                             Ext.Msg.alert('系统提醒', error);
@@ -269,7 +276,7 @@ namespace FastExt{
          *
          * },[file.image(),file.excel()])
          */
-        static showFiles(obj, callBack, fileModules, defaultFiles, title):void {
+        static showFiles(obj, callBack, fileModules, defaultFiles, title): void {
 
             if (!FastExt.FileModule.validate(fileModules, "fileModules")) {
                 return;
@@ -472,137 +479,6 @@ namespace FastExt{
             win.show();
         }
 
-        /**
-         * 导入实体的excel数据
-         * @param obj
-         * @param params 接口参数
-         * @param formItems 配置扩展表单组件
-         * @param serverUrl 服务器地址
-         */
-        static importExcel(obj, params, formItems?, serverUrl?: string) {
-            return new Ext.Promise(function (resolve, reject) {
-                if (!formItems) {
-                    formItems = [];
-                } else {
-                    formItems = Ext.Array.clone(formItems);
-                }
-                if (!serverUrl) {
-                    serverUrl = "entity/importData";
-                }
-                formItems.push({
-                    xtype: 'filefield',
-                    fieldLabel: 'Excel文件',
-                    buttonText: '选择文件',
-                    allowBlank: false,
-                    name: 'file',
-                    columnWidth: 1,
-                    listeners: {
-                        change: function (obj, value, eOpts) {
-                            if (value != null && value.length != 0) {
-                                if (!FastExt.FileModule.excel().reg.test(value)) {
-                                    formPanel.form.reset();
-                                    Ext.Msg.alert('系统提醒', "请上传有效的Excel文档！");
-                                }
-                            }
-                        }
-                    }
-                });
-                let formPanel = Ext.create('Ext.form.FormPanel', {
-                    url: serverUrl,
-                    method: 'POST',
-                    margin: '5',
-                    fileUpload: true,
-                    width: 400,
-                    callBacked: false,
-                    border: 0,
-                    layout: 'column',
-                    defaults: {
-                        labelWidth: 80,
-                        margin: '5 5 5 5',
-                        labelAlign: 'right',
-                        emptyText: '请填写'
-                    },
-                    items: formItems,
-                    doSubmit: function () {
-                        let form = formPanel.form;
-                        if (form.isValid()) {
-                            let myMask = new Ext.LoadMask({
-                                msg: '正在导入中…',
-                                target: uploadWin
-                            });
-                            myMask.show();
-                            form.submit({
-                                params: params,
-                                success: function (form, action) {
-                                    myMask.destroy();
-                                    Ext.Msg.alert('系统提醒', action.result.message, function () {
-                                        FastExt.Base.runCallBack(resolve, action.result);
-                                        uploadWin.close();
-                                    });
-                                },
-                                failure: function (form, action) {
-                                    myMask.destroy();
-                                    Ext.Msg.alert('系统提醒', "导入失败！" + action.result.message);
-                                }
-                            });
-                        }
-                    },
-                    listeners: {
-                        'render': function (obj) {
-                            try {
-                                new Ext.util.KeyMap({
-                                    target: obj.getEl(),
-                                    key: 13,
-                                    fn: formPanel.doSubmit,
-                                    scope: Ext.getBody()
-                                });
-                            } catch (e) {
-                                console.error(e);
-                            }
-                        }
-                    }
-                });
-                let btnSubmitId = "btnSubmit" + new Date().getTime();
-                let uploadWin = Ext.create('Ext.window.Window', {
-                    title: "导入Excel数据",
-                    layout: 'fit',
-                    resizable: false,
-                    scrollable: false,
-                    items: [formPanel],
-                    modal: true,
-                    iconCls: 'extIcon extUpload',
-                    animateTarget: obj,
-                    constrain: true,
-                    buttons: [
-                        {
-                            text: '重置',
-                            width: 88,
-                            iconCls: 'extIcon extReset',
-                            handler: function () {
-                                formPanel.form.reset();
-                            }
-                        },
-                        {
-                            text: '上传',
-                            width: 88,
-                            id: btnSubmitId,
-                            iconCls: 'extIcon extOk',
-                            handler: function () {
-                                formPanel.doSubmit();
-                            }
-                        }],
-                    listeners: {
-                        show: function (winObj, eOpts) {
-                            if (formItems.length === 1) {
-                                formPanel.getForm().findField('file').fileInputEl.dom.click();
-                                Ext.getCmp(btnSubmitId).focus();
-                            }
-                        }
-                    }
-                });
-                uploadWin.show();
-            });
-        }
     }
 
     /**
@@ -636,10 +512,11 @@ namespace FastExt{
          */
         static file(): any {
             return {
-                reg: /\.*$/i,
+                regStr: '\.*',
+                reg: new RegExp(/\.*$/i),
                 tipMsg: '文件',
                 type: 'file',
-                // renderer: renders.file()
+                renderer: FastExt.Renders.file()
             }
         }
 
@@ -658,10 +535,11 @@ namespace FastExt{
             return {
                 width: width,
                 height: height,
-                reg: /\.(jpg|png|gif|jpeg|svg|bmp)$/i,
+                regStr: '\.(jpg|png|gif|jpeg|svg|bmp)',
+                reg: new RegExp(/\.(jpg|png|gif|jpeg|svg|bmp)$/i),
                 tipMsg: '图片',
                 type: 'images',
-                // renderer: renders.image(24)
+                renderer: FastExt.Renders.image(24)
             };
         }
 
@@ -672,7 +550,8 @@ namespace FastExt{
          */
         static mp4(maxDuration?: number): any {
             return {
-                reg: /\.(mp4)$/i,
+                regStr: '\.(mp4)',
+                reg: new RegExp(/\.(mp4)$/i),
                 tipMsg: 'mp4',
                 type: 'videos',
                 maxDuration: maxDuration,
@@ -693,7 +572,7 @@ namespace FastExt{
                         });
                     });
                 },
-                // renderer: renders.file()
+                renderer: FastExt.Renders.file()
             };
         }
 
@@ -702,10 +581,11 @@ namespace FastExt{
          */
         static word(): any {
             return {
-                reg: /\.(doc|docx)$/i,
+                regStr: '\.(doc|docx)',
+                reg: new RegExp(/\.(doc|docx)$/i),
                 tipMsg: 'word文档',
                 type: 'words',
-                // renderer: renders.file()
+                renderer: FastExt.Renders.file()
             };
         }
 
@@ -714,10 +594,11 @@ namespace FastExt{
          */
         static excel(): any {
             return {
-                reg: /\.(xls|xlsx)$/i,
+                regStr: '\.(xls|xlsx)',
+                reg: new RegExp(/\.(xls|xlsx)$/i),
                 tipMsg: 'excel文档',
                 type: 'excels',
-                // renderer: renders.file()
+                renderer: FastExt.Renders.file()
             };
         }
 
@@ -726,10 +607,11 @@ namespace FastExt{
          */
         static ppt(): any {
             return {
-                reg: /\.(ppt|pptx)$/i,
+                regStr: '\.(ppt|pptx)',
+                reg: new RegExp(/\.(ppt|pptx)$/i),
                 tipMsg: 'ppt文档',
                 type: 'ppt',
-                // renderer: renders.file()
+                renderer: FastExt.Renders.file()
             };
         }
 
@@ -738,34 +620,50 @@ namespace FastExt{
          */
         static pdf(): any {
             return {
-                reg: /\.(pdf)$/i,
+                regStr: '\.(pdf)',
+                reg: new RegExp(/\.(pdf)$/i),
                 tipMsg: 'pdf文档',
                 type: 'pdf',
-                // renderer: renders.file()
+                renderer: FastExt.Renders.file()
             };
         }
 
         /**
          * zip文档格式
          */
-        static zip() : any{
+        static zip(): any {
             return {
-                reg: /\.(zip|rar)$/i,
+                regStr: '\.(zip|rar)',
+                reg: new RegExp(/\.(zip|rar)$/i),
                 tipMsg: 'zip压缩包',
                 type: 'zip',
-                // renderer: renders.file()
+                renderer: FastExt.Renders.file()
             };
         }
 
         /**
          * 文本格式
          */
-        static text() : any{
+        static text(): any {
             return {
-                reg: /\.(txt)$/i,
+                regStr: '\.(txt)',
+                reg: new RegExp(/\.(txt)$/i),
                 tipMsg: 'txt文档',
                 type: 'txt',
-                // renderer: renders.file()
+                renderer: FastExt.Renders.file()
+            };
+        }
+
+        /**
+         * 数据文件
+         */
+        static data(): any {
+            return {
+                regStr: '\.(data)',
+                reg: new RegExp(/\.(data)$/i),
+                tipMsg: '数据文件',
+                type: 'data',
+                renderer: FastExt.Renders.file()
             };
         }
 

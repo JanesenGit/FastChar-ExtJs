@@ -64,6 +64,21 @@ namespace FastExt {
             return "showConfig";
         }
 
+
+        /**
+         * 实体导入数据接口地址
+         */
+        static importEntityExcelUrl(): string {
+            return "entity/importData";
+        }
+
+        /**
+         * 上传实体数据接口
+         */
+        static loadEntityDataUrl(): string {
+            return "entity/loadData";
+        }
+
         /**
          * 退出后台管理登录
          */
@@ -472,6 +487,24 @@ namespace FastExt {
          */
         static clearWaitNotice(callBack) {
             $.post("controller/clearNotice", function (result) {
+                if (Ext.isFunction(callBack)) {
+                    callBack(result.success, result.message, result.data);
+                }
+            });
+        }
+
+
+        /**
+         * 下载实体数据
+         * @param params 接口参数
+         * @param callBack 回调函数 callBack(result.success, result.message, result.data);
+         */
+        static downData(params, callBack) {
+            if (FastExt.Power.isPower()) {
+                callBack(false, "当前正在进行界面权限配置，不可下载数据！");
+                return;
+            }
+            $.post("entity/downData", params, function (result) {
                 if (Ext.isFunction(callBack)) {
                     callBack(result.success, result.message, result.data);
                 }

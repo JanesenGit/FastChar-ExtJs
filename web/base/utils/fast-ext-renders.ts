@@ -402,9 +402,9 @@ namespace FastExt {
                     let mapTitle = record.get(titleName);
                     if (lng && lat) {
                         let lnglat = lng + "," + lat;
-                        let functionStr = "FastExt.Map.showAddressInMap(null,'" + lnglat + "','')";
+                        let functionStr = "FastExt.Map.showAddressInMap(null,'" + lnglat + "','','" + val + "')";
                         if (mapTitle) {
-                            functionStr = "FastExt.Map.showAddressInMap(null,'" + lnglat + "','" + mapTitle + "')";
+                            functionStr = "FastExt.Map.showAddressInMap(null,'" + lnglat + "','" + mapTitle + "','" + val + "')";
                         }
                         return "&nbsp;<a href=\"javascript:" + functionStr + ";\" >" + val + "</a>&nbsp;";
                     }

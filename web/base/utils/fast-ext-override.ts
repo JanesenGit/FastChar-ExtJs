@@ -221,8 +221,9 @@ namespace FastOverrider {
 
                             targetEl.on("contextmenu", function () {
                                 try {
-                                    if (!window["getHelpContent"]) {
-                                        return;
+                                    let helpContent = me.help;
+                                    if (window["getHelpContent"]) {
+                                        helpContent = window["getHelpContent"](me.help);
                                     }
 
                                     if (me.helpTip) {
@@ -249,7 +250,7 @@ namespace FastOverrider {
                                         autoHide: false,
                                         maxWidth: 400,
                                         closeAction: 'destroy',
-                                        html: window["getHelpContent"](me.help),
+                                        html: helpContent,
                                         showDelay: 0,
                                         autoShow: true,
                                         listeners: {
@@ -394,6 +395,7 @@ namespace FastOverrider {
                             me.renderer = eval(me.rendererFunction);
                         }
                         FastExt.Grid.configColumnProperty(me);
+                        FastExt.Grid.configColumnListener(me);
                     } catch (e) {
                         console.error(e);
                     }
@@ -642,7 +644,7 @@ namespace FastOverrider {
      * 重写Ext.dd.* 相关的功能
      */
     export class DDOverride {
-         constructor() {
+        constructor() {
             Ext.override(Ext.dd.DragTracker, {
                 onMouseDown: function (e) {
                     this.callParent(arguments);
@@ -694,7 +696,7 @@ namespace FastOverrider {
                             let v = !field.validate();
                             if (v && index === 0) {
                                 fieldName = field.getFieldLabel();
-                                errorInfo = field.getErrors()[0];
+                                errorInfo = FastExt.Form.getFieldError(field)[0];
                                 index++;
                             }
                             return v;
@@ -775,8 +777,8 @@ namespace FastOverrider {
 
             Ext.override(Ext.form.field.Text, {
                 validate: function () {
-                    let result =  this.callParent(arguments);
-                    if (result && this.xtype === "textfield" && !this.disabled && !this.readOnly&&this.useHistory) {
+                    let result = this.callParent(arguments);
+                    if (result && this.xtype === "textfield" && !this.disabled && !this.readOnly && this.useHistory) {
                         let value = this.getValue();
                         let cacheHistory = FastExt.Cache.getCache(this.code);
                         if (!cacheHistory) {
@@ -833,7 +835,7 @@ namespace FastOverrider {
                                 }
                             }
                         });
-                    }else if (me.xtype === "textfield" && !me.disabled && !me.readOnly && this.useHistory) {
+                    } else if (me.xtype === "textfield" && !me.disabled && !me.readOnly && this.useHistory) {
                         me.checkHistory = function () {
                             if (!this.code) {
                                 this.code = FastExt.Power.getPowerCode(this);
@@ -1084,6 +1086,27 @@ namespace FastOverrider {
         }
     }
 
+
+    /**
+     * 重写Ext.scroll.Scroller相关的功能
+     */
+    export class ScrollerOverride {
+        constructor() {
+            Ext.override(Ext.scroll.Scroller, {
+                fireScrollStart: function () {
+                    let me = this;
+                    me.callParent(arguments);
+                    if (me.component) {
+                        me.component.focus();
+                        let menuCmpArray = Ext.ComponentQuery.query("menu[columnSearchMenu=true]");
+                        for (let i = 0; i < menuCmpArray.length; i++) {
+                            menuCmpArray[i].hide();
+                        }
+                    }
+                }
+            });
+        }
+    }
 
 
     for (let subClass in FastOverrider) {

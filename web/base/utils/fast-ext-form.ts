@@ -156,6 +156,22 @@ namespace FastExt {
         }
 
 
+        /**
+         * 获取字段输入框的错误消息
+         * @param fieldObj
+         * @return string[]
+         */
+        static getFieldError(fieldObj): string[] {
+            let currError = fieldObj.getErrors();
+            if (currError.length === 0) {
+                currError = [fieldObj.invalidText];
+            }
+            if (Ext.isEmpty(currError[0])) {
+                currError[0] = "数据错误！";
+            }
+            return currError;
+        }
+
     }
 
 }

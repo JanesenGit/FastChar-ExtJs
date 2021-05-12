@@ -1,9 +1,9 @@
-namespace FastExt{
+namespace FastExt {
 
     /**
      * 地图相关功能，使用的是高德地图
      */
-    export class Map{
+    export class Map {
 
         /**
          * 弹出地图选择界面
@@ -55,8 +55,10 @@ namespace FastExt{
                     region: 'north',
                     fileUpload: true,
                     autoScroll: false,
-                    height: 50,
-                    layout: "column",
+                    layout: {
+                        type: 'hbox',
+                        align: 'stretch'
+                    },
                     defaults: {
                         margin: '5 5 5 5'
                     },
@@ -68,6 +70,7 @@ namespace FastExt{
                             labelAlign: 'right',
                             id: 'txtSearch',
                             columnWidth: 1,
+                            flex: 1,
                             allowBlank: false,
                             useHistory: true,
                             emptyText: '输入地址',
@@ -77,10 +80,7 @@ namespace FastExt{
                             width: 100,
                             text: '搜索',
                             handler: function () {
-                                let form = formPanel.getForm();
-                                if (form.isValid()) {
-                                    doSearch();
-                                }
+                                doSearch();
                             }
                         }, {
                             xtype: 'button',
@@ -115,11 +115,17 @@ namespace FastExt{
 
 
                 let doSearch = function () {
-                    window["mapFrame"].window.searchAddress(Ext.getCmp("txtSearch").getValue());
+                    let form = formPanel.getForm();
+                    if (form.isValid()) {
+                        window["mapFrame"].window.searchAddress(Ext.getCmp("txtSearch").getValue());
+                    }
                 };
 
                 let bottomPanel = Ext.create('Ext.panel.Panel', {
-                    layout: "column",
+                    layout: {
+                        type: 'hbox',
+                        align: 'stretch'
+                    },
                     region: 'south',
                     border: 0,
                     height: 42,
@@ -134,7 +140,7 @@ namespace FastExt{
                             labelWidth: 60,
                             value: address,
                             labelAlign: 'right',
-                            columnWidth: 0.8
+                            flex: 1
                         },
                         {
                             xtype: 'textfield',
@@ -144,7 +150,7 @@ namespace FastExt{
                             value: defaultLngLat
                         }, {
                             xtype: 'button',
-                            columnWidth: 0.2,
+                            width: 100,
                             text: '确定',
                             handler: function () {
                                 let lblLngLat = Ext.getCmp("lblLngLat");
@@ -244,8 +250,9 @@ namespace FastExt{
          * @param obj 动画对象
          * @param lnglat 经纬度,例如：110.837425,32.651414
          * @param mapTitle 弹出的窗体标题
+         * @param mapAddress 地址描述
          */
-        static showAddressInMap(obj, lnglat, mapTitle) {
+        static showAddressInMap(obj, lnglat, mapTitle, mapAddress) {
             let mapPanel = Ext.create('Ext.panel.Panel', {
                 layout: 'border',
                 region: 'center',
@@ -257,7 +264,8 @@ namespace FastExt{
                             lnglat: lnglat,
                             mapVersion: FastExt.System.getExt("amap-version").value,
                             mapKey: FastExt.System.getExt("amap-key").value,
-                            mapTitle: mapTitle
+                            mapTitle: mapTitle,
+                            mapAddress: mapAddress
                         };
                         obj.update("<iframe name='mapFrame'  src='" + FastExt.System.formatUrlVersion('base/map/show.html', params) + "' width='100%' height='100%' frameborder='0' scrolling='no' />");
                     }
@@ -298,7 +306,7 @@ namespace FastExt{
          * @param anchors 矩形的锚点
          * @param rotate 图片旋转的角度
          */
-        static selRectangleInMap(obj, southWestLngLat, northEastLngLat, imgUrl, anchors,rotate) : any {
+        static selRectangleInMap(obj, southWestLngLat, northEastLngLat, imgUrl, anchors, rotate): any {
             return new Ext.Promise(function (resolve, reject) {
                 if (Ext.isEmpty(rotate)) {
                     rotate = 0;
@@ -329,6 +337,7 @@ namespace FastExt{
                             labelAlign: 'right',
                             id: 'txtSearch',
                             columnWidth: 1,
+                            useHistory: true,
                             emptyText: '输入地址',
                             xtype: 'textfield'
                         }, {
@@ -393,7 +402,10 @@ namespace FastExt{
                 });
 
                 let doSearch = function () {
-                    window["mapRectangleFrame"].window.searchAddress(Ext.getCmp("txtSearch").getValue());
+                    let form = formPanel.getForm();
+                    if (form.isValid()) {
+                        window["mapRectangleFrame"].window.searchAddress(Ext.getCmp("txtSearch").getValue());
+                    }
                 };
 
                 let bottomPanel = Ext.create('Ext.panel.Panel', {
@@ -702,9 +714,10 @@ namespace FastExt{
          * @param imgUrl 图片地址
          * @param southWestLngLat 西南坐标，左下角度
          * @param northEastLngLat 东北坐标，右上角度
+         * @param zIndex 图层的级别 默认 6
          * @return Ext.Promise
          */
-        static showImgLayerInMap(obj, imgUrl, southWestLngLat, northEastLngLat):any {
+        static showImgLayerInMap(obj, imgUrl, southWestLngLat, northEastLngLat, zIndex?): any {
             return new Ext.Promise(function (resolve, reject) {
                 let mapPanel = Ext.create('Ext.panel.Panel', {
                     layout: 'border',
@@ -747,8 +760,11 @@ namespace FastExt{
                     }
                 });
                 win.show();
+                if (Ext.isEmpty(zIndex)) {
+                    zIndex = 6;
+                }
                 window["onMapLoadDone"] = function () {
-                    window["mapFrame"].window.showImgLayerInMap(imgUrl, southWestLngLat, northEastLngLat);
+                    window["mapFrame"].window.showImgLayerInMap(imgUrl, southWestLngLat, northEastLngLat, zIndex);
                 };
                 window["alert"] = function (msg) {
                     FastExt.Dialog.showAlert("系统提醒", msg);
