@@ -279,18 +279,30 @@ namespace FastExt {
                                 newParams["treeParentIdName"] = tree.parentIdName;
 
                                 let parentValue = options.node.data[tree.idName];
+                                let isFirstInstance = FastExt.Base.toBool(options.node.isFirstInstance, false);
+
                                 if (Ext.isEmpty(parentValue)) {
                                     parentValue = tree.parentIdValue;
                                 }
-                                if (store.grid) {
-                                    if (!FastExt.Grid.hasSearchColumn(store.grid)) {
-                                        newParams["where['" + tree.parentIdName + "']"] = parentValue;
-                                    } else {
-                                        newParams["where['" + tree.parentIdName + "']"] = null;
-                                    }
+                                newParams["where['^treeSearch']"] = false;
+
+                                if (isFirstInstance && tree.parentIdValue !== -1) {
+                                    newParams["where['" + tree.idName + "']"] = parentValue;
+                                    newParams["where['" + tree.parentIdName + "']"] = null;
                                 } else {
-                                    newParams["where['" + tree.parentIdName + "']"] = parentValue;
+                                    newParams["where['" + tree.idName + "']"] = null;
+                                    if (store.grid) {
+                                        if (FastExt.Grid.hasSearchColumn(store.grid)) {
+                                            newParams["where['" + tree.parentIdName + "']"] = null;
+                                            newParams["where['^treeSearch']"] = true;
+                                        } else {
+                                            newParams["where['" + tree.parentIdName + "']"] = parentValue;
+                                        }
+                                    } else {
+                                        newParams["where['" + tree.parentIdName + "']"] = parentValue;
+                                    }
                                 }
+
                             }
 
                             if (store.grid) {

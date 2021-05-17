@@ -133,9 +133,6 @@ namespace FastExt {
                         maximizable: true,
                         animateTarget: obj,
                         listeners: {
-                            close: function (obj, op) {
-                                obj.items.get(0).changeListener.destroy();
-                            },
                             show: function (obj) {
                                 obj.focus();
                             }
@@ -684,6 +681,31 @@ namespace FastExt {
                             }
                         }]
                 };
+
+                if (grid.getStore().entity && FastExt.Base.toBool(grid.getStore().entity.layer, false)
+                    && FastExt.System.isSuperRole()) {
+                    button.menu.push(
+                        {
+                            iconCls: 'extIcon extPower redColor',
+                            text: '更新权限值',
+                            handler: function () {
+                                Ext.Msg.confirm("系统提醒", "确定更新表格的数据权限值吗？请您谨慎操作！", function (button, text) {
+                                    if (button == "yes") {
+                                        let params = {entityCode: grid.getStore().entity.entityCode};
+                                        FastExt.System.validOperate("更新表格的数据权限层级值", function () {
+                                            FastExt.Dialog.showWait("正在更新中，请稍后……");
+                                            FastExt.Server.updateLayer(params, function (success, message) {
+                                                FastExt.Dialog.hideWait();
+                                                FastExt.Dialog.showAlert("系统提醒", message);
+                                            });
+                                        }, 30);
+                                    }
+                                });
+                            }
+                        }
+                    );
+                }
+
                 toolbar.add("->");
                 toolbar.add(button);
             }
@@ -1014,6 +1036,8 @@ namespace FastExt {
                     let pagingToolBar = grid.child('#pagingToolBar');
                     if (pagingToolBar) {
                         pagingToolBar.updateInfo();
+                    }else{
+                        grid.refreshDetailsPanel();
                     }
                 } catch (e) {
                     FastExt.Dialog.showException(e, "按钮选中检测！[selectionchange]");
@@ -1143,21 +1167,6 @@ namespace FastExt {
             }
             let detailsPanel = Ext.create('Ext.panel.Panel', detailsConfig);
             detailsPanel.fromWindow = fromWindow;
-            detailsPanel.changeListener = grid.on({
-                scope: grid,
-                selectionchange: function (obj, selected, eOpts) {
-                    try {
-                        let targetGrid = obj;
-                        if (obj.getStore().grid) {
-                            targetGrid = obj.getStore().grid;
-                        }
-                        targetGrid.refreshDetailsPanel();
-                    } catch (e) {
-                        FastExt.Dialog.showException(e);
-                    }
-                },
-                destroyable: true
-            });
             grid.detailsPanels.push(detailsPanel);
             return detailsPanel;
         }
@@ -1196,41 +1205,43 @@ namespace FastExt {
                     ]
                 }],
                 setRecord: function (grid, record) {
-                    this.superGrid = grid;
-                    let columns = grid.getColumns();
-                    let data = [];
-                    let lastGroupNon = "BASE-" + new Date().getTime();
-                    for (let i = 0; i < columns.length; i++) {
-                        let column = columns[i];
-                        if (Ext.isEmpty(column.dataIndex) || !FastExt.Base.toBool(column.hideable, true)) {
-                            continue;
+                    try {
+                        this.superGrid = grid;
+                        let columns = grid.getColumns();
+                        let data = [];
+                        let lastGroupNon = "BASE-" + new Date().getTime();
+                        for (let i = 0; i < columns.length; i++) {
+                            let column = columns[i];
+                            if (Ext.isEmpty(column.dataIndex) || !FastExt.Base.toBool(column.hideable, true)) {
+                                continue;
+                            }
+                            let item = {
+                                text: column.configText,
+                                value: record.get(column.dataIndex),
+                                dataIndex: column.dataIndex,
+                                groupHeaderText: column.groupHeaderText,
+                                renderer: column.renderer,
+                                index: column.getIndex(),
+                                record: record,
+                                linkColumn: column,
+                                configEditor: FastExt.Base.toBool(column.editable, true),
+                                editor: false
+                            };
+                            if (Ext.isEmpty(column.field)) {
+                                item.configEditor = false;
+                            }
+                            if (!item.groupHeaderText) {
+                                item.groupHeaderText = lastGroupNon;
+                            } else {
+                                lastGroupNon = "BASE-" + i + "-" + new Date().getTime();
+                            }
+                            data.push(item);
                         }
-                        let item = {
-                            text: column.configText,
-                            value: record.get(column.dataIndex),
-                            dataIndex: column.dataIndex,
-                            groupHeaderText: column.groupHeaderText,
-                            renderer: column.renderer,
-                            index: column.getIndex(),
-                            record: record,
-                            linkColumn: column,
-                            configEditor: FastExt.Base.toBool(column.editable, true),
-                            editor: false
-                        };
-                        if (Ext.isEmpty(column.field)) {
-                            item.configEditor = false;
-                        }
-                        if (!item.groupHeaderText) {
-                            item.groupHeaderText = lastGroupNon;
-                        } else {
-                            lastGroupNon = "BASE-" + i + "-" + new Date().getTime();
-                        }
-                        data.push(item);
-                    }
-                    data.sort(function (a, b) {
-                        return a.index - b.index;
-                    });
-                    this.getStore().loadData(data);
+                        data.sort(function (a, b) {
+                            return a.index - b.index;
+                        });
+                        this.getStore().loadData(data);
+                    } catch (e) {}
                 },
                 columns: [
                     {
@@ -1626,6 +1637,10 @@ namespace FastExt {
                 rowNumbererHeaderWidth: 0,
                 listeners: {
                     focuschange: function (obj, oldFocused, newFocused, eOpts) {
+                        if (!oldFocused || !newFocused) {
+                            //脱离当前选择控件
+                            return;
+                        }
                         if (obj.store && obj.store.grid) {
                             let pagingToolBar = obj.store.grid.child('#pagingToolBar');
                             if (pagingToolBar) {
@@ -1768,13 +1783,12 @@ namespace FastExt {
                 winTitle = FastExt.Store.getStoreMenuText(grid.getStore()) + "-" + winTitle;
             }
             let winWidth = parseInt((document.body.clientWidth * 0.3).toFixed(0));
-            let winHeight = parseInt((document.body.clientHeight * 0.4).toFixed(0));
             let win = Ext.create('Ext.window.Window', {
                 title: winTitle,
                 iconCls: 'extIcon extSet',
-                height: winHeight,
+                height: 400,
                 width: winWidth,
-                minHeight: 370,
+                minHeight: 400,
                 minWidth: 300,
                 layout: 'border',
                 resizable: false,
@@ -4020,7 +4034,7 @@ namespace FastExt {
                                     }
                                     FastExt.Dialog.showAlert("系统提醒", message);
                                 });
-                            });
+                            }, 30);
                         }
                     };
 
@@ -5045,88 +5059,35 @@ namespace FastExt {
      */
     export class GridOperate {
 
-
-        private _alertDelete: boolean = true;
-
-
-        private _alertUpdate: boolean = true;
-
-
-        private _autoUpdate: boolean = false;
-
-
-        private _autoDetails: boolean = true;
-
-
-        private _hoverTip: boolean = false;
-
-        private _refreshData: boolean = false;
-
-
         /**
          * 删除数据时弹框提醒
          */
-        get alertDelete(): boolean {
-            return this._alertDelete;
-        }
-
-        set alertDelete(value: boolean) {
-            this._alertDelete = value;
-        }
+        alertDelete: boolean = true;
 
         /**
          * 提交数据修改时弹框提醒
          */
-        get alertUpdate(): boolean {
-            return this._alertUpdate;
-        }
-
-        set alertUpdate(value: boolean) {
-            this._alertUpdate = value;
-        }
+        alertUpdate: boolean = true;
 
         /**
          * 自动提交被修改的数据
          */
-        get autoUpdate(): boolean {
-            return this._autoUpdate;
-        }
-
-        set autoUpdate(value: boolean) {
-            this._autoUpdate = value;
-        }
+        autoUpdate: boolean = false;
 
         /**
          * 选中grid数据中自动弹出右侧详细面板
          */
-        get autoDetails(): boolean {
-            return this._autoDetails;
-        }
-
-        set autoDetails(value: boolean) {
-            this._autoDetails = value;
-        }
+        autoDetails: boolean = true;
 
         /**
          * 鼠标悬浮在数据操作3秒时，弹出预览数据提示
          */
-        get hoverTip(): boolean {
-            return this._hoverTip;
-        }
-
-        set hoverTip(value: boolean) {
-            this._hoverTip = value;
-        }
+        hoverTip: boolean = false;
 
         /**
          * 当离开Grid所在的标签页后，再次返回此标签页时将刷新当前标签页的列表数据
          */
-        get refreshData(): boolean {
-            return this._refreshData;
-        }
+        refreshData: boolean = false;
 
-        set refreshData(value: boolean) {
-            this._refreshData = value;
-        }
     }
 }

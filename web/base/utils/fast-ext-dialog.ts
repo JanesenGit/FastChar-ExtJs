@@ -49,6 +49,7 @@ namespace FastExt {
          * @param message 消息内容
          */
         static toast(message) {
+            let maxWidth = parseInt((document.body.clientWidth * 0.7).toFixed(0));
             Ext.toast({
                 html: message,
                 closable: true,
@@ -56,6 +57,7 @@ namespace FastExt {
                 slideInDuration: 200,
                 slideBackDuration: 200,
                 minWidth: 180,
+                maxWidth: maxWidth,
                 // alwaysOnTop: true, 不能设置
                 slideBackAnimation: 'easeOut',
                 iconCls: 'extIcon extInfo',

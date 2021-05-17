@@ -1,5 +1,22 @@
 namespace FastExt {
 
+
+    /**
+     * 权限设置类
+     */
+    export class PowerSet {
+        /**
+         * 是否允许显示
+         */
+       show: boolean = true;
+
+        /**
+         * 是否允许编辑
+         */
+       edit: boolean = true;
+    }
+
+
     export class Power {
         private constructor() {
         }
@@ -30,8 +47,7 @@ namespace FastExt {
          * 默认的权限配置
          *  @see {@link FastExt.PowerSet}
          */
-        static defaultPower: FastExt.PowerSet;
-
+        static defaultPower: FastExt.PowerSet = new FastExt.PowerSet();
 
         /**
          * 是否正在进行权限配置操作
@@ -138,7 +154,7 @@ namespace FastExt {
         /**
          * 获取保存权限配置的值
          */
-        static savePower(): string {
+        static getSavePowerData(): string {
             let me = this;
             let data = me.powers;
             return Ext.encode(data);
@@ -213,7 +229,7 @@ namespace FastExt {
          * @param e
          */
         static showPowerConfig(target, e) {
-            if (!FastExt.System.isSystem()) {
+            if (!FastExt.System.isInitSystem()) {
                 return;
             }
             let powerConfig = FastExt.Power.checkPower(target.code);
@@ -275,45 +291,6 @@ namespace FastExt {
             contextMenu.showAt(e.getXY());
         }
 
-    }
-
-
-    /**
-     * 权限设置类
-     */
-    export class PowerSet {
-
-        private _show: boolean = true;
-
-        private _edit: boolean = true;
-
-
-        /**
-         * 是否允许显示
-         */
-        get show(): boolean {
-            return this._show;
-        }
-        /**
-         * 是否允许显示
-         */
-        set show(value: boolean) {
-            this._show = value;
-        }
-
-        /**
-         * 是否允许编辑
-         */
-        get edit(): boolean {
-            return this._edit;
-        }
-
-        /**
-         * 是否允许编辑
-         */
-        set edit(value: boolean) {
-            this._edit = value;
-        }
     }
 
 }

@@ -167,7 +167,7 @@ namespace FastExtend {
         entityList: boolean;
 
         /**
-         * 标识是否是标签页打开的数据列表
+         * 标识是否是标签页打开的数据列表，设置true时，保存Grid列信息时会携带EntityCode参数，否则不携带！
          */
         tabPanelList: boolean = false;
     }

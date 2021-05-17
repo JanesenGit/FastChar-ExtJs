@@ -330,16 +330,19 @@ namespace FastExt {
          * 系统全局配置
          */
         static globalConfig() {
-            //配置entity实体类基本属性
+            //将返回的entity属性配置entity对应的JS对象中
             let entities = FastExt.System["entities"];
             for (let i = 0; i < entities.length; i++) {
                 let entity = entities[i];
                 for (let key in entity) {
                     if (entity.hasOwnProperty(key)) {
+                        entity.js = false;
                         try {
                             let pro = eval(entity.entityCode + ".prototype");
-                            pro[key] = entity[key];
-                            entity.js = true;
+                            if (pro) {
+                                pro[key] = entity[key];
+                                entity.js = true;
+                            }
                         } catch (e) {
                             entity.js = false;
                             break;
@@ -374,7 +377,7 @@ namespace FastExt {
                     }
 
                     window["getExtPower"] = function () {
-                        return FastExt.Power.savePower();
+                        return FastExt.Power.getSavePowerData();
                     };
                 }
             }
@@ -523,13 +526,23 @@ namespace FastExt {
                         xtype: 'button',
                         iconCls: 'extIcon extRole',
                         text: me.manager.managerName,
-                        minWidth: 135,
+                        minWidth: 155,
                         cls: 'headButton',
                         menu: [{
                             text: "修改登录密码",
                             iconCls: 'extIcon extResetPassword',
                             handler: function () {
                                 me.modifyPassword(this);
+                            }
+                        }, {
+                            text: "初始化系统配置",
+                            iconCls: 'extIcon extRefresh searchColor',
+                            handler: function () {
+                                Ext.Msg.confirm("系统提醒", "确定初初始化系统配置吗？", function (button, text) {
+                                    if (button == "yes") {
+                                        FastExt.System.startSilenceSaveConfig();
+                                    }
+                                });
                             }
                         }]
                     },
@@ -850,7 +863,7 @@ namespace FastExt {
         /**
          * 整个FastChar-ExtJs系统是否已初始化
          */
-        static isSystem(): boolean {
+        static isInitSystem(): boolean {
             try {
                 if (FastExt.System.init) return true;
             } catch (e) {
@@ -917,9 +930,9 @@ namespace FastExt {
 
         /**
          * 弹出安全验证功能操作
-         * @param operate
-         * @param callBack
-         * @param timeout
+         * @param operate 操作功能的描述
+         * @param callBack 验证成功后回执函数
+         * @param timeout 验证后的失效时间，单位 秒
          */
         static validOperate(operate, callBack?, timeout?) {
             if (!operate) {
@@ -1087,7 +1100,9 @@ namespace FastExt {
                     layout: 'fit',
                     width: '100%',
                     border: 0,
-                    html: "<div align='center' style='font-size: small;color:red;text-decoration:none; padding-left: 40px;padding-right: 40px;padding-bottom: 10px;'>完成验证后将自动继续《" + operate + "》操作</div>"
+                    html: "<div align='center' style='font-size: small;color:red;text-decoration:none; padding-left: 40px;padding-right: 40px;padding-bottom: 10px;'>" +
+                        "<b>完成验证后将继续执行《" + operate + "》操作</b>" +
+                        "</div>"
                 });
 
                 let win = Ext.create('Ext.window.Window', {
@@ -3351,101 +3366,27 @@ namespace FastExt {
                                 margin: '5 5 5 0 ',
                                 iconCls: 'extIcon extUpload whiteColor',
                                 handler: function () {
-                                    let me = this;
-                                    let formPanel = Ext.create('Ext.form.FormPanel', {
-                                        url: 'loadSystemConfig',
-                                        method: 'POST',
-                                        margin: '5',
-                                        fileUpload: true,
-                                        width: 400,
-                                        callBacked: false,
-                                        border: 0,
-                                        layout: 'column',
-                                        items: [
-                                            {
-                                                xtype: 'filefield',
-                                                fieldLabel: '系统配置文件',
-                                                labelWidth: 120,
-                                                labelAlign: 'right',
-                                                buttonText: '选择文件',
-                                                allowBlank: false,
-                                                name: 'systemConfigFile',
-                                                columnWidth: 1
-                                            }
-                                        ],
-                                        doSubmit: function () {
-                                            let form = formPanel.form;
-                                            if (form.isValid()) {
-                                                let myMask = new Ext.LoadMask({
-                                                    msg: '正在上传文件中…',
-                                                    target: uploadWin
+                                    FastExt.System.uploadSystemConfigData(this);
+                                }
+                            },
+                            {
+                                xtype: 'button',
+                                text: '更新系统数据权限',
+                                columnWidth: 1,
+                                hidden: !FastExt.Base.toBool(FastExt.System["layer"], false),
+                                iconCls: 'extIcon extPower whiteColor',
+                                handler: function () {
+                                    Ext.Msg.confirm("系统提醒", "确定更新系统所有表格的数据权限值吗？", function (button, text) {
+                                        if (button == "yes") {
+                                            FastExt.System.validOperate("更新所有表格的数据权限层级值", function () {
+                                                FastExt.Dialog.showWait("正在更新中，请稍后……");
+                                                FastExt.Server.updateAllLayer(function (success, message) {
+                                                    FastExt.Dialog.hideWait();
+                                                    FastExt.Dialog.showAlert("系统提醒", message);
                                                 });
-                                                myMask.show();
-                                                form.submit({
-                                                    success: function (form, action) {
-                                                        FastExt.Dialog.toast(action.result.message);
-                                                        uploadWin.close();
-                                                    },
-                                                    failure: function (form, action) {
-                                                        myMask.destroy();
-                                                        Ext.Msg.alert('系统提醒', "上传失败！" + action.result.message);
-                                                    }
-                                                });
-                                            }
-                                        },
-                                        listeners: {
-                                            'render': function (obj) {
-                                                try {
-                                                    new Ext.util.KeyMap({
-                                                        target: obj.getEl(),
-                                                        key: 13,
-                                                        fn: formPanel.doSubmit,
-                                                        scope: Ext.getBody()
-                                                    });
-                                                } catch (e) {
-                                                    console.error(e);
-                                                }
-                                            }
+                                            }, 30);
                                         }
                                     });
-                                    let btnSubmitId = "btnSubmit" + new Date().getTime();
-                                    let uploadWin = Ext.create('Ext.window.Window', {
-                                        title: "上传系统配置文件",
-                                        layout: 'fit',
-                                        resizable: false,
-                                        scrollable: false,
-                                        width: 500,
-                                        items: formPanel,
-                                        modal: true,
-                                        iconCls: 'extIcon extUpload',
-                                        animateTarget: me,
-                                        constrain: true,
-                                        buttons: [
-                                            {
-                                                text: '重置',
-                                                width: 88,
-                                                iconCls: 'extIcon extReset',
-                                                handler: function () {
-                                                    formPanel.form.reset();
-                                                }
-                                            },
-                                            {
-                                                text: '上传',
-                                                width: 88,
-                                                id: btnSubmitId,
-                                                iconCls: 'extIcon extOk',
-                                                handler: function () {
-                                                    formPanel.doSubmit();
-                                                }
-                                            }],
-                                        listeners: {
-                                            show: function (winObj, eOpts) {
-                                                formPanel.getForm().findField('systemConfigFile').fileInputEl.dom.click();
-                                                Ext.getCmp(btnSubmitId).focus();
-                                            },
-                                        }
-                                    });
-                                    uploadWin.show();
                                 }
                             }
                         ]
@@ -3927,6 +3868,110 @@ namespace FastExt {
             FastExt.System.showTab(menu.method, menu.id, menu.text, menu.icon);
             FastExt.System["doNextSilenceMenuIndex"] = doNextSilenceMenuIndex + 1;
         }
+
+
+        /**
+         * 上传系统配置的数据文件
+         * @param obj
+         */
+        static uploadSystemConfigData(obj) {
+            // let me = obj;
+            let formPanel = Ext.create('Ext.form.FormPanel', {
+                url: 'loadSystemConfig',
+                method: 'POST',
+                margin: '5',
+                fileUpload: true,
+                width: 400,
+                callBacked: false,
+                border: 0,
+                layout: 'column',
+                items: [
+                    {
+                        xtype: 'filefield',
+                        fieldLabel: '系统配置文件',
+                        labelWidth: 120,
+                        labelAlign: 'right',
+                        buttonText: '选择文件',
+                        allowBlank: false,
+                        name: 'systemConfigFile',
+                        columnWidth: 1
+                    }
+                ],
+                doSubmit: function () {
+                    let form = formPanel.form;
+                    if (form.isValid()) {
+                        let myMask = new Ext.LoadMask({
+                            msg: '正在上传文件中…',
+                            target: uploadWin
+                        });
+                        myMask.show();
+                        form.submit({
+                            success: function (form, action) {
+                                FastExt.Dialog.toast(action.result.message);
+                                uploadWin.close();
+                            },
+                            failure: function (form, action) {
+                                myMask.destroy();
+                                Ext.Msg.alert('系统提醒', "上传失败！" + action.result.message);
+                            }
+                        });
+                    }
+                },
+                listeners: {
+                    'render': function (obj) {
+                        try {
+                            new Ext.util.KeyMap({
+                                target: obj.getEl(),
+                                key: 13,
+                                fn: formPanel.doSubmit,
+                                scope: Ext.getBody()
+                            });
+                        } catch (e) {
+                            console.error(e);
+                        }
+                    }
+                }
+            });
+            let btnSubmitId = "btnSubmit" + new Date().getTime();
+            let uploadWin = Ext.create('Ext.window.Window', {
+                title: "上传系统配置文件",
+                layout: 'fit',
+                resizable: false,
+                scrollable: false,
+                width: 500,
+                items: formPanel,
+                modal: true,
+                iconCls: 'extIcon extUpload',
+                animateTarget: obj,
+                constrain: true,
+                buttons: [
+                    {
+                        text: '重置',
+                        width: 88,
+                        iconCls: 'extIcon extReset',
+                        handler: function () {
+                            formPanel.form.reset();
+                        }
+                    },
+                    {
+                        text: '上传',
+                        width: 88,
+                        id: btnSubmitId,
+                        iconCls: 'extIcon extOk',
+                        handler: function () {
+                            formPanel.doSubmit();
+                        }
+                    }],
+                listeners: {
+                    show: function (winObj, eOpts) {
+                        formPanel.getForm().findField('systemConfigFile').fileInputEl.dom.click();
+                        Ext.getCmp(btnSubmitId).focus();
+                    },
+                }
+            });
+            uploadWin.show();
+        }
+
     }
 
 

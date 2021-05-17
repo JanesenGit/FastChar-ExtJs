@@ -24,7 +24,7 @@ namespace FastDefine{
                     let me = this;
                     me.displayField = me.enumText;
                     me.valueField = me.enumValue;
-
+                    me.emptyText = "请选择";
                     me.store = FastExt.Store.getEnumDataStore(me.enumName, me.firstData, me.lastData, me.params, me.useCache);
                     if (!me.exclude) {
                         me.exclude = [];

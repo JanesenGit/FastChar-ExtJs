@@ -45,6 +45,90 @@ namespace FastOverrider {
         }
     }
 
+
+    /**
+     * 重写组件的权限配置
+     */
+    export class PowerComponentOverride {
+        constructor() {
+            Ext.override(Ext.Component, {
+                afterRender: Ext.Function.createSequence(Ext.Component.prototype.afterRender, function () {
+                    if (!FastExt.System.isInitSystem()) {
+                        return;
+                    }
+                    let me = this;
+                    me.power = FastExt.Base.toBool(me.power, true);
+                    if (me.power && (me.getXTypes().indexOf("field/") > 0 || Ext.Array.contains(FastExt.Power.types, me.getXType()))) {
+                        me.code = FastExt.Power.getPowerCode(me);
+                        if (!me.power) {
+                            return;
+                        }
+                        if (me.up("[power=false]")) {
+                            return;
+                        }
+                        if (me.code) {
+                            me.managerPower = FastExt.Power.checkManagerPower(me);
+                            FastExt.Power.setPower(me.code, FastExt.Base.copy(me.managerPower));
+                            if (!FastExt.Power.hasPower(me, 'show')) {
+                                me.hideable = false;
+                                me.setHidden(true);
+                                me.setDisabled(true);
+                                me.clearListeners();
+                                if (Ext.isFunction(me.collapse)) {
+                                    me.collapse();
+                                }
+                            } else if (!FastExt.Power.hasPower(me, 'edit')) {
+                                me.editable = false;
+                                if (Ext.isFunction(me.setReadOnly)) {
+                                    me.setReadOnly(true);
+                                }
+                            }
+                            if (FastExt.Power.config) {
+                                me.powerConfig = FastExt.Power.checkPower(me.code);
+                                FastExt.Power.setPowerStyle(me);
+                                me.getEl().on('contextmenu', function (e, t, eOpts) {
+                                    e.stopEvent();
+                                    FastExt.Power.showPowerConfig(me, e);
+                                });
+                            }
+                        }
+                    }
+                })
+            });
+
+            Ext.override(Ext.Component, {
+                setDisabled: function (disabled) {
+                    if (FastExt.Power.config) {
+                        return this['enable']();
+                    }
+                    return this[disabled ? 'disable' : 'enable']();
+                }
+            });
+
+            Ext.override(Ext.form.field.Base, {
+                markInvalid: function (errors) {
+                    if (FastExt.Power.config) {
+                        return;
+                    }
+                    let me = this,
+                        ariaDom = me.ariaEl.dom,
+                        oldMsg = me.getActiveError(),
+                        active;
+
+                    me.setActiveErrors(Ext.Array.from(errors));
+                    active = me.getActiveError();
+                    if (oldMsg !== active) {
+                        me.setError(active);
+
+                        if (!me.ariaStaticRoles[me.ariaRole] && ariaDom) {
+                            ariaDom.setAttribute('aria-invalid', true);
+                        }
+                    }
+                }
+            });
+        }
+    }
+
     /**
      * 重写Ext.Component相关的功能，
      */
@@ -141,7 +225,7 @@ namespace FastOverrider {
             Ext.override(Ext.Component, {
                 show: function () {
                     try {
-                        if (FastExt.System.isSystem()) {
+                        if (FastExt.System.isInitSystem()) {
                             if (this.getXType() === "window"
                                 || this.getXType() === "messagebox") {
                                 if (!FastExt.Base.toBool(this.sessionWin, false)) {
@@ -599,12 +683,37 @@ namespace FastOverrider {
                             if (Ext.isFunction(store.grid.refreshSelect)) {
                                 store.grid.refreshSelect();
                             }
-                            if (Ext.isFunction(store.grid.refreshDetailsPanel())) {
+                            if (Ext.isFunction(store.grid.refreshDetailsPanel)) {
                                 store.grid.refreshDetailsPanel();
                             }
                         }
                         displayItem.setText(msg);
                     }
+                },
+                initComponent: function () {
+                    this.callParent(arguments);
+                    this.on("beforechange", function (obj, page, eOpts) {
+                        return obj.checkStoreUpdate(function () {
+                            obj.store.loadPage(page);
+                        });
+                    });
+                },
+                checkStoreUpdate: function (callBack) {
+                    let me = this;
+                    let records = me.store.getUpdatedRecords();
+                    if (records.length > 0) {
+                        Ext.Msg.confirm("系统提醒", "当前页有未提交修改的数据，是否提交修改？", function (button, text) {
+                            if (button == "yes") {
+                                FastExt.Store.commitStoreUpdate(me.store).then(function () {
+                                    callBack();
+                                });
+                            } else {
+                                callBack();
+                            }
+                        });
+                        return false;
+                    }
+                    return true;
                 }
             });
         }
@@ -746,7 +855,7 @@ namespace FastOverrider {
                     return val;
                 },
                 initComponent: Ext.Function.createSequence(Ext.form.field.Date.prototype.initComponent, function () {
-                    if (FastExt.System.isSystem()) {
+                    if (FastExt.System.isInitSystem()) {
                         if (!this.format) {
                             this.format = FastExt.System.dateFormat;
                         }
@@ -924,91 +1033,6 @@ namespace FastOverrider {
         }
     }
 
-
-    /**
-     * 重写组件的权限配置
-     */
-    export class PowerComponentOverride {
-        constructor() {
-            Ext.override(Ext.Component, {
-                afterRender: Ext.Function.createSequence(Ext.Component.prototype.afterRender, function () {
-                    if (!FastExt.System.isSystem()) {
-                        return;
-                    }
-                    let me = this;
-                    me.power = FastExt.Base.toBool(me.power, true);
-                    if (me.power && (me.getXTypes().indexOf("field/") > 0 || Ext.Array.contains(FastExt.Power.types, me.getXType()))) {
-                        me.code = FastExt.Power.getPowerCode(me);
-                        if (!me.power) {
-                            return;
-                        }
-                        if (me.up("[power=false]")) {
-                            return;
-                        }
-                        if (me.code) {
-                            me.managerPower = FastExt.Power.checkManagerPower(me);
-                            FastExt.Power.setPower(me.code, FastExt.Base.copy(me.managerPower));
-                            if (!FastExt.Power.hasPower(me, 'show')) {
-                                me.hideable = false;
-                                me.setHidden(true);
-                                me.setDisabled(true);
-                                me.clearListeners();
-                                if (Ext.isFunction(me.collapse)) {
-                                    me.collapse();
-                                }
-                            } else if (!FastExt.Power.hasPower(me, 'edit')) {
-                                me.editable = false;
-                                if (Ext.isFunction(me.setReadOnly)) {
-                                    me.setReadOnly(true);
-                                }
-                            }
-                            if (FastExt.Power.config) {
-                                me.powerConfig = FastExt.Power.checkPower(me.code);
-                                FastExt.Power.setPowerStyle(me);
-                                me.getEl().on('contextmenu', function (e, t, eOpts) {
-                                    e.stopEvent();
-                                    FastExt.Power.showPowerConfig(me, e);
-                                });
-                            }
-                        }
-                    }
-                })
-            });
-
-            Ext.override(Ext.Component, {
-                setDisabled: function (disabled) {
-                    if (FastExt.Power.config) {
-                        return this['enable']();
-                    }
-                    return this[disabled ? 'disable' : 'enable']();
-                }
-            });
-
-            Ext.override(Ext.form.field.Base, {
-                markInvalid: function (errors) {
-                    if (FastExt.Power.config) {
-                        return;
-                    }
-                    let me = this,
-                        ariaDom = me.ariaEl.dom,
-                        oldMsg = me.getActiveError(),
-                        active;
-
-                    me.setActiveErrors(Ext.Array.from(errors));
-                    active = me.getActiveError();
-                    if (oldMsg !== active) {
-                        me.setError(active);
-
-                        if (!me.ariaStaticRoles[me.ariaRole] && ariaDom) {
-                            ariaDom.setAttribute('aria-invalid', true);
-                        }
-                    }
-                }
-            });
-        }
-    }
-
-
     /**
      * 重写Ext.menu.Menu相关的功能
      */
@@ -1016,7 +1040,7 @@ namespace FastOverrider {
         constructor() {
             Ext.override(Ext.menu.Menu, {
                 hide: function () {
-                    if (!FastExt.System.isSystem()) {
+                    if (!FastExt.System.isInitSystem()) {
                         return;
                     }
                     let me = this;

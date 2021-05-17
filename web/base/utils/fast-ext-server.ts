@@ -511,5 +511,38 @@ namespace FastExt {
             });
         }
 
+        /**
+         * 更新系统所有表格的数据层级权限值
+         * @param callBack 回调函数 callBack(result.success, result.message);
+         */
+        static updateAllLayer(callBack) {
+            if (FastExt.Power.isPower()) {
+                callBack(false, "当前正在进行界面权限配置，不可下载数据！");
+                return;
+            }
+            $.post("updateAllLayer", function (result) {
+                if (Ext.isFunction(callBack)) {
+                    callBack(result.success, result.message);
+                }
+            });
+        }
+
+        /**
+         * 更新指定实体表格的数据层级权限值
+         * @param params 接口参数
+         * @param callBack 回调函数 callBack(result.success, result.message);
+         */
+        static updateLayer(params,callBack) {
+            if (FastExt.Power.isPower()) {
+                callBack(false, "当前正在进行界面权限配置，不可下载数据！");
+                return;
+            }
+            $.post("entity/updateLayer", params, function (result) {
+                if (Ext.isFunction(callBack)) {
+                    callBack(result.success, result.message);
+                }
+            });
+        }
+
     }
 }
