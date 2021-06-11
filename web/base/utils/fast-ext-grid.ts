@@ -26,6 +26,7 @@ namespace FastExt {
             let grid: any = this;
             //取消行缓存渲染
             grid.bufferedRenderer = false;
+            grid.firstLoadedData = false;
             if (grid.entityList) {
                 // grid.trailingBufferZone = 100;
                 // grid.leadingBufferZone = 100;
@@ -51,6 +52,7 @@ namespace FastExt {
                 let tabContainer = grid.up("[tabContainer=true]");
                 if (tabContainer) {
                     grid.tabPanelList = true;
+                    // tabContainer.setTitle(FastExt.Store.getStoreMenuText(grid.getStore()));
                 }
                 if (!grid.updateButtons || grid.updateButtons.length === 0) {
                     grid.updateEnable = false;
@@ -65,7 +67,8 @@ namespace FastExt {
                     if (FastExt.System.silenceGlobalSave) {
                         tabContainer.close();
                         FastExt.System.doNextSilenceMenu();
-                    }else{
+                    } else {
+                        grid.firstLoadedData = true;
                         if (!grid.getStore().isLoaded()) {
                             grid.getStore().loadPage(1);
                         }
@@ -85,6 +88,7 @@ namespace FastExt {
             if (grid.contextMenu && target) {
                 if (!Ext.isFunction(grid.contextMenu.getXType)) {
                     let menu = new Ext.menu.Menu({
+                        scrollToHidden: true,
                         items: []
                     });
                     if (Ext.isArray(grid.contextMenu)) {
@@ -142,6 +146,19 @@ namespace FastExt {
                     win.show();
                 }
             }, index++);
+
+            if (FastExt.System.isSuperRole()) {
+                FastExt.Grid.addGridContextMenu(grid, {
+                    iconCls: 'extIcon extSee editColor',
+                    text: "查看数据结构",
+                    handler: function (obj, event) {
+                        let menu = grid.contextMenu;
+                        let record = menu.record;
+                        FastExt.Dialog.showJson(this, "查看原始数据结构", FastExt.Json.objectToJson(record.data));
+                    }
+                }, index++);
+            }
+
             FastExt.Grid.addGridContextMenu(grid, {
                 iconCls: 'extIcon extCopy2',
                 text: "复制数据",
@@ -342,12 +359,13 @@ namespace FastExt {
                 return;
             }
             if (!grid.columnMenu) {
-                grid.columnMenu = {};
+                grid.columnMenu = new FastExt.GridColumnMenu();
             }
             if (!grid.columnMenu) {
                 return;
             }
             let menu = grid.columnHeadMenu;
+            menu.scrollToHidden = true;
             menu.on("beforeshow", function (obj) {
                 if (!FastExt.Grid.hasColumnField(menu.activeHeader)) {
                     obj.activeHeader.batchUpdate = false;
@@ -403,7 +421,7 @@ namespace FastExt {
                             let confirmConfig = {
                                 title: "清除无效数据",
                                 icon: Ext.Msg.QUESTION,
-                                message: "将清除属性【" + menu.activeHeader.text + "】在【当前当前条件】下为空的所有无效数据！请您确定操作！",
+                                message: "将清除属性【" + menu.activeHeader.configText + "】在【当前当前条件】下为空的所有无效数据！请您确定操作！",
                                 buttons: Ext.Msg.YESNO,
                                 defaultFocus: "no",
                                 callback: function (button, text) {
@@ -582,6 +600,7 @@ namespace FastExt {
                                     grid.getStore().loadPage(1);
                                     menu.activeHeader.sortDirection = null;
                                     FastExt.Grid.refreshColumnStyle(menu.activeHeader);
+                                    grid.saveUIConfig(true);
                                 } catch (e) {
                                     FastExt.Dialog.showException(e);
                                 }
@@ -615,7 +634,7 @@ namespace FastExt {
                 if (!grid.operate) {
                     return;
                 }
-                let button = {
+                let moreBtn = {
                     xtype: 'button',
                     text: '更多操作',
                     iconCls: 'extIcon extMore',
@@ -684,7 +703,7 @@ namespace FastExt {
 
                 if (grid.getStore().entity && FastExt.Base.toBool(grid.getStore().entity.layer, false)
                     && FastExt.System.isSuperRole()) {
-                    button.menu.push(
+                    moreBtn.menu.push(
                         {
                             iconCls: 'extIcon extPower redColor',
                             text: '更新权限值',
@@ -707,7 +726,25 @@ namespace FastExt {
                 }
 
                 toolbar.add("->");
-                toolbar.add(button);
+                // if (grid.getStore().entity && FastExt.System.existMenu(grid.getStore().entity.menu.id)) {
+                //     let storeMenuText = FastExt.Store.getStoreMenuText(grid.getStore(), null, " > ");
+                //     if (storeMenuText) {
+                //         let anchorMenuBtn = {
+                //             xtype: 'button',
+                //             text: storeMenuText,
+                //             power: false,
+                //             contextMenu: false,
+                //             iconCls: 'extIcon extLastPoint searchColor',
+                //             handler: function () {
+                //                 FastExt.System.selectMenu(grid.getStore().entity.menu.id);
+                //                 FastExt.Dialog.toast("已选中左侧菜单：" + storeMenuText);
+                //             }
+                //         };
+                //         toolbar.add(anchorMenuBtn);
+                //         toolbar.add("-");
+                //     }
+                // }
+                toolbar.add(moreBtn);
             }
         }
 
@@ -809,11 +846,23 @@ namespace FastExt {
                     }
                 }
             };
+            grid.saveUIConfig = function (silence: boolean) {
+                if (!FastExt.Base.toBool(this.firstLoadedData, false)) {
+                    return;
+                }
+                if (silence) {
+                    FastExt.Server.setSilence(true);
+                }
+                FastExt.Grid.saveGridColumn(this).then(function () {
+                    FastExt.Server.setSilence(false);
+                });
+            };
+
             grid.on('viewready', function (obj, eOpts) {
                 obj.getHeaderContainer().sortOnClick = false;
             });
             grid.on('beforedestroy', function (obj, eOpts) {
-                FastExt.Grid.saveGridColumn(obj);
+                obj.saveUIConfig(false);
             });
 
             grid.on('columnmove', function (ct, column, fromIdx, toIdx, eOpts) {
@@ -822,6 +871,18 @@ namespace FastExt {
                 } else {
                     column.groupHeaderText = null;
                 }
+                FastExt.Grid.getColumnGrid(column).saveUIConfig(true);
+            });
+
+            grid.on('columnresize', function (ct, column, width, eOpts) {
+                // column.width=width;  此处注释，避免出现分组列时 宽度错乱
+                ct.sortOnClick = false;
+                FastExt.Grid.getColumnGrid(column).saveUIConfig(true);
+            });
+
+            grid.on('columnschanged', function (ct, eOpts) {
+                ct.sortOnClick = false;
+                FastExt.Grid.getHeaderContainerGrid(ct).saveUIConfig(true);
             });
 
             grid.on('headertriggerclick', function (ct, column, e, t, eOpts) {
@@ -851,15 +912,7 @@ namespace FastExt {
                 if (Ext.isEmpty(column.dataIndex)) return;
                 column.sortDirection = direction;
                 FastExt.Grid.refreshColumnStyle(column);
-            });
-
-            grid.on('columnresize', function (ct, column, width, eOpts) {
-                // column.width=width;  此处注释，避免出现分组列时 宽度错乱
-                ct.sortOnClick = false;
-            });
-
-            grid.on('columnschanged', function (ct, eOpts) {
-                ct.sortOnClick = false;
+                FastExt.Grid.getColumnGrid(column).saveUIConfig(true);
             });
 
             grid.on('cellcontextmenu', function (obj, td, cellIndex, record, tr, rowIndex, e, eOpts) {
@@ -940,12 +993,16 @@ namespace FastExt {
                 let editorField = context.column.field;
                 let cell = Ext.get(context.cell);
                 editorField.labelTitle = context.column.text;
+                editorField.record = context.record;
                 if (Ext.isFunction(editorField.setValue) && !FastExt.Base.toBool(context.column.password, false)) {
                     if (Ext.isObject(context.value) || Ext.isArray(context.value)) {
                         editorField.setValue(JSON.stringify(context.value), context.record);
                     } else {
                         editorField.setValue(context.value, context.record);
                     }
+                }
+                if (Ext.isFunction(editorField.startEdit)) {
+                    editorField.startEdit();
                 }
                 if (Ext.isFunction(editorField.showWindow)) {
                     editorField.showWindow(cell, function (result) {
@@ -1016,13 +1073,20 @@ namespace FastExt {
                                     return;
                                 }
                                 if ((Ext.isEmpty(obj.context.value) || FastExt.Base.toBool(obj.context.column.password, false)) && Ext.isEmpty(fieldObj.getValue())) {
+                                    if (Ext.isFunction(fieldObj.endEdit)) {
+                                        fieldObj.endEdit();
+                                    }
                                     return;
                                 }
                                 FastExt.Store.setRecordValue(obj.context.record, obj.context.field, fieldObj);
+                                if (Ext.isFunction(fieldObj.endEdit)) {
+                                    fieldObj.endEdit();
+                                }
                                 fieldObj.setValue(null);
                             }
                         }
                     });
+                    context.column.editMenu.addCls("edit-menu");
                 }
                 context.column.editMenu.setWidth(context.column.getWidth());
                 context.column.editMenu.context = context;
@@ -1036,7 +1100,7 @@ namespace FastExt {
                     let pagingToolBar = grid.child('#pagingToolBar');
                     if (pagingToolBar) {
                         pagingToolBar.updateInfo();
-                    }else{
+                    } else {
                         grid.refreshDetailsPanel();
                     }
                 } catch (e) {
@@ -1241,7 +1305,8 @@ namespace FastExt {
                             return a.index - b.index;
                         });
                         this.getStore().loadData(data);
-                    } catch (e) {}
+                    } catch (e) {
+                    }
                 },
                 columns: [
                     {
@@ -1289,7 +1354,7 @@ namespace FastExt {
                             iconCls: 'extIcon extEdit',
                             tooltip: '编辑数据',
                             align: 'center',
-                            isDisabled: function (view, rowIndex, colIndex,item,record) {
+                            isDisabled: function (view, rowIndex, colIndex, item, record) {
                                 return !FastExt.Base.toBool(record.get("editor"), false);
                             },
                             getClass: function (v, metadata, record) {
@@ -1425,7 +1490,7 @@ namespace FastExt {
             for (let i = 0; i < columns.length; i++) {
                 let column = columns[i];
                 if (column.dataIndex === dataIndex) {
-                    if (text && column.text === text) {
+                    if (text && (column.text === text || column.configText === text)) {
                         return column;
                     }
                     return column;
@@ -2265,7 +2330,6 @@ namespace FastExt {
         }
 
 
-
         /**
          * 保存Grid的列表配置
          * @param grid
@@ -2487,6 +2551,20 @@ namespace FastExt {
             return null;
         }
 
+        /**
+         * 获取Ext.grid.header.Container所在的Grid对象
+         * @param ct Ext.grid.header.Container对象
+         */
+        static getHeaderContainerGrid(ct) {
+            if (!ct.grid) {
+                ct.grid = ct.up("treepanel,grid");
+            }
+            if (ct.grid.ownerGrid) {
+                return ct.grid.ownerGrid;
+            }
+            return null;
+        }
+
 
         /**
          * 计算列并显示结果
@@ -2614,9 +2692,21 @@ namespace FastExt {
                 if (search) {
                     if (FastExt.Form.isContentField(column.field)
                         || FastExt.Form.isHtmlContentField(column.field)
-                        || FastExt.Form.isTargetField(column.field)
-                        || FastExt.Form.isPCAField(column.field)) {
+                        || FastExt.Form.isTargetField(column.field)) {
                         editor.xtype = "textfield";
+                    }
+
+                    if (FastExt.Form.isPCAField(column.field)) {
+                        editor.selectType = 1;
+                        if (column.text.indexOf("省") >= 0) {
+                            editor.level = 1;
+                        }
+                        if (column.text.indexOf("市") >= 0) {
+                            editor.level = 2;
+                        }
+                        if (column.text.indexOf("区") >= 0) {
+                            editor.level = 3;
+                        }
                     }
                 }
                 if (Ext.isEmpty(editor.xtype)) {
@@ -2682,9 +2772,9 @@ namespace FastExt {
 
                 }
             };
-            let placeholder = "批量修改当前页的【" + column.text + "】数据";
+            let placeholder = "批量修改当前页的【" + column.configText + "】数据";
             if (FastExt.Grid.getColumnGrid(column).getSelection().length > 0) {
-                placeholder = "批量修改选择的" + FastExt.Grid.getColumnGrid(column).getSelection().length + "条【" + column.text + "】数据";
+                placeholder = "批量修改选择的" + FastExt.Grid.getColumnGrid(column).getSelection().length + "条【" + column.configText + "】数据";
             }
 
             if (Ext.isFunction(editorField.setEmptyText)) {
@@ -2700,6 +2790,7 @@ namespace FastExt {
             if (!column.batchEditMenu) {
                 column.batchEditMenu = Ext.create('Ext.menu.Menu', {
                     showSeparator: false,
+                    scrollToHidden: true,
                     layout: 'fit',
                     doUpdate: function () {
                         let me = this;
@@ -2756,6 +2847,9 @@ namespace FastExt {
                         }
                     }
                 });
+
+                column.batchEditMenu.addCls("edit-menu");
+                column.batchEditMenu.addCls("edit-details-menu");
             }
             column.batchEditMenu.setWidth(column.getWidth());
             column.batchEditMenu.showBy(column, "tl");
@@ -2777,9 +2871,9 @@ namespace FastExt {
             let defaultValue;
             let dateFormat = 'Y-m-d H:i:s';
             let dataLength = FastExt.Grid.getColumnGrid(column).getStore().getTotalCount();
-            let title = "批量随机生成当前页的【" + column.text + "】列数据";
+            let title = "批量随机生成当前页的【" + column.configText + "】列数据";
             if (FastExt.Grid.getColumnGrid(column).getSelection().length > 0) {
-                title = "批量随机生成选择的" + FastExt.Grid.getColumnGrid(column).getSelection().length + "条【" + column.text + "】列数据";
+                title = "批量随机生成选择的" + FastExt.Grid.getColumnGrid(column).getSelection().length + "条【" + column.configText + "】列数据";
                 dataLength = FastExt.Grid.getColumnGrid(column).getSelection().length;
             }
             if (FastExt.Grid.isNumberColumn(column)) {
@@ -2945,8 +3039,10 @@ namespace FastExt {
                 },
                 random: function () {
                     let valueArray = [];
-                    let minDate = Ext.getCmp(idCode + "_minDate").getValue();
-                    let maxDate = Ext.getCmp(idCode + "_maxDate").getValue();
+                    let minDateStr = Ext.getCmp(idCode + "_minDate").getValue();
+                    let minDate = Ext.Date.parse(minDateStr, FastExt.Base.guessDateFormat(minDateStr));
+                    let maxDateStr = Ext.getCmp(idCode + "_maxDate").getValue();
+                    let maxDate = Ext.Date.parse(maxDateStr, FastExt.Base.guessDateFormat(maxDateStr));
                     if (minDate.getTime() > maxDate.getTime()) {
                         FastExt.Dialog.showAlert("系统提醒", "最大日期必须大于最小日期！");
                         return;
@@ -3446,7 +3542,7 @@ namespace FastExt {
                 if (!editorField) {
                     return;
                 }
-
+                editorField.fromHeadSearch = true;
                 editorField.validator = null;
                 editorField.flex = 1;
                 editorField.margin = '2 2 0 0';
@@ -3506,6 +3602,7 @@ namespace FastExt {
                 editorField.value = where.value;
                 editorField.submitValue = false;
                 editorField.name = "value";
+                editorField.itemId = "editorField";
                 let panel = {
                     xtype: 'panel',
                     margin: '0',
@@ -3550,6 +3647,15 @@ namespace FastExt {
                             }
                         });
                     },
+                    refreshField: function () {
+                        let compareValue = this.getComponent("compare").getValue();
+                        let field = this.getComponent("editorField");
+                        field.setDisabled(false);
+                        if (compareValue == "~" || compareValue == "!~") {
+                            field.setValue("<null>")
+                            field.setDisabled(true);
+                        }
+                    },
                     items: [
                         {
                             xtype: 'combo',
@@ -3576,6 +3682,7 @@ namespace FastExt {
                             xtype: 'combo',
                             name: 'compare',
                             value: where.compare,
+                            itemId: "compare",
                             margin: '2 2 0 2',
                             width: 35,
                             valueField: 'text',
@@ -3589,12 +3696,24 @@ namespace FastExt {
                             listeners: {
                                 afterrender: function (obj, eOpts) {
                                     obj.getPicker().setMinWidth(100);
+                                },
+                                change: function (obj, newValue, oldValue) {
+                                    let field = obj.ownerCt.getComponent("editorField");
+                                    if (oldValue == "~" || oldValue == "!~") {
+                                        field.setValue(null);
+                                    }
+                                    obj.ownerCt.refreshField();
                                 }
                             },
                             store: FastExt.Store.getCompareDataStore()
                         },
                         editorField
-                    ]
+                    ],
+                    listeners:{
+                        render: function (obj, eOpts) {
+                            obj.refreshField();
+                        }
+                    }
                 };
                 return panel;
             } catch (e) {
@@ -3629,6 +3748,7 @@ namespace FastExt {
                         power: false,
                         showSeparator: false,
                         columnSearchMenu: true,
+                        scrollToHidden: true,
                         style: {
                             background: "#ffffff"
                         },
@@ -3716,6 +3836,7 @@ namespace FastExt {
                             }
                         }
                     });
+                    column.searchMenu.addCls("header-search-menu");
                 }
 
                 if (column.where) {
@@ -3912,6 +4033,8 @@ namespace FastExt {
                         }]
                 });
                 grid.ownerCt.add(obj.searchWin);
+            } else {
+                FastExt.Component.shakeComment(obj.searchWin);
             }
             obj.searchWin.show();
         }
@@ -3976,6 +4099,10 @@ namespace FastExt {
                                 dataStore.pageSize = newValue;
                             }
                             dataStore.loadPage(1);
+
+                            if (dataStore.grid) {
+                                dataStore.grid.saveUIConfig(true);
+                            }
                         }
                     }
                 }
@@ -4438,6 +4565,8 @@ namespace FastExt {
                         }]
                 });
                 grid.ownerCt.add(obj.sortWin);
+            } else {
+                FastExt.Component.shakeComment(obj.sortWin);
             }
             obj.sortWin.show();
         }
@@ -4559,6 +4688,8 @@ namespace FastExt {
                         }]
                 });
                 grid.ownerCt.add(obj.timerWin);
+            } else {
+                FastExt.Component.shakeComment(obj.timerWin);
             }
             obj.timerWin.show();
         }
@@ -4662,6 +4793,21 @@ namespace FastExt {
          * @param record 单个数据record
          */
         static showDetailsWindow(obj, title, entity, record) {
+            if (!entity) {
+                return;
+            }
+            if (!record) {
+                return;
+            }
+            const onlyValueArray = [entity.code];
+            for (let j = 0; j < entity.idProperty.length; j++) {
+                let idName = entity.idProperty[j];
+                onlyValueArray.push(idName + ":" + record.get(idName));
+            }
+            if (onlyValueArray.length == 1) {
+                onlyValueArray.push(new Date().getTime());
+            }
+            const onlyCode = $.md5(JSON.stringify(onlyValueArray));
             FastExt.Server.showColumns(entity.entityCode, function (success, value, message) {
                 if (success) {
                     let columnInfos = Ext.decode(value);
@@ -4711,11 +4857,20 @@ namespace FastExt {
                     detailsStore.loadData(data);
                     detailsStore.sort('index', 'ASC');
 
+                    let iframePanelArray = Ext.ComponentQuery.query("window[detailsWinId=" + onlyCode + "]");
+                    if (iframePanelArray.length > 0) {
+                        iframePanelArray[0].getComponent("detailsGrid").setStore(detailsStore);
+                        Ext.WindowManager.bringToFront(iframePanelArray[0], true);
+                        FastExt.Component.shakeComment(iframePanelArray[0]);
+                        return;
+                    }
+
                     let detailsGrid = Ext.create('Ext.grid.Panel', {
                         border: 0,
                         scrollable: 'y',
                         region: 'center',
                         store: detailsStore,
+                        itemId: "detailsGrid",
                         hideHeaders: true,
                         features: [{
                             ftype: 'grouping',
@@ -4837,6 +4992,7 @@ namespace FastExt {
                     let winHeight = parseInt((document.body.clientHeight * 0.6).toFixed(0));
                     let win = Ext.create('Ext.window.Window', {
                         title: title,
+                        detailsWinId: onlyCode,
                         height: winHeight,
                         width: winWidth,
                         minHeight: 450,
@@ -4957,7 +5113,7 @@ namespace FastExt {
             let editorField: any;
             if (record.get("linkColumn")) {
                 editorField = Ext.create(FastExt.Grid.getColumnSimpleEditor(record.get("linkColumn")));
-            }else{
+            } else {
                 editorField = Ext.create(FastExt.Json.jsonToObject(record.get("editorField")));
             }
             if (!editorField) {
@@ -4969,7 +5125,7 @@ namespace FastExt {
             editorField.flex = 1;
             editorField.emptyText = "请输入";
             editorField.region = 'center';
-
+            editorField.record = record.get("record");
             if (FastExt.Base.toString(editorField.inputType, "none") !== "password") {
                 if (Ext.isFunction(editorField.setValue)) {
                     let value = record.get("value");
@@ -4980,7 +5136,9 @@ namespace FastExt {
                     }
                 }
             }
-
+            if (Ext.isFunction(editorField.startEdit)) {
+                editorField.startEdit();
+            }
             let putRecord = function (fieldObj) {
                 if (fieldObj.isValid()) {
                     if (!Ext.isEmpty(fieldObj.getValue())) {
@@ -5003,6 +5161,7 @@ namespace FastExt {
             let menu = Ext.create('Ext.menu.Menu', {
                 showSeparator: false,
                 layout: 'fit',
+                scrollToHidden: true,
                 doUpdate: function () {
                     let me = this;
                     let fieldObj = me.items.get(0).items.get(0);
@@ -5046,9 +5205,17 @@ namespace FastExt {
                     show: function (obj, epts) {
                         let fieldObj = obj.items.get(0).items.get(0);
                         fieldObj.focus();
+                    },
+                    hide: function (obj) {
+                        let editorField = obj.items.get(0).items.get(0);
+                        if (Ext.isFunction(editorField.endEdit)) {
+                            editorField.endEdit();
+                        }
                     }
                 }
             });
+            menu.addCls("edit-menu");
+            menu.addCls("edit-details-menu");
             menu.setWidth(cell.getWidth());
             menu.showBy(cell, "tl");
         }
@@ -5089,5 +5256,41 @@ namespace FastExt {
          */
         refreshData: boolean = false;
 
+    }
+
+    /**
+     * 是否启用自动配置Grid的列右键菜单
+     */
+    export class GridColumnMenu {
+
+        /**
+         * 启用【取消排序】的菜单选项
+         */
+        cancelSort: boolean = true;
+
+        /**
+         * 启用【批量随机数据】的菜单选项
+         */
+        batchRandom: boolean = true;
+
+        /**
+         * 启用【批量修改数据】的菜单选项
+         */
+        batchUpdate: boolean = true;
+
+        /**
+         * 启用【计算数据】的菜单选项
+         */
+        operation: boolean = true;
+
+        /**
+         * 启用【配置搜索链】的菜单选项
+         */
+        searchLink: boolean = true;
+
+        /**
+         * 启用【查看字段】的菜单选项
+         */
+        lookField: boolean = true;
     }
 }

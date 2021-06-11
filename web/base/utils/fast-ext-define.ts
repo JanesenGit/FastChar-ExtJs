@@ -1,6 +1,6 @@
 // noinspection TypeScriptValidateJSTypes
 
-namespace FastDefine{
+namespace FastDefine {
 
     /**
      * 枚举下拉框组件
@@ -20,6 +20,11 @@ namespace FastDefine{
                 lastData: null,//插入到尾部的数据
                 editable: false,
                 useCache: true,
+                searchable: false,
+                reloadEnum: function () {
+                    let me = this;
+                    me.setStore(FastExt.Store.getEnumDataStore(me.enumName, me.firstData, me.lastData, me.params, me.useCache, true));
+                },
                 initComponent: function () {
                     let me = this;
                     me.displayField = me.enumText;
@@ -32,6 +37,7 @@ namespace FastDefine{
                     if (!me.include) {
                         me.include = [];
                     }
+
                     me.store.filterBy(function (record) {
                         if (me.exclude.exists(record.get(me.enumValue))) {
                             return false;
@@ -54,7 +60,7 @@ namespace FastDefine{
     /**
      * 文件上传组件
      */
-    export abstract class FastFileField{
+    export abstract class FastFileField {
         protected constructor() {
             Ext.define("Fast.ext.FastFile", {
                 extend: 'Ext.form.field.Text',
@@ -383,6 +389,7 @@ namespace FastDefine{
                 },
                 autoShowEditor: true,
                 allowBlank: true,
+                iframePanel: true,
                 showEditor: function () {
                     let me = this;
                     let frameId = "EditorFrame" + Ext.now();
@@ -424,6 +431,7 @@ namespace FastDefine{
                         value.setValue(val);
                     }
                     me.value = val;
+                    return me;
                 },
                 setHtml: function (val) {
                     this.setValue(val);
@@ -473,6 +481,7 @@ namespace FastDefine{
                                         iframe.contentWindow.setHtmlValue(val);
                                     }
                                 }
+                                return this;
                             }
                         }
                     ];
@@ -672,6 +681,7 @@ namespace FastDefine{
                         let moreFieldContainer = me.down("[name=" + me.name + "MoreFields]");
                         moreFieldContainer.removeAll(true);
                     }
+                    return me;
                 },
                 setHtml: function (val) {
                     this.setValue(val);
@@ -777,7 +787,7 @@ namespace FastDefine{
                     }
                     let entityObj = eval("new " + me.entityCode + "()");
                     if (!Ext.isFunction(entityObj.showSelect)) {
-                        FastExt.Dialog.showAlert("系统提醒", "'" + me.entityCode + "' JS对象不存在函数showSelect(obj,callBack)！",function () {
+                        FastExt.Dialog.showAlert("系统提醒", "'" + me.entityCode + "' JS对象不存在函数showSelect(obj,callBack)！", function () {
                             if (me.getMenu()) {
                                 me.getMenu().holdShow = false;
                             }
@@ -1479,7 +1489,7 @@ namespace FastDefine{
                 cityName: null,
                 areaName: null,
                 onAfterSelect: null,
-                level: null,//选择层次级别 1 只选择省份 2只选择城市 3只选择区
+                level: -1,//选择层次级别 1 只选择省份 2只选择城市 3只选择区
                 selectType: 0,//选择类型 0 拼接省份城市区 1 不拼接只返回选择的对象值
                 setRecordValue: function (record, autoClearData) {
                     let me = this;
@@ -1627,7 +1637,24 @@ namespace FastDefine{
                     }
                 },
                 initComponent: function () {
-                    this.emptyText = "请选择省市区";
+                    if (this.level == 1) {
+                        this.emptyText = "请选择省份";
+                    } else if (this.level == 2) {
+                        if (this.selectType == 0) {
+                            this.emptyText = "请选择省市";
+                        } else {
+                            this.emptyText = "请选择城市";
+                        }
+                    } else if (this.level == 3) {
+                        if (this.selectType == 0) {
+                            this.emptyText = "请选择省市区";
+                        } else {
+                            this.emptyText = "请选择区";
+                        }
+                    } else {
+                        this.emptyText = "请选择省市区";
+                    }
+
                     this.editable = false;
                     this.province = null;
                     this.area = null;
@@ -1908,6 +1935,8 @@ namespace FastDefine{
                 alias: ['widget.date', 'widget.datefield'],
                 extend: 'Ext.form.field.Text',
                 format: 'Y-m-d H:i:s',
+                strict: true,//日期格式严格处理，当格式为：Y-m 时 最自动追加Y-m-d
+                firstValue: null,
                 getMenu: function () {
                     return this.up("menu");
                 },
@@ -1915,7 +1944,7 @@ namespace FastDefine{
                     let me = this;
                     if (me.callParent(arguments)) {
                         if (!Ext.isEmpty(me.getValue())) {
-                            let date = Ext.Date.parse(me.getValue(), this.format);
+                            let date = Ext.Date.parse(me.getValue(true), this.format);
                             if (!date) {
                                 me.invalidText = "日期格式错误！格式必须为：" + this.format;
                                 me.markInvalid(this.invalidText);
@@ -1925,6 +1954,48 @@ namespace FastDefine{
                         return true;
                     }
                     return false;
+                },
+                setValue: function (dateValue) {
+                    let me = this;
+                    if (Ext.isEmpty(me.firstValue)) {
+                        me.firstValue = dateValue;
+                    }
+                    if (!Ext.isEmpty(dateValue)) {
+                        let guessDateFormat = FastExt.Base.guessDateFormat(dateValue);
+                        let date = Ext.Date.parse(dateValue, guessDateFormat);
+                        arguments[0] = Ext.Date.format(date, me.format);
+                    }
+                    me.callParent(arguments);
+                    return me;
+                },
+                getValue: function (fromValid) {
+                    let me = this;
+                    let rawValue = me.callParent(arguments);
+                    if (!FastExt.Base.toBool(fromValid, false)) {
+                        if (!Ext.isEmpty(me.firstValue)) {
+                            if (me.firstValue === rawValue) {
+                                return me.firstValue;
+                            }
+                            let rawDate = FastExt.Base.parseDate(rawValue);
+                            let firstDate = FastExt.Base.parseDate(me.firstValue);
+                            if (rawDate && firstDate) {
+                                if (Ext.Date.format(rawDate, me.format) === Ext.Date.format(firstDate, me.format)) {
+                                    return me.firstValue;
+                                }
+                            }
+                        }
+                    }
+                    if (me.strict && !FastExt.Base.toBool(fromValid, false)) {
+                        let guessDateFormat = FastExt.Base.guessDateFormat(rawValue);
+                        if (guessDateFormat === "Y-m") {
+                            return rawValue + "-01";
+                        } else if (guessDateFormat === "Y/m") {
+                            return rawValue + "/01";
+                        } else if (guessDateFormat === "Y") {
+                            return rawValue + "-01-01";
+                        }
+                    }
+                    return rawValue;
                 },
                 selectData: function () {
                     let me = this;
@@ -1939,6 +2010,9 @@ namespace FastDefine{
                             me.setValue(dateValue);
                         }
                     });
+                },
+                endEdit: function () {
+                    this.firstValue = null;
                 },
                 triggers: {
                     search: {
@@ -1991,16 +2065,9 @@ namespace FastDefine{
                     'swatchEl'
                 ],
                 setValue: function (val) {
-                    val = FastExt.Color.toColor(val);
-                    let me = this,
-                        inputEl = me.inputEl;
-
-                    if (inputEl && me.emptyText && !Ext.isEmpty(val)) {
-                        inputEl.removeCls(me.emptyUICls);
-                        me.valueContainsPlaceholder = false;
-                    }
+                    let me = this;
                     me.callParent(arguments);
-                    me.applyEmptyText();
+                    val = FastExt.Color.toColor(val);
                     Ext.ux.colorpick.ColorUtils.setBackground(me.swatchEl, Ext.ux.colorpick.ColorUtils.parseColor(val));
                     return me;
                 },
@@ -2028,9 +2095,16 @@ namespace FastDefine{
                 clearData: function () {
                     let me = this;
                     me.setValue(null);
+                },
+                initComponent: function () {
+                    let me = this;
+                    me.callParent(arguments);
+                    me.on("render", function () {
+                        let toColor = FastExt.Color.toColor(me.getValue(), "#00000000");
+                        me.setValue(toColor);
+                    });
                 }
             });
-
         }
     }
 

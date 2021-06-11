@@ -546,7 +546,7 @@ namespace FastExt {
 
         /**
          * MP4视频格式
-         * @param maxDuration 视频最大时间限制
+         * @param maxDuration 视频最大时间限制，单位毫秒
          */
         static mp4(maxDuration?: number): any {
             return {
@@ -572,6 +572,19 @@ namespace FastExt {
                         });
                     });
                 },
+                renderer: FastExt.Renders.file()
+            };
+        }
+
+        /**
+         * MP3音乐格式
+         */
+        static mp3(): any {
+            return {
+                regStr: '\.(mp3)',
+                reg: new RegExp(/\.(mp3)$/i),
+                tipMsg: 'mp3',
+                type: 'music',
                 renderer: FastExt.Renders.file()
             };
         }

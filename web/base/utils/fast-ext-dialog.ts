@@ -162,6 +162,23 @@ namespace FastExt {
         static showEditorHtml(obj, title, content, config?) {
             let winWidth = parseInt((document.body.clientWidth * 0.4).toFixed(0));
             let winHeight = parseInt((document.body.clientHeight * 0.6).toFixed(0));
+            let iframePanel = Ext.create('Ext.panel.Panel', {
+                layout: 'border',
+                region: 'center',
+                border: 0,
+                iframePanel: true,
+                listeners: {
+                    afterrender: function (obj, eOpts) {
+                        let url = FastExt.System.formatUrlVersion("base/editor/show.html");
+                        window["showEditorDone"] = function () {
+                            window["showEditorFrame"].window.showContent(content);
+                        };
+                        let html = "<iframe name='showEditorFrame' src='" + url + "'  width='100%' height='100%' frameborder='0'>";
+                        this.update(html);
+                    }
+                }
+            });
+
             let win = Ext.create('Ext.window.Window', {
                 title: title,
                 layout: 'fit',
@@ -179,17 +196,7 @@ namespace FastExt {
                 scrollable: false,
                 alwaysOnTop: true,
                 toFrontOnShow: true,
-                iframePanel: true,
-                listeners: {
-                    show: function () {
-                        let url = FastExt.System.formatUrlVersion("base/editor/show.html");
-                        window["showEditorDone"] = function () {
-                            window["showEditorFrame"].window.showContent(content);
-                        };
-                        let html = "<iframe name='showEditorFrame' src='" + url + "'  width='100%' height='100%' frameborder='0'>";
-                        this.update(html);
-                    }
-                }
+                items: [iframePanel]
             });
             win.show();
         }
@@ -235,11 +242,15 @@ namespace FastExt {
          * @param obj 弹框动画对象
          * @param value 代码内容
          * @param linenumber 是否显示代码行数
+         * @param lang prettify指定开发语言类型{@link https://github.com/googlearchive/code-prettify/blob/master/docs/getting_started.md}
          */
-        static showCode(obj, value, linenumber?: boolean) {
+        static showCode(obj, value, linenumber?: boolean, lang?: string) {
             try {
                 if (obj) {
                     obj.blur();
+                }
+                if (Ext.isEmpty(lang)) {
+                    lang = "";
                 }
                 let winWidth = parseInt((document.body.clientWidth * 0.4).toFixed(0));
                 let winHeight = parseInt((document.body.clientHeight * 0.6).toFixed(0));
@@ -267,9 +278,9 @@ namespace FastExt {
                     },
                 });
                 if (linenumber) {
-                    win.update("<pre class='prettyprint linenums windowpre'>" + value + "</pre>");
+                    win.update("<pre class='prettyprint " + lang + " linenums windowpre'>" + value + "</pre>");
                 } else {
-                    win.update("<pre class='prettyprint windowpre'>" + value + "</pre>");
+                    win.update("<pre class='prettyprint " + lang + " windowpre'>" + value + "</pre>");
                 }
                 win.show();
             } catch (e) {
@@ -277,6 +288,20 @@ namespace FastExt {
             }
         }
 
+
+        /**
+         * 格式化显示SQL语句内容
+         * @param obj 弹框动画对象
+         * @param value sql代码内容
+         */
+        static showSql(obj, value) {
+            try {
+                value = sqlFormatter.format(value);
+                FastExt.Dialog.showCode(obj, value, false, "lang-sql");
+            } catch (e) {
+                FastExt.Dialog.showText(obj, null, "查看内容", value);
+            }
+        }
 
         /**
          * 弹出异常信息
@@ -348,7 +373,7 @@ namespace FastExt {
                 title: title,
                 message: message,
                 modal: modal,
-                defaultFocus : 1,
+                defaultFocus: 1,
                 buttons: Ext.MessageBox.OK,
                 fn: callBack,
                 minWidth: 250
@@ -741,7 +766,16 @@ namespace FastExt {
                     iconCls: 'extIcon extSee',
                     autoScroll: true,
                     modal: true,
-                    constrain: true
+                    constrain: true,
+                    buttons: [
+                        {
+                            text: '复制JSON数据',
+                            handler: function () {
+                                FastExt.Dialog.toast("复制成功！");
+                                FastExt.Base.copyToBoard(value);
+                            }
+                        }
+                    ]
                 });
                 let result = new JSONFormat(value, 4).toString();
                 win.update("<div style='padding: 20px;'>" + result + "</div>");
@@ -776,7 +810,16 @@ namespace FastExt {
                     iconCls: 'extIcon extSee',
                     autoScroll: true,
                     modal: true,
-                    constrain: true
+                    constrain: true,
+                    buttons: [
+                        {
+                            text: '复制JSON数据',
+                            handler: function () {
+                                FastExt.Dialog.toast("复制成功！");
+                                FastExt.Base.copyToBoard(value);
+                            }
+                        }
+                    ]
                 });
                 let result = new JSONFormat(value, 4).toString();
                 win.update("<div style='padding: 20px;'>" + result + "</div>");

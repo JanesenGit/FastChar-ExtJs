@@ -110,6 +110,16 @@ namespace FastExt {
         static entities: any[];
 
         /**
+         * 系统首页页面的右侧面板列表
+         */
+        static welcomeRightPanels: any[] = [];
+
+        /**
+         * 系统首页页面的左侧面板列表
+         */
+        static welcomeLeftPanels: any[] = [];
+
+        /**
          * 移除全局加载的等待界面
          */
         static removeLoading() {
@@ -182,9 +192,9 @@ namespace FastExt {
             let isCode = false;
             oScript.type = "text/javascript";
             if (script.src != null && script.src.length > 0) {
-                oScript.src = script.src + "?v=" + FastExt.System.getExt("version").value;
+                oScript.src =  FastExt.System.formatUrlVersion(script.src)
             } else if (script.href != null && script.href.length > 0) {
-                oScript.src = script.href + "?v=" + FastExt.System.getExt("version").value;
+                oScript.src = FastExt.System.formatUrlVersion(script.href);
             } else if (script.text) {
                 try {
                     oScript.appendChild(document.createTextNode(script.text));
@@ -759,6 +769,7 @@ namespace FastExt {
             });
             container.add(containerPanel);
             let tabFromHrefMenuId = me.selectTabFromHref();
+            let hasFromHref = me.existMenu(tabFromHrefMenuId);
             if (FastExt.Base.toBool(me['tab-record'].value, true)) {
                 Ext.MessageBox.updateProgress(1, '即将完成操作，请耐心等待', '系统初始化成功！获取菜单中…');
                 me.restoreTab().then(function (value) {
@@ -773,9 +784,14 @@ namespace FastExt {
                     Ext.each(tabs, function (tab) {
                         if (tabFromHrefMenuId === tab.id) {
                             tab.active = true;
+                        }else if (hasFromHref) {
+                            tab.active = false;
                         }
                         me.showTab(tab.method, tab.id, tab.title, tab.icon, tab.active, true, tab.where, tab.closable, tab.reorderable);
                     });
+                    if (hasFromHref) {
+                        me.selectTab(tabFromHrefMenuId);
+                    }
                     if (tabs.length === 0 || !me.tabPanelContainer.getActiveTab()) {
                         me.tabPanelContainer.setActiveTab(Ext.getCmp("tabWelcome"));
                     }
@@ -1243,8 +1259,10 @@ namespace FastExt {
                         tabArray.push(tab);
                     });
 
+                    FastExt.Server.setSilence(true);
                     FastExt.Server.saveExtConfig("SystemTabs", "TabRecord", FastExt.Json.objectToJson(tabArray), function (success, message) {
                         resolve(success);
+                        FastExt.Server.setSilence(false);
                     });
                 } catch (e) {
                     reject(e);
@@ -1326,9 +1344,76 @@ namespace FastExt {
          * @param menuId
          */
         static existMenu(menuId) {
+            if (Ext.isEmpty(menuId)) {
+                return false;
+            }
             let treelist = Ext.getCmp("leftTreeList");
             let record = treelist.getStore().getNodeById(menuId);
             return record != null;
+        }
+
+
+        /**
+         * 获取菜单直观路径
+         * @param menu 菜单对象
+         * @param splitChar 菜单拼接的分隔符
+         */
+        static getPlainMenu(menu,splitChar?:string): string {
+            if (Ext.isEmpty(splitChar)) {
+                splitChar = ">";
+            }
+            if (menu) {
+                if (menu.parent) {
+                    let storeMenuText = FastExt.System.getPlainMenu( menu.parent, splitChar);
+                    if (storeMenuText) {
+                        return storeMenuText + splitChar + menu.text;
+                    }
+                }
+                return menu.text;
+            }
+            return null;
+        }
+
+        /**
+         * 获取菜单数组，包含了父类
+         * @param menu 菜单对象
+         */
+        static getPathMenu(menu): any[] {
+            if (menu) {
+                if (menu.parent) {
+                    let pathMenus = FastExt.System.getPathMenu(menu.parent);
+                    if (pathMenus) {
+                        pathMenus.push(menu);
+                        return pathMenus;
+                    }
+                }
+                return [menu];
+            }
+            return null;
+        }
+
+        /**
+         * 获取菜单直观路径 带图标的
+         * @param menu
+         * @param splitChar
+         */
+        static getPlainIconMenu(menu,splitChar?:string): string {
+            if (Ext.isEmpty(splitChar)) {
+                splitChar = ">";
+            }
+            let menuArray = FastExt.System.getPathMenu(menu);
+            let menuIconHtml = "<div style=\"line-height: 20px;display: flex\" >";
+            for (let i = 0; i < menuArray.length; i++) {
+                let targetMenu=menuArray[i];
+                let itemHtml = "<img src=\"" + targetMenu.icon + "\" width=\"20px\" height=\"20px\" />" +
+                    "<span style=\"margin-left: 5px;\">" + targetMenu.text + "</span> ";
+                if (i != 0) {
+                    itemHtml = "<b style='margin:0 5px;'>" + splitChar + "</b>" + itemHtml;
+                }
+                menuIconHtml += itemHtml;
+            }
+            menuIconHtml += "</div>";
+            return menuIconHtml;
         }
 
         /**
@@ -1426,9 +1511,13 @@ namespace FastExt {
                     }
                 }
             };
-
             let currTab = Ext.getCmp(tabId);
             if (!currTab) {
+                let menu = me.getMenu(tabId);
+                let tooltip = title;
+                if (menu) {
+                    tooltip = FastExt.System.getPlainIconMenu(menu, " >> ");
+                }
                 currTab = tabs.add({
                     xtype: 'panel',
                     id: tabId,
@@ -1445,6 +1534,18 @@ namespace FastExt {
                     where: where,
                     items: [],
                     tabBtnId: null,
+                    tabConfig: {
+                        help: tooltip,
+                        helpType: FastEnum.HelpEnumType.mouse_in_out,
+                        helpAnchor: FastEnum.TooltipAnchorType.top,
+                        listeners:{
+                            destroy: function (obj) {
+                                if (obj.helpTip) {
+                                    obj.helpTip.close();
+                                }
+                            }
+                        }
+                    },
                     doFixed: function () {
                         let me = this;
                         me.tab.setClosable(!me.tab.closable);
@@ -1635,7 +1736,7 @@ namespace FastExt {
          * 解析地址栏中携带的菜单Id
          */
         static selectTabFromHref() {
-            let href = window.location.href;
+            let href = decodeURIComponent(window.location.href);
             if (href.indexOf("#") > 0) {
                 return href.substring(href.lastIndexOf("/") + 1);
             }
@@ -2097,7 +2198,18 @@ namespace FastExt {
          * @param entityCode 实体编号
          * @param where 筛选条件
          */
-        static showList(menuId, entityCode, where) {
+        static showList(menuId: string, entityCode: string, where) {
+            if (!Ext.isString(menuId)) {
+                throw "操作失败！参数menuId必须为String类型！请检查调用showList方法的相关功能！";
+            }
+            if (!Ext.isString(entityCode)) {
+                throw "操作失败！参数entityCode必须为String类型！请检查调用showList方法的相关功能！";
+            }
+            if (!Ext.isEmpty(where)) {
+                if (!Ext.isObject(where)) {
+                    throw "操作失败！参数where必须为Object对象类型！请检查调用showList方法的相关功能！";
+                }
+            }
             let entity = FastExt.System.getEntity(entityCode);
             if (!entity) {
                 throw "操作失败！未获取到 '" + entityCode + "' 实体类！请检查实体类关联的表格是否存在！";
@@ -2119,10 +2231,11 @@ namespace FastExt {
          * @return Ext.panel.Panel
          */
         static getWelcomePanel(): any {
-            let leftItems = [FastExt.System.getSystemOperate(), FastExt.System.getSystemWaitNotice()];
+            FastExt.System.welcomeLeftPanels.push(FastExt.System.getSystemOperate());
+            FastExt.System.welcomeLeftPanels.push(FastExt.System.getSystemWaitNotice());
 
             if (FastExt.System.isSuperRole()) {
-                leftItems.push(FastExt.System.getSystemBugReport());
+                FastExt.System.welcomeLeftPanels.push(FastExt.System.getSystemBugReport());
             }
             let accordionPanel = Ext.create('Ext.panel.Panel', {
                 layout: {
@@ -2131,14 +2244,13 @@ namespace FastExt {
                 region: 'center',
                 border: 0,
                 flex: 0.6,
-                items: leftItems
+                items: FastExt.System.welcomeLeftPanels
             });
 
-            let rightItems = [];
             if (FastExt.System.isSuperRole()) {
-                rightItems.push(FastExt.System.getSystemVersion());
-                rightItems.push(FastExt.System.getSystemConfig());
-                rightItems.push(FastExt.System.getSystemMonitor());
+                FastExt.System.welcomeRightPanels.push(FastExt.System.getSystemVersion());
+                FastExt.System.welcomeRightPanels.push(FastExt.System.getSystemConfig());
+                FastExt.System.welcomeRightPanels.push(FastExt.System.getSystemMonitor());
             }
             let rightPanel = Ext.create('Ext.panel.Panel', {
                 layout: 'accordion',
@@ -2148,12 +2260,12 @@ namespace FastExt {
                 collapsed: false,
                 split: true,
                 subtitle: '系统右侧面板',
-                items: rightItems
+                items: FastExt.System.welcomeRightPanels
             });
 
             let items = [accordionPanel];
 
-            if (rightItems.length > 0) {
+            if (FastExt.System.welcomeRightPanels.length > 0) {
                 items.push(rightPanel);
             }
 

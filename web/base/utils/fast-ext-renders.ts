@@ -33,7 +33,8 @@ namespace FastExt {
                 if (details) {
                     return val.replace(new RegExp("\n", 'g'), "<br/>")
                         .replace(new RegExp("\t", 'g'), "&nbsp;&nbsp;&nbsp;&nbsp;")
-                        .replace(new RegExp(" ", 'g'), "&nbsp;");
+                        .replace(new RegExp(" ", 'g'), "&nbsp;")
+                        .replace(/<\/?.+?>/g, "");
                 }
                 return val;
             };
@@ -542,8 +543,8 @@ namespace FastExt {
                     if (Ext.isEmpty(format)) {
                         format = "Y-m-d H:i:s";
                     }
-                    let dateFormat = FastExt.Base.guessDateFormat(val);
-                    return Ext.Date.format(Ext.Date.parse(val, dateFormat), format);
+                    let guessDateFormat = FastExt.Base.guessDateFormat(val);
+                    return Ext.Date.format(Ext.Date.parse(val, guessDateFormat), format);
                 } catch (e) {
                     console.error(e);
                     return val;
@@ -574,6 +575,23 @@ namespace FastExt {
                     }
                     let color = FastExt.Color.toColor(enumColor, "#000000");
                     return "<span style='color: " + color + ";'>" + enumText + "</span>";
+                } catch (e) {
+                    return "<span style='color: #ccc;'>" + val + "</span>";
+                }
+            }
+        }
+
+        /**
+         * 颜色值渲染器
+         */
+        static color(): any {
+            return function (val) {
+                try {
+                    if (Ext.isEmpty(val)) {
+                        return "<span style='color: #ccc;'>无</span>";
+                    }
+                    let color = FastExt.Color.toColor(val);
+                    return "<!--suppress ALL --><img style='background: " + color + ";width: 30px;height: 14px;'/>";
                 } catch (e) {
                     return "<span style='color: #ccc;'>" + val + "</span>";
                 }

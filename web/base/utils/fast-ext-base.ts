@@ -90,6 +90,7 @@ namespace FastExt {
             $(oInput).remove();
         }
 
+
         /**
          * 浅复制对象
          * @param obj 待复制的对象
@@ -293,6 +294,14 @@ namespace FastExt {
             if (regPattern.test(value)) {
                 return "Y-m-d";
             }
+            regPattern = new RegExp("[0-9]{4}-[0-9]{2}");
+            if (regPattern.test(value)) {
+                return "Y-m";
+            }
+            regPattern = new RegExp("[0-9]{4}");
+            if (regPattern.test(value)) {
+                return "Y";
+            }
             regPattern = new RegExp("[0-9]{4}/[0-9]{2}/[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}");
             if (regPattern.test(value)) {
                 return "Y/m/d H:i:s";
@@ -309,7 +318,23 @@ namespace FastExt {
             if (regPattern.test(value)) {
                 return "Y/m/d";
             }
+            regPattern = new RegExp("[0-9]{4}/[0-9]{2}");
+            if (regPattern.test(value)) {
+                return "Y/m";
+            }
             return '';
+        }
+
+        /**
+         * 将字符串格式化日期
+         * @param dateValue
+         */
+        static parseDate(dateValue: string): Date {
+            if (Ext.isEmpty(dateValue)) {
+                return null;
+            }
+            let guessDateFormat = FastExt.Base.guessDateFormat(dateValue);
+            return Ext.Date.parse(dateValue, guessDateFormat);
         }
 
 

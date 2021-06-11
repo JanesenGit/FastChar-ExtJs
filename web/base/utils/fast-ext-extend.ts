@@ -144,10 +144,39 @@ namespace FastExtend {
         iframePanel: boolean = false;
 
         /**
-         * 组件功能的使用介绍，配置后，右键鼠标即可查看内容
+         * 组件功能的使用介绍，配置后，默认右键鼠标即可查看内容
+         * {@link FastEnum.HelpEnumType}
          */
         help: string;
+
+        /**
+         * 组件功能提示操作类型，默认，右键鼠标
+         * {@link FastEnum.HelpEnumType}
+         */
+        helpType: number;
+
+        /**
+         * 帮助提示语锚点位置，默认系统自动计算
+         * {@link FastEnum.TooltipAnchorType}
+         */
+        helpAnchor: string;
     }
+
+    /**
+     * Ext.button.Button扩展
+     * @define 使用Ext.button.Button对象调用以下方法或属性
+     * @example button.contextMenu
+     */
+    export abstract class ButtonExtend {
+        protected constructor() {
+        }
+
+        /**
+         * 如果button按钮放置在grid中的toolbar中，此属性表示是否自动将按钮添加到grid的右键菜单中，默认为：true
+         */
+        contextMenu: boolean = true;
+    }
+
 
     /**
      * gridpanel或treepanel相关扩展
@@ -170,6 +199,17 @@ namespace FastExtend {
          * 标识是否是标签页打开的数据列表，设置true时，保存Grid列信息时会携带EntityCode参数，否则不携带！
          */
         tabPanelList: boolean = false;
+
+        /**
+         * 是否以首次加载过数据
+         */
+        readonly firstLoadedData: boolean = false;
+
+        /**
+         * 是否启用Grid列的右键菜单，设置true或false或FastExt.GridColumnMenu对象
+         * @see {@link FastExt.GridColumnMenu}
+         */
+        columnMenu: any;
     }
 
 
@@ -404,6 +444,10 @@ namespace FastExtend {
          */
         abstract blur();
 
+        /**
+         * 是否来自Grid的头部列搜索
+         */
+        fromHeadSearch: boolean = false;
     }
 
 
@@ -441,6 +485,23 @@ namespace FastExtend {
          */
         abstract clearHistory();
     }
+
+
+    /**
+     * Ext.form.field.ComboBox扩展
+     * @define 使用Ext.form.field.ComboBox对象调用以下方法或属性
+     * @example input.blur()
+     */
+    export abstract class ComboBoxFieldExtend {
+        protected constructor() {
+        }
+
+        /**
+         * 是否开启搜索下拉选项功能
+         */
+        searchable: boolean = false;
+    }
+
 
     /**
      * Ext.grid.column.Column的扩展
@@ -511,6 +572,11 @@ namespace FastExtend {
          * @see {@link FastOverrider.MenuOverride.constructor}
          */
         holdShow: boolean = false;
+
+        /**
+         * 当手势滑动滚动条时，隐藏menu
+         */
+        scrollToHidden: boolean;
     }
 
 

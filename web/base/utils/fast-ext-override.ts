@@ -99,6 +99,7 @@ namespace FastOverrider {
             Ext.override(Ext.Component, {
                 setDisabled: function (disabled) {
                     if (FastExt.Power.config) {
+                        console.log("权限配置中！");
                         return this['enable']();
                     }
                     return this[disabled ? 'disable' : 'enable']();
@@ -296,23 +297,19 @@ namespace FastOverrider {
                             if (!targetEl) {
                                 targetEl = me.el;
                             }
+                            if (Ext.isEmpty(me.helpType)) {
+                                me.helpType = FastEnum.HelpEnumType.mouse_right_click;
+                            }
 
-                            targetEl.on("mouseleave", function () {
-                                if (me.helpTip) {
-                                    me.helpTip.close();
-                                }
-                            });
-
-                            targetEl.on("contextmenu", function () {
+                            let buildToolTip = function () {
                                 try {
+                                    if (me.helpTip) {
+                                        me.helpTip.show();
+                                        return
+                                    }
                                     let helpContent = me.help;
                                     if (window["getHelpContent"]) {
                                         helpContent = window["getHelpContent"](me.help);
-                                    }
-
-                                    if (me.helpTip) {
-                                        me.helpTip.close();
-                                        return
                                     }
                                     let anchor = me.helpAnchor;
                                     if (!anchor) {
@@ -328,7 +325,7 @@ namespace FastOverrider {
 
                                     me.helpTip = Ext.create('Ext.tip.ToolTip', {
                                         target: targetEl,
-                                        resizable: true,
+                                        resizable: false,
                                         anchor: anchor,
                                         anchorOffset: anchorOffset,
                                         autoHide: false,
@@ -349,7 +346,33 @@ namespace FastOverrider {
                                 } catch (e) {
                                     console.error(e);
                                 }
+                            };
+
+                            targetEl.on("mouseleave", function () {
+                                if (me.helpTip) {
+                                    me.helpTip.close();
+                                }
                             });
+                            targetEl.on("unload", function () {
+                                if (me.helpTip) {
+                                    me.helpTip.close();
+                                }
+                            });
+                            targetEl.on("DOMNodeRemoved", function () {
+                                if (me.helpTip) {
+                                    me.helpTip.close();
+                                }
+                            });
+
+                            if (me.helpType == FastEnum.HelpEnumType.mouse_right_click) {
+                                targetEl.on("contextmenu", function () {
+                                    buildToolTip();
+                                });
+                            }else  if (me.helpType == FastEnum.HelpEnumType.mouse_in_out) {
+                                targetEl.on("mouseover", function () {
+                                    buildToolTip();
+                                });
+                            }
                         }
                     } catch (e) {
                         console.error(e);
@@ -415,7 +438,7 @@ namespace FastOverrider {
                         }
                         let grid = me.up('grid,treepanel');
                         if (grid) {
-                            if (!Ext.isEmpty(me.text)) {
+                            if (!Ext.isEmpty(me.text) && FastExt.Base.toBool(me.contextMenu, true)) {
                                 //需要配置右键菜单
                                 FastExt.Grid.addGridContextMenu(grid, FastExt.Button.buttonToMenuItem(me));
                             }
@@ -700,6 +723,9 @@ namespace FastOverrider {
                 },
                 checkStoreUpdate: function (callBack) {
                     let me = this;
+                    if (!me.store.entity) {
+                        return true;
+                    }
                     let records = me.store.getUpdatedRecords();
                     if (records.length > 0) {
                         Ext.Msg.confirm("系统提醒", "当前页有未提交修改的数据，是否提交修改？", function (button, text) {
@@ -757,8 +783,14 @@ namespace FastOverrider {
             Ext.override(Ext.dd.DragTracker, {
                 onMouseDown: function (e) {
                     this.callParent(arguments);
+                    if (e.target) {
+                        if (e.target.className.toString().indexOf("x-tool") >= 0) {
+                            return;
+                        }
+                    }
                     let iframePanelArray = Ext.ComponentQuery.query("[iframePanel=true]");
                     for (let i = 0; i < iframePanelArray.length; i++) {
+                        iframePanelArray[i].oldDisabled = iframePanelArray[i].disabled;
                         iframePanelArray[i].setDisabled(true);
                     }
                 },
@@ -766,7 +798,7 @@ namespace FastOverrider {
                     this.callParent(arguments);
                     let iframePanelArray = Ext.ComponentQuery.query("[iframePanel=true]");
                     for (let i = 0; i < iframePanelArray.length; i++) {
-                        iframePanelArray[i].setDisabled(false);
+                        iframePanelArray[i].setDisabled(iframePanelArray[i].oldDisabled);
                     }
                 }
             });
@@ -1030,6 +1062,42 @@ namespace FastOverrider {
                     }
                 })
             });
+
+            Ext.override(Ext.form.field.ComboBox, {
+                initComponent: Ext.Function.createSequence(Ext.form.field.ComboBox.prototype.initComponent, function () {
+                    let me = this;
+                    if (me.searchable) {
+                        me.editable = true;
+                        me.queryMode = "local";
+                        me.validator = function (val) {
+                            if (this.allowBlank) {
+                                return true;
+                            }
+                            if (this.searchable) {
+                                let enumRecord = this.getStore().findRecord(this.valueField, this.getValue(), 0, false, false, true);
+                                if (!enumRecord) {
+                                    return "数据【" + val + "】无效，请选择下拉框里的选项！";
+                                }
+                            }
+                            return true;
+                        };
+                        me.on("beforequery", function (queryPlan) {
+                            if (queryPlan.cancel) {
+                                return false;
+                            }
+                            let combo = queryPlan.combo;
+                            let searchKey = queryPlan.query;
+                            combo.store.clearFilter();
+                            combo.store.filterBy(function (record, id) {
+                                let text = record.get(combo.displayField);
+                                return text.indexOf(searchKey) >= 0;
+                            });
+                            combo.expand();
+                            return false;
+                        });
+                    }
+                })
+            });
         }
     }
 
@@ -1078,6 +1146,18 @@ namespace FastOverrider {
     export class WindowOverride {
         constructor() {
             Ext.override(Ext.Window, {
+                afterRender: function () {
+                    this.callParent(arguments);
+                    if (!this.modal) {
+                        const topActiveWin = Ext.WindowManager.getActive();
+                        if (topActiveWin && topActiveWin.xtype === "window" && topActiveWin.id != this.id) {
+                            if (FastExt.Component.isSameByContainer(this, topActiveWin)) {
+                                this.x = topActiveWin.x + 20;
+                                this.y = topActiveWin.y + 20;
+                            }
+                        }
+                    }
+                },
                 initComponent: Ext.Function.createSequence(Ext.Window.prototype.initComponent, function () {
                     try {
                         if (!eval(FastExt.System.getExt("window-anim").value)) {
@@ -1120,9 +1200,8 @@ namespace FastOverrider {
                 fireScrollStart: function () {
                     let me = this;
                     me.callParent(arguments);
-                    if (me.component) {
-                        me.component.focus();
-                        let menuCmpArray = Ext.ComponentQuery.query("menu[columnSearchMenu=true]");
+                    if (me.component && me.component.xtype == "tableview") {
+                        let menuCmpArray = Ext.ComponentQuery.query("menu[scrollToHidden=true]");
                         for (let i = 0; i < menuCmpArray.length; i++) {
                             menuCmpArray[i].hide();
                         }

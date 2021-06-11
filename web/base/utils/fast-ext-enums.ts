@@ -70,6 +70,34 @@ namespace FastEnum {
 
 
     /**
+     * 组件帮助内容提示的方式
+     */
+    export  enum HelpEnumType{
+
+        /**
+         * 右键鼠标的方式提示
+         */
+        mouse_right_click,
+        /**
+         * 鼠标移入移出的方式提示
+         */
+        mouse_in_out
+    }
+
+
+    /**
+     * tooltip 锚点位置
+     */
+    export enum TooltipAnchorType{
+        left = "left",
+        top = "top",
+        right = "right",
+        bottom = "bottom",
+    }
+
+
+
+    /**
      * 支持权限设置的组件类型
      */
     export enum PowerType{

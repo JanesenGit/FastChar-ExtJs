@@ -9,21 +9,19 @@ namespace FastExt {
 
         /**
          * 获取store相关的功能菜单文字，包含了父类
-         * @param store
-         * @param menu
+         * @param store 数据源
+         * @param menu 数据源的菜单对象
+         * @param splitChar 菜单拼接的分隔符
          * @returns {string|null}
          */
-        static getStoreMenuText(store, menu?): string {
+        static getStoreMenuText(store, menu?,splitChar?:string): string {
+            if (Ext.isEmpty(splitChar)) {
+                splitChar = ">";
+            }
             if (menu) {
-                if (menu.parent) {
-                    let storeMenuText = FastExt.Store.getStoreMenuText(null, menu.parent);
-                    if (storeMenuText) {
-                        return storeMenuText + ">" + menu.text;
-                    }
-                }
-                return menu.text;
+                return FastExt.System.getPlainMenu(menu, splitChar);
             } else if (store && store.entity) {
-                return FastExt.Store.getStoreMenuText(null, store.entity.menu);
+                return FastExt.System.getPlainMenu(store.entity.menu, splitChar);
             }
             return null;
         }
@@ -374,18 +372,22 @@ namespace FastExt {
          * @param firstData 插入头部的数据
          * @param lastData 插入尾部的数据
          * @param params 获取枚举接口的参数
-         * @param useCache
+         * @param useCache 使用本地浏览器缓存数据
+         * @param reload 重新加载数据并更新缓存
          * @return Ext.data.Store
          */
-        static getEnumDataStore(enumName, firstData?, lastData?, params?, useCache?) {
+        static getEnumDataStore(enumName, firstData?, lastData?, params?, useCache?, reload?) {
             if (!params) {
                 params = {};
             }
             if (Ext.isEmpty(useCache)) {
                 useCache = true;
             }
+            if (Ext.isEmpty(reload)) {
+                reload = false;
+            }
             let cacheKey = $.md5(enumName + Ext.JSON.encode(params));
-            if (!useCache || !FastExt.Cache.memory.hasOwnProperty(cacheKey)) {
+            if (!useCache || !FastExt.Cache.memory.hasOwnProperty(cacheKey) || reload) {
                 Ext.Ajax.request({
                     url: 'showEnums?enumName=' + enumName,
                     async: false,
@@ -478,6 +480,16 @@ namespace FastExt {
         static getCompareDataStore(): any {
             return Ext.create('Ext.data.Store', {
                 data: [
+                    {
+                        id: -1,
+                        text: '~',
+                        desc: '空值'
+                    },
+                    {
+                        id: -2,
+                        text: '!~',
+                        desc: '非空值'
+                    },
                     {
                         id: 0,
                         text: '=',
