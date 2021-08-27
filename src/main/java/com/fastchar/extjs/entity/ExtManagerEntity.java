@@ -4,7 +4,7 @@ import com.fastchar.core.FastChar;
 import com.fastchar.database.FastPage;
 import com.fastchar.database.info.FastSqlInfo;
 import com.fastchar.extjs.FastExtConfig;
-import com.fastchar.extjs.core.FastLayerType;
+import com.fastchar.extjs.core.FastExtLayerType;
 import com.fastchar.extjs.entity.abstracts.AbstractExtManagerEntity;
 import com.fastchar.utils.FastDateUtils;
 import com.fastchar.utils.FastStringUtils;
@@ -38,7 +38,7 @@ public class ExtManagerEntity extends AbstractExtManagerEntity {
 
     @Override
     public void pullLayer(ExtManagerEntity managerEntity) {
-        if (getLayerColumn() != null && FastChar.getConfig(FastExtConfig.class).getLayerType() != FastLayerType.None) {
+        if (getLayerColumn() != null && FastChar.getConfig(FastExtConfig.class).getLayerType() != FastExtLayerType.None) {
             if (managerEntity.getManagerRole().getRoleType() != ExtManagerRoleEntity.RoleTypeEnum.系统角色) {
                 put(getLayerColumn().getName() + "?%", managerEntity.getLayerValue(1));
             }

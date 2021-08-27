@@ -25,12 +25,14 @@ namespace FastDefine {
                     let me = this;
                     me.setStore(FastExt.Store.getEnumDataStore(me.enumName, me.firstData, me.lastData, me.params, me.useCache, true));
                 },
-                initComponent: function () {
+                constructor: function (config) {
                     let me = this;
-                    me.displayField = me.enumText;
-                    me.valueField = me.enumValue;
+                    me.displayField = FastExt.Base.toString(config.enumText, me.enumText);
+                    me.valueField = FastExt.Base.toString(config.enumValue, me.enumValue);
                     me.emptyText = "请选择";
-                    me.store = FastExt.Store.getEnumDataStore(me.enumName, me.firstData, me.lastData, me.params, me.useCache);
+                    me.exclude = config.exclude;
+                    me.include = config.include;
+                    me.store = FastExt.Store.getEnumDataStore(config.enumName, config.firstData, config.lastData, config.params, config.useCache);
                     if (!me.exclude) {
                         me.exclude = [];
                     }
@@ -50,7 +52,7 @@ namespace FastDefine {
                         }
                         return true;
                     });
-                    me.callParent();
+                    this.callParent(arguments);
                 }
             });
         }

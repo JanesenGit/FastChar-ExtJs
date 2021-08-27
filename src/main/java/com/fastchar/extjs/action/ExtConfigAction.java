@@ -67,6 +67,10 @@ public class ExtConfigAction extends FastAction {
      * configType 配置的类型
      */
     public void showExtConfig() {
+        //开始gzip支持
+        getResponse().setHeader("Content-Encoding", "gzip");
+
+
         ExtManagerEntity managerEntity = getSession("manager");
         if (managerEntity == null) {
             responseJson(-1, "获取失败！");
@@ -109,6 +113,10 @@ public class ExtConfigAction extends FastAction {
      * entityCode 实体编号
      */
     public void showEntityColumn() {
+        //开始gzip支持
+        getResponse().setHeader("Content-Encoding", "gzip");
+
+
         ExtManagerEntity managerEntity = getSession("manager");
         if (managerEntity == null) {
             responseJson(-1, "操作失败！");
@@ -152,6 +160,10 @@ public class ExtConfigAction extends FastAction {
      * 无
      */
     public void showSystemConfig() {
+        //开始gzip支持
+        getResponse().setHeader("Content-Encoding", "gzip");
+
+
         Map<String, Object> data = new HashMap<>(16);
 
         List<FastHeadExtInfo> extInfo = FastExtConfig.getInstance().getExtInfo();

@@ -1,9 +1,10 @@
 package com.fastchar.extjs;
 
 import com.fastchar.core.FastChar;
-import com.fastchar.extjs.compress.YuiCompress;
+import com.fastchar.core.FastClassLoader;
 import com.fastchar.extjs.core.FastExtEntities;
-import com.fastchar.extjs.core.FastLayerType;
+import com.fastchar.extjs.core.FastExtLayerHelper;
+import com.fastchar.extjs.core.FastExtLayerType;
 import com.fastchar.extjs.core.heads.FastHeadExtInfo;
 import com.fastchar.extjs.core.heads.FastHeadInfo;
 import com.fastchar.extjs.core.heads.FastHeadStyleInfo;
@@ -34,10 +35,12 @@ public final class FastExtConfig implements IFastConfig {
     private boolean attachLog;
     private boolean mergeAppJs;//是否合并AppJs文件
     private FastExtEntities extEntities = new FastExtEntities();
-    private FastLayerType layerType = FastLayerType.None;//权限级别，默认以当前管理角色为最高级别
+    private FastExtLayerType layerType = FastExtLayerType.None;//权限级别，默认以当前管理角色为最高级别
     private String menuPrefix = "fast-menus";
     private final Set<String> excludeMenuFiles = new HashSet<>();//被排除的menu文件名
     private String uglifyJsPath; //uglify-js 压缩工具的本地路径
+
+    private List<FastExtLayerHelper.LayerMap> layerMaps;//表格的层级拓扑图
 
     /**
      * 获取系统默认的主题色
@@ -136,7 +139,7 @@ public final class FastExtConfig implements IFastConfig {
      * 获取系统权限类型
      * @return 权限类型@FastLayerType
      */
-    public FastLayerType getLayerType() {
+    public FastExtLayerType getLayerType() {
         return layerType;
     }
 
@@ -145,7 +148,7 @@ public final class FastExtConfig implements IFastConfig {
      * @param layerType 权限类型
      * @return 当前对象
      */
-    public FastExtConfig setLayerType(FastLayerType layerType) {
+    public FastExtConfig setLayerType(FastExtLayerType layerType) {
         this.layerType = layerType;
         return this;
     }
@@ -267,12 +270,16 @@ public final class FastExtConfig implements IFastConfig {
      * @return File对象集合
      */
     public List<File> getAppJs() {
-        File mergeFile = new File(FastChar.getPath().getWebRootPath(), "app.js");
+        File mergeFile = getMergeJs();
         if (mergeFile.exists()) {
             return Collections.singletonList(mergeFile);
         }
         List<File> jsFiles = new ArrayList<>();
         Map<String, List<File>> app = getJsFiles(new File(FastChar.getPath().getWebRootPath(), "app"));
+        List<String> pathLoaders = FastChar.getModules().getPathLoadModules();
+        for (String path : pathLoaders) {
+            app.putAll(getJsFiles(new File(path)));
+        }
 
         for (List<File> value : app.values()) {
             if (value.size() > 1) {
@@ -440,6 +447,24 @@ public final class FastExtConfig implements IFastConfig {
      */
     public FastExtConfig setUglifyJsPath(String uglifyJsPath) {
         this.uglifyJsPath = uglifyJsPath;
+        return this;
+    }
+
+    /**
+     * 获取表格权限层级的拓扑图
+     * @return
+     */
+    public List<FastExtLayerHelper.LayerMap> getLayerMaps() {
+        return layerMaps;
+    }
+
+    /**
+     * 设置表格权限层级的拓扑图
+     * @param layerMaps
+     * @return
+     */
+    public FastExtConfig setLayerMaps(List<FastExtLayerHelper.LayerMap> layerMaps) {
+        this.layerMaps = layerMaps;
         return this;
     }
 }

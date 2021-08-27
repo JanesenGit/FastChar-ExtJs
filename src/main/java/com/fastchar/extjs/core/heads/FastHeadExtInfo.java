@@ -1,6 +1,9 @@
 package com.fastchar.extjs.core.heads;
 
+import com.fastchar.core.FastChar;
 import com.fastchar.utils.FastStringUtils;
+
+import java.io.File;
 
 public class FastHeadExtInfo extends FastHeadInfo {
     public FastHeadExtInfo() {
@@ -45,6 +48,10 @@ public class FastHeadExtInfo extends FastHeadInfo {
 
     public String getColorValue() {
         return "#" + FastStringUtils.stripStart(getValue(), "#");
+    }
+
+    public boolean isExistFile() {
+        return new File(FastChar.getPath().getWebRootPath(), value).exists();
     }
 
 

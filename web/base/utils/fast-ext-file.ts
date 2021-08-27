@@ -81,7 +81,7 @@ namespace FastExt {
                                                     formPanel.doSubmit();
                                                     return;
                                                 }
-                                            }else if (fileModule.regStr) {
+                                            } else if (fileModule.regStr) {
                                                 if (new RegExp(fileModule.regStr).test(value)) {
                                                     formPanel.doSubmit();
                                                     return;
@@ -557,6 +557,9 @@ namespace FastExt {
                 maxDuration: maxDuration,
                 onFileSelect: function (filefield) {
                     let me = this;
+                    if (Ext.isEmpty(filefield.extra)) {
+                        filefield.extra = {};
+                    }
                     return new Ext.Promise(function (resolve, reject) {
                         if (Ext.isEmpty(me.maxDuration)) {
                             resolve();
@@ -566,8 +569,11 @@ namespace FastExt {
                         let url = URL.createObjectURL(video);
                         let audio = new Audio(url)
                         audio.addEventListener("loadedmetadata", function (e) {
+                            filefield.extra["duration"] = audio.duration;
                             if (audio.duration * 1000 > parseInt(me.maxDuration)) {
                                 resolve("视频最大时长不得超过" + me.maxDuration / 1000 + "秒！");
+                            } else {
+                                resolve();
                             }
                         });
                     });
@@ -585,7 +591,21 @@ namespace FastExt {
                 reg: new RegExp(/\.(mp3)$/i),
                 tipMsg: 'mp3',
                 type: 'music',
-                renderer: FastExt.Renders.file()
+                renderer: FastExt.Renders.file(),
+                onFileSelect: function (filefield) {
+                    if (Ext.isEmpty(filefield.extra)) {
+                        filefield.extra = {};
+                    }
+                    return new Ext.Promise(function (resolve, reject) {
+                        let video = filefield.fileInputEl.dom.files[0];
+                        let url = URL.createObjectURL(video);
+                        let audio = new Audio(url)
+                        audio.addEventListener("loadedmetadata", function (e) {
+                            filefield.extra["duration"] = audio.duration;
+                            resolve();
+                        });
+                    });
+                },
             };
         }
 

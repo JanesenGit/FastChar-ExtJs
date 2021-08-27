@@ -21,6 +21,7 @@ function ExtManagerRoleEntity() {
             border: 0,
             columnLines: true,
             contextMenu: true,
+            defaultToolBarLink: false,
             store: dataStore,
             enableLocking: true,
             operate: {

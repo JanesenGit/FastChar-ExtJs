@@ -3,9 +3,13 @@ package com.fastchar.extjs.action;
 import com.fastchar.annotation.AFastCache;
 import com.fastchar.annotation.AFastRoute;
 import com.fastchar.core.*;
+import com.fastchar.database.info.FastDatabaseInfo;
 import com.fastchar.extjs.FastExtConfig;
 import com.fastchar.extjs.FastExtHelper;
 import com.fastchar.extjs.annotation.AFastSession;
+import com.fastchar.extjs.core.FastExtLayerHelper;
+import com.fastchar.extjs.core.FastExtLayerType;
+import com.fastchar.extjs.core.enums.FastEnumInfo;
 import com.fastchar.extjs.core.heads.*;
 import com.fastchar.extjs.core.menus.FastMenuInfo;
 import com.fastchar.extjs.entity.ExtBugReportEntity;
@@ -16,6 +20,7 @@ import com.fastchar.extjs.interfaces.IFastExtEnum;
 import com.fastchar.extjs.interfaces.IFastManagerListener;
 import com.fastchar.extjs.observer.FastHeadHtmlObserver;
 import com.fastchar.extjs.observer.FastMenuXmlObserver;
+import com.fastchar.extjs.utils.ColorUtils;
 import com.fastchar.extjs.utils.ZXingUtils;
 import com.fastchar.out.FastOutCaptcha;
 import com.fastchar.utils.*;
@@ -57,6 +62,8 @@ public class ExtDefaultAction extends FastAction {
      */
     @AFastRoute({"/fast_index.html", "/index.html", "/index.jsp", "/index.vm"})
     public void index() throws Exception {
+        //开始gzip支持
+        getResponse().setHeader("Content-Encoding", "gzip");
 
         if (getUrlParams().size() > 0) {
             String firstParams = getUrlParam(0);
@@ -135,6 +142,9 @@ public class ExtDefaultAction extends FastAction {
      * 无
      */
     public void loadApp() {
+        //开始gzip支持
+        getResponse().setHeader("Content-Encoding", "gzip");
+
         List<FastHeadInfo> heads = FastChar.getValues().get("heads");
 
         List<FastHeadInfo> newHeads = new ArrayList<>(heads);
@@ -210,6 +220,10 @@ public class ExtDefaultAction extends FastAction {
      */
     @AFastSession
     public void showConfig() throws Exception {
+        //开始gzip支持
+        getResponse().setHeader("Content-Encoding", "gzip");
+
+
         if (FastMenuXmlObserver.isModified()) {
             FastChar.getObservable().notifyObservers("refreshMenus");
         }
@@ -219,14 +233,20 @@ public class ExtDefaultAction extends FastAction {
         for (File app : appJs) {
             String replace = app.getAbsolutePath().replace(FastChar.getPath().getWebRootPath(), "");
             if (replace.startsWith("http://") || replace.startsWith("https://") || replace.startsWith("/")) {
-                appJsUrls.add(replace);
+                if (new File(replace).exists()) {
+                    appJsUrls.add(getProjectHost() + "attach?disposition=false&path=" + replace);
+                } else {
+                    appJsUrls.add(appendFileTime(replace, app));
+                }
             } else {
-                appJsUrls.add(getProjectHost() + replace);
+                appJsUrls.add(getProjectHost() + appendFileTime(replace, app));
             }
         }
+
         Map<String, Object> data = new HashMap<>();
         data.put("app", appJsUrls);
         data.put("http", getProjectHost());
+        data.put("layer", FastExtConfig.getInstance().getLayerType() != FastExtLayerType.None);
         data.put("entities", FastExtConfig.getInstance().getExtEntities().getEntityInfo());
 
         FastMenuInfo menus = FastChar.getValues().get("menus");
@@ -237,6 +257,13 @@ public class ExtDefaultAction extends FastAction {
 
         data.put("manager", getSession("manager"));
         responseJson(0, "获取成功！", data);
+    }
+
+    private String appendFileTime(String source, File file) {
+        if (source.contains("?")) {
+            return source + "&t=" + file.lastModified();
+        }
+        return source + "?t=" + file.lastModified();
     }
 
     private void filterPowerMenus(List<FastMenuInfo> menus) {
@@ -301,24 +328,32 @@ public class ExtDefaultAction extends FastAction {
      * path svg相对项目的位置 {String}
      * color svg填充的颜色 {String}
      */
-    public void icon() {
+    public void icon(String path, String color) {
         try {
             setLog(false);
-            String path = getParam("path");
-            String color = getParam("color");
+            File iconFile = new File(path);
 
-            String localPath = FastChar.getPath().getWebRootPath() + "/" + path;
-            File file = new File(localPath);
-            if (file.exists()) {
+            List<String> webRootPaths = new ArrayList<>();
+            webRootPaths.add(FastChar.getPath().getWebRootPath());
+            webRootPaths.addAll(FastChar.getModules().getPathLoadModules());
+            for (String webRootPath : webRootPaths) {
+                String localPath = webRootPath + File.separator + path;
+                if (new File(localPath).exists()) {
+                    iconFile = new File(localPath);
+                    break;
+                }
+            }
+
+            if (iconFile.exists()) {
                 if (FastStringUtils.isNotEmpty(color)) {
-                    if (file.getName().toLowerCase().endsWith(".svg")) {
-                        String coloLocalPath = file.getParent() + "/" + FastMD5Utils.MD5To16(color) + "/" + file.getName();
+                    if (iconFile.getName().toLowerCase().endsWith(".svg")) {
+                        String coloLocalPath = iconFile.getParent() + File.separator + FastMD5Utils.MD5To16(color) + File.separator + iconFile.getName();
                         File colorFile = new File(coloLocalPath);
                         if (colorFile.exists()) {
                             responseFile(colorFile);
                             return;
                         }
-                        String svgContent = FastFileUtils.readFileToString(file);
+                        String svgContent = FastFileUtils.readFileToString(iconFile);
                         String reg = "fill=\"#([0-9a-zA-Z]{6,8})\"";
 
                         String replaceAll = svgContent.replaceAll(reg, "fill=\"#" + color + "\"");
@@ -326,7 +361,7 @@ public class ExtDefaultAction extends FastAction {
                         responseFile(colorFile);
                     }
                 }
-                responseFile(file);
+                responseFile(iconFile);
             } else {
                 responseText("文件不存在！");
             }
@@ -354,7 +389,15 @@ public class ExtDefaultAction extends FastAction {
         String enumName = getParam("enumName", true);
         IFastExtEnum enumClass = FastChar.getOverrides().singleInstance(IFastExtEnum.class, enumName);
         if (enumClass != null) {
-            responseJson(0, "获取成功！", enumClass.getEnums());
+            List<FastEnumInfo> enums = enumClass.getEnums();
+            List<FastEnumInfo> waitRemove = new ArrayList<>();
+            for (FastEnumInfo anEnum : enums) {
+                if (anEnum.getBoolean("disabled", false)) {
+                    waitRemove.add(anEnum);
+                }
+            }
+            enums.removeAll(waitRemove);
+            responseJson(0, "获取成功！", enums);
         } else {
             responseJson(-1, "获取失败！枚举'" + enumName + "'不存在！");
         }
@@ -544,7 +587,7 @@ public class ExtDefaultAction extends FastAction {
         if (path.startsWith("http://") || path.startsWith("https://")) {
             redirect(path);
         }
-        boolean disposition = getParamToBoolean("disposition", true);
+        boolean disposition = getParamToBoolean("disposition", Boolean.TRUE);
         File file = new File(path);
         if (!file.exists()) {
             file = new File(FastChar.getConstant().getAttachDirectory(), path);
@@ -665,9 +708,14 @@ public class ExtDefaultAction extends FastAction {
         FastHeadExtInfo themeExt = FastExtConfig.getInstance().getExtInfo("theme-color");
         if (themeExt != null) {
             setRequestAttr("themeColor", themeExt.getColorValue());
+            setRequestAttr("themeLightColor", ColorUtils.getLightColor(themeExt.getColorValue(), 0.8));
         } else {
             setRequestAttr("themeColor", "#3DB6A4");
+            setRequestAttr("themeLightColor", "#fde9e4");
         }
+
+
+
         String projectIcon = FastExtConfig.getInstance().getProjectIcon();
         if (projectIcon != null) {
             setRequestAttr("logo", projectIcon);
@@ -675,6 +723,8 @@ public class ExtDefaultAction extends FastAction {
         setRequestAttr("first", docs.get(0).get("id"));
         setRequestAttr(getParamToMap());
         setRequestAttr("http", getProjectHost());
+        setParam(PARAM_ACCPET, "text/html");
+
         responseVelocity("fast-doc.html");
     }
 
@@ -699,6 +749,7 @@ public class ExtDefaultAction extends FastAction {
      * 参数：
      * content 二维码内容
      * logo 中间logo
+     * render 返回类型，json 或 image
      */
     public void qrCode() throws Exception {
         String content = getParam("content", true);
@@ -776,9 +827,9 @@ public class ExtDefaultAction extends FastAction {
 
         Map<String, Object> cpuInfo = new LinkedHashMap<>();
         cpuInfo.put("cpuCount", processor.getLogicalProcessorCount());
-        cpuInfo.put("sys", FastNumberUtils.formatToDouble((cSys * 1.0 / totalCpu * 1.0) * 100, 2) + "%");
-        cpuInfo.put("used", FastNumberUtils.formatToDouble((user * 1.0 / totalCpu * 1.0) * 100, 2) + "%");
-        double cpuTotal = FastNumberUtils.formatToDouble(((user + cSys) * 1.0 / totalCpu * 1.0) * 100, 2);
+        cpuInfo.put("sys", FastNumberUtils.formatToDouble((cSys * 1.0 / totalCpu) * 100, 2) + "%");
+        cpuInfo.put("used", FastNumberUtils.formatToDouble((user * 1.0 / totalCpu) * 100, 2) + "%");
+        double cpuTotal = FastNumberUtils.formatToDouble(((user + cSys) * 1.0 / totalCpu) * 100, 2);
         cpuInfo.put("total", cpuTotal + "%");
         cpuInfo.put("alert", cpuTotal > 80);
         Map<String, Object> cpuDesc = new LinkedHashMap<>();
@@ -799,7 +850,7 @@ public class ExtDefaultAction extends FastAction {
         long memUsed = memory.getTotal() - memory.getAvailable();
         memInf.put("used", FastNumberUtils.toByteUnit(memUsed));
         memInf.put("free", FastNumberUtils.toByteUnit(memory.getAvailable()));
-        double memberUsage = FastNumberUtils.formatToDouble((memUsed * 1.0 / memory.getTotal() * 1.0) * 100, 2);
+        double memberUsage = FastNumberUtils.formatToDouble((memUsed * 1.0 / memory.getTotal()) * 100, 2);
         memInf.put("usage", memberUsage + "%");
         memInf.put("alert", memberUsage > 80);
 
@@ -879,4 +930,74 @@ public class ExtDefaultAction extends FastAction {
                 .count();
         responseJson(0, "统计成功！", reportCount);
     }
+
+
+    /**
+     * 下载系统配置文件
+     */
+    public void downSystemConfig() throws Exception {
+        List<ExtSystemConfigEntity> list = ExtSystemConfigEntity.getInstance().getList();
+        String versionStr = "v1_0";
+        FastHeadExtInfo version = FastExtConfig.getInstance().getExtInfo("version");
+        if (version != null) {
+            versionStr = version.getString("desc", "v1.0").toLowerCase().replace(".", "_");
+        }
+        File configFile = new File(FastChar.getPath().getWebRootPath(), "system_config_" + versionStr + ".data");
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("entity", ExtSystemConfigEntity.class.getName());
+        data.put("data", FastChar.getJson().toJson(list));
+
+        byte[] serialize = FastSerializeUtils.serialize(data);
+        FastFileUtils.writeByteArrayToFile(configFile, serialize);
+
+        responseJson(0, "获取成功！", FastFile.newInstance(configFile).getUrl());
+    }
+
+    /**
+     * 加载系统配置文件
+     */
+    @SuppressWarnings("unchecked")
+    public void loadSystemConfig() throws Exception {
+        FastFile<?> paramFile = getParamFile();
+        byte[] bytes = FastFileUtils.readFileToByteArray(paramFile.getFile());
+        int count = 0;
+        Map<String, Object> dataMap = (Map<String, Object>) FastSerializeUtils.deserialize(bytes);
+
+        if (dataMap != null) {
+            ExtSystemConfigEntity.getInstance().deleteAll();
+
+            FastMapWrap fastMapWrap = FastMapWrap.newInstance(dataMap);
+            String entity = fastMapWrap.getString("entity");
+            String dataJson = fastMapWrap.getString("data");
+            List<?> data = FastChar.getJson().fromJson(dataJson, List.class);
+            for (Object datum : data) {
+                FastEntity<?> configEntity = FastClassUtils.newInstance(entity);
+                configEntity.setAll((Map<String, Object>) datum);
+                if (configEntity.save()) {
+                    count++;
+                }
+            }
+        }
+        responseJson(0, "配置文件加载成功！共" + count + "条配置！");
+    }
+
+
+    /**
+     * 更新所有表格的权限编号
+     */
+    public void updateAllLayer() {
+        int size = 0;
+        FastDatabases databases = FastChar.getDatabases();
+        for (FastDatabaseInfo databaseInfo : databases.getAll()) {
+            List<FastExtLayerHelper.LayerMap> layerMaps = FastExtLayerHelper.buildLayerMap(databaseInfo);
+            for (FastExtLayerHelper.LayerMap layerMap : layerMaps) {
+                size += layerMap.toAllTableNameList().size();
+                FastExtLayerHelper.updateAllLayerValue(layerMap);
+            }
+        }
+        responseJson(0, "更新成功！共更新了" + size + "张表格！");
+    }
+
+
 }

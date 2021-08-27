@@ -120,6 +120,11 @@ namespace FastExt {
         static welcomeLeftPanels: any[] = [];
 
         /**
+         * 当前触发点击事件的目标按钮
+         */
+        static currClickTarget = null;
+
+        /**
          * 移除全局加载的等待界面
          */
         static removeLoading() {
@@ -176,7 +181,11 @@ namespace FastExt {
          * @param name
          */
         static getValue(name: string) {
-            return FastExt.System[name];
+            let obj = FastExt.System[name];
+            if (obj) {
+                return obj;
+            }
+            return {value: ""};
         }
 
         /**
@@ -192,7 +201,7 @@ namespace FastExt {
             let isCode = false;
             oScript.type = "text/javascript";
             if (script.src != null && script.src.length > 0) {
-                oScript.src =  FastExt.System.formatUrlVersion(script.src)
+                oScript.src = FastExt.System.formatUrlVersion(script.src)
             } else if (script.href != null && script.href.length > 0) {
                 oScript.src = FastExt.System.formatUrlVersion(script.href);
             } else if (script.text) {
@@ -433,6 +442,10 @@ namespace FastExt {
                 } finally {
                     FastExt.System.getProgressLine(FastExt.Color.toColor(FastExt.System.getExt("front-color").value)).animate(1);
                 }
+            });
+
+            Ext.on('mousedown', function (e) {
+                FastExt.System.currClickTarget = e.target;
             });
 
 
@@ -784,7 +797,7 @@ namespace FastExt {
                     Ext.each(tabs, function (tab) {
                         if (tabFromHrefMenuId === tab.id) {
                             tab.active = true;
-                        }else if (hasFromHref) {
+                        } else if (hasFromHref) {
                             tab.active = false;
                         }
                         me.showTab(tab.method, tab.id, tab.title, tab.icon, tab.active, true, tab.where, tab.closable, tab.reorderable);
@@ -1182,7 +1195,10 @@ namespace FastExt {
             if (url.startWith("http://") || url.startWith("https://")) {
                 return url;
             }
-            return this.formatUrlVersion(this.http + url, params);
+            if (this.http) {
+                return this.formatUrlVersion(this.http + url, params);
+            }
+            return this.formatUrlVersion(url, params);
         }
 
         /**
@@ -1358,13 +1374,13 @@ namespace FastExt {
          * @param menu 菜单对象
          * @param splitChar 菜单拼接的分隔符
          */
-        static getPlainMenu(menu,splitChar?:string): string {
+        static getPlainMenu(menu, splitChar?: string): string {
             if (Ext.isEmpty(splitChar)) {
                 splitChar = ">";
             }
             if (menu) {
                 if (menu.parent) {
-                    let storeMenuText = FastExt.System.getPlainMenu( menu.parent, splitChar);
+                    let storeMenuText = FastExt.System.getPlainMenu(menu.parent, splitChar);
                     if (storeMenuText) {
                         return storeMenuText + splitChar + menu.text;
                     }
@@ -1397,14 +1413,14 @@ namespace FastExt {
          * @param menu
          * @param splitChar
          */
-        static getPlainIconMenu(menu,splitChar?:string): string {
+        static getPlainIconMenu(menu, splitChar?: string): string {
             if (Ext.isEmpty(splitChar)) {
                 splitChar = ">";
             }
             let menuArray = FastExt.System.getPathMenu(menu);
             let menuIconHtml = "<div style=\"line-height: 20px;display: flex\" >";
             for (let i = 0; i < menuArray.length; i++) {
-                let targetMenu=menuArray[i];
+                let targetMenu = menuArray[i];
                 let itemHtml = "<img src=\"" + targetMenu.icon + "\" width=\"20px\" height=\"20px\" />" +
                     "<span style=\"margin-left: 5px;\">" + targetMenu.text + "</span> ";
                 if (i != 0) {
@@ -1538,7 +1554,8 @@ namespace FastExt {
                         help: tooltip,
                         helpType: FastEnum.HelpEnumType.mouse_in_out,
                         helpAnchor: FastEnum.TooltipAnchorType.top,
-                        listeners:{
+                        helpShowDelay: 700,
+                        listeners: {
                             destroy: function (obj) {
                                 if (obj.helpTip) {
                                     obj.helpTip.close();
@@ -1570,6 +1587,43 @@ namespace FastExt {
                         let tab = this;
                         FastExt.Base.copyToBoard(FastExt.System.baseUrl + "#/" + tab.title + "/" + tab.id);
                         FastExt.Dialog.toast("复制成功！");
+                    },
+                    anchorLeftMenu: function () {
+                        let tab = this;
+                        FastExt.System.selectMenu(tab.id);
+                    },
+                    openInWindow: function () {
+                        let tab = this;
+                        let winWidth = parseInt((document.body.clientWidth * 0.8).toFixed(0));
+                        let winHeight = parseInt((document.body.clientHeight * 0.9).toFixed(0));
+                        let win = Ext.create('Ext.window.Window', {
+                            title: tab.title,
+                            height: winHeight,
+                            width: winWidth,
+                            minHeight: 500,
+                            minWidth: 800,
+                            icon: tab.icon,
+                            layout: 'fit',
+                            resizable: true,
+                            constrain: true,
+                            maximizable: true,
+                            listeners: {
+                                show: function (win) {
+                                    FastExt.System.asyncMethod(tab.method).then(function (obj) {
+                                        if (obj == null) {
+                                            return;
+                                        }
+                                        let entityOwner = obj.down("[entityList=true]");
+                                        if (entityOwner) {
+                                            entityOwner.where = FastExt.Json.mergeJson(tab.where, entityOwner.where);
+                                            entityOwner.code = $.md5(tab.id);
+                                        }
+                                        win.add(obj);
+                                    });
+                                }
+                            }
+                        });
+                        win.show();
                     },
                     listeners: {
                         deactivate: function (tab) {
@@ -1606,7 +1660,7 @@ namespace FastExt {
                                         let entityOwner = obj.down("[entityList=true]");
                                         if (entityOwner) {
                                             entityOwner.where = FastExt.Json.mergeJson(tab.where, entityOwner.where);
-                                            entityOwner.code = $.md5(tabId);
+                                            entityOwner.code = $.md5(tab.id);
                                         }
                                         tab.add(obj);
                                     } catch (e) {
@@ -3621,7 +3675,7 @@ namespace FastExt {
 
 
         /**
-         * 显示登录系统的窗口
+         * 显示登录系统的窗口-默认样式
          * @param container 窗口添加的容器
          */
         static showLogin(container) {
@@ -3636,15 +3690,8 @@ namespace FastExt {
             let version = FastExt.System.getExt("version").desc;
             let year = new Date().getFullYear();
 
-            if (loginBgUrl.indexOf("?") === -1) {
-                loginBgUrl = loginBgUrl + "?1=1";
-            }
-            if (loginBgUrl.indexOf("bg=") === -1) {
-                loginBgUrl = loginBgUrl + "&bg=" + systemBgColor;
-            }
-            if (loginBgUrl.indexOf("dot=") === -1) {
-                loginBgUrl = loginBgUrl + "&dot=" + systemBgColor;
-            }
+            loginBgUrl = FastExt.System.formatUrl(loginBgUrl, {bg: systemBgColor, dot: systemBgColor});
+
             let panel = Ext.create('Ext.panel.Panel', {
                 layout: 'fit',
                 border: 0,
@@ -3898,7 +3945,6 @@ namespace FastExt {
                     "</div><div align='center' style='font-size: xx-small;color:#aaa;margin-top: 5px;'>Copyright © " + year + " " + version + "</div>"
             });
 
-
             let win = Ext.create('Ext.window.Window', {
                 title: '管理员登录',
                 iconCls: 'extIcon extLogin',
@@ -3908,17 +3954,341 @@ namespace FastExt {
                 bodyCls: 'bgImage',
                 closable: false,
                 toFrontOnShow: true,
-                // tools: [
-                //     {
-                //         type: 'help',
-                //         callback: function () {
-                //             setGrid(this, grid);
-                //         }
-                //     }
-                // ],
                 constrain: true,
                 items: [headPanel, loginPanel, bottomPanel]
             });
+            win.show(null, function () {
+                Ext.getCmp("btnLogin").focus();
+                try {
+                    if (!loginNormal) {
+                        refreshCode();
+                        Ext.get('imgCode').on({
+                            click: function () {
+                                refreshCode();
+                            }
+                        });
+                    }
+                } catch (e) {
+                }
+            });
+            container.add(panel);
+            container.add(win);
+        }
+
+
+        /**
+         * 显示登录系统的窗口-第二种样式
+         * @param container 窗口添加的容器
+         */
+        static showLogin2(container) {
+
+            let loginTitle = $("title").text();
+            let loginBgUrl = FastExt.System.getExt("login-background").href;
+            let loginAnimUrl = FastExt.System.getExt("login-animation").href;
+
+            let systemBgColor = FastExt.Color.toColor(FastExt.System.getExt("theme-color").value);
+            let loginLogo = FastExt.System.getExt("login-logo").value;
+            let loginNormal = FastExt.System.getExt("login-type").value === "normal";
+            let copyright = FastExt.System.getExt("copyright").value;
+            let copyrightUrl = FastExt.System.getExt("copyright").href;
+            let indexUrl = FastExt.System.getExt("indexUrl").value;
+            let version = FastExt.System.getExt("version").desc;
+            let year = new Date().getFullYear();
+
+            loginBgUrl = FastExt.System.formatUrl(loginBgUrl, {bg: systemBgColor, dot: systemBgColor});
+            loginAnimUrl = FastExt.System.formatUrl(loginAnimUrl, {bg: systemBgColor});
+
+            let panel = Ext.create('Ext.panel.Panel', {
+                layout: 'fit',
+                border: 0,
+                iframePanel: true,
+                html: "<iframe name='loginFrame'  src='" + loginBgUrl + "' width='100%' height='100%' style='border: 0px; overflow-x: hidden;background-color: " + systemBgColor + "'/>",
+            });
+
+
+            let headHtml = "<div align='center' class='headPanel' style='color:" + systemBgColor + ";'><img class='loginLogo'  width='80px' height='80px;' src='" + loginLogo + "' /><h2>" + loginTitle + "</h2></div>";
+
+            if (!loginLogo || loginLogo.length === 0) {
+                headHtml = "<div align='center' class='headPanel' style='color:" + systemBgColor + ";'><h2>" + loginTitle + "</h2></div>";
+            }
+
+            let headPanel = Ext.create('Ext.panel.Panel', {
+                region: 'north',
+                layout: 'fit',
+                bodyCls: 'bgNull',
+                width: '100%',
+                bodyStyle: {},
+                border: 0,
+                height: 'auto',
+                html: headHtml
+            });
+
+
+            let loginName = Cookies.get("loginNameValue");
+            let loginPassword = Cookies.get("loginPasswordValue");
+            let loginMember = Cookies.get("loginMemberValue");
+            if (Ext.isEmpty(loginMember)) {
+                loginMember = "0";
+            }
+
+            let labelWidth = FastExt.Base.getNumberValue(FastExt.System.fontSize) * 2;
+            let labelAlign = "right";
+
+            let loginPanel = Ext.create('Ext.form.FormPanel', {
+                url: FastExt.Server.loginUrl(),
+                method: 'POST',
+                bodyCls: 'bgNull',
+                border: 0,
+                width: '100%',
+                layout: "anchor",
+                region: 'center',
+                bodyStyle: {},
+                padding: '10 10 10 10',
+                items: [
+                    {
+                        xtype: 'fieldset',
+                        title: '',
+                        layout: 'anchor',
+                        padding: '10 10 0 10',
+                        defaults: {
+                            labelAlign: labelAlign,
+                            labelWidth: labelWidth,
+                            labelSeparator: '',
+                            labelStyle: "font-size: 20px !important;color: "+systemBgColor+" !important;"
+                        },
+                        items: [
+                            {
+                                xtype: 'textfield',
+                                fieldLabel: '<svg class="svgIcon" aria-hidden="true"><use xlink:href="#extLogin"></use></svg>',
+                                margin: '10 10 0 0',
+                                name: 'loginName',
+                                allowBlank: false,
+                                blankText: '请输入登录名',
+                                emptyText: '请输入登录名',
+                                value: loginName,
+                                anchor: "100%"
+                            }, {
+                                xtype: 'textfield',
+                                fieldLabel: '<svg class="svgIcon" aria-hidden="true"><use xlink:href="#extLogPwd"></use></svg>',
+                                inputType: 'password',
+                                margin: '10 10 0 0',
+                                allowBlank: false,
+                                blankText: '请输入登录密码',
+                                emptyText: '请输入登录密码',
+                                value: loginPassword,
+                                submitValue: false,
+                                name: 'loginPassword',
+                                anchor: "100%"
+                            },
+                            {
+                                xtype: 'fieldcontainer',
+                                labelWidth: 0,
+                                anchor: "100%",
+                                layout: {
+                                    type: 'hbox',
+                                    align: 'stretch'
+                                },
+                                hidden: loginNormal,
+                                items: [
+                                    {
+                                        xtype: 'textfield',
+                                        fieldLabel: '<svg class="svgIcon" aria-hidden="true"><use xlink:href="#extLoginCode"></use></svg>',
+                                        labelAlign: labelAlign,
+                                        labelWidth: labelWidth,
+                                        labelSeparator: '',
+                                        labelStyle: "font-size: 20px !important;color: " + systemBgColor + " !important;",
+                                        margin: '10 10 0 0',
+                                        allowBlank: loginNormal,
+                                        flex: 1,
+                                        name: 'validateCode',
+                                        emptyText: '请输入验证码',
+                                        blankText: '请输入验证码'
+                                    }, {
+                                        xtype: 'image',
+                                        margin: '10 10 0 0',
+                                        width: 70,
+                                        cls: 'validCodeImg',
+                                        id: 'imgCode',
+                                        height: 32
+                                    }]
+                            },
+                            {
+                                name: 'loginMember',
+                                xtype: 'combo',
+                                fieldLabel: '<svg class="svgIcon" aria-hidden="true"><use xlink:href="#extReback"></use></svg>',
+                                margin: '10 10 0 0',
+                                displayField: 'text',
+                                valueField: 'id',
+                                editable: false,
+                                anchor: "100%",
+                                value: loginMember,
+                                submitValue: false,
+                                allowBlank: false,
+                                store: Ext.create('Ext.data.Store', {
+                                    data: [
+                                        {"id": "0", "text": "用户名"},
+                                        {"id": "1", "text": "用户名和密码"}
+                                    ]
+                                })
+                            },
+                            {
+                                xtype: 'fieldcontainer',
+                                labelWidth: 0,
+                                anchor: "100%",
+                                layout: {
+                                    type: 'hbox',
+                                    align: 'stretch'
+                                },
+                                items: [
+                                    {
+                                        xtype: 'button',
+                                        text: '重置',
+                                        iconCls: 'extIcon extReset',
+                                        flex: 1,
+                                        tipText: '重置数据',
+                                        margin: '10 5 10 10',
+                                        handler: function () {
+                                            loginPanel.form.reset();
+                                        }
+                                    }, {
+                                        xtype: 'button',
+                                        text: '登录',
+                                        id: 'btnLogin',
+                                        tipText: '登录系统',
+                                        margin: '10 10 10 5',
+                                        iconCls: 'extIcon extOk',
+                                        flex: 1,
+                                        handler: function () {
+                                            doLogin();
+                                        }
+                                    }]
+                            }]
+                    }],
+                listeners: {
+                    'render': function (text) {
+                        try {
+                            new Ext.util.KeyMap({
+                                target: text.getEl(),
+                                key: 13,
+                                fn: doLogin,
+                                scope: Ext.getBody()
+                            });
+                        } catch (e) {
+                            console.error(e);
+                        }
+
+                    }
+                }
+            });
+
+            let refreshCode = function () {
+                try {
+                    loginPanel.form.findField("validateCode").reset();
+                    Ext.getCmp("imgCode").setSrc("showCaptcha?t=" + Math.random());
+                } catch (e) {
+                }
+            };
+            let doLogin = function () {
+                let form = loginPanel.form;
+                if (form.isValid()) {
+                    let onBeforeLogin = window["onBeforeLogin"];
+                    if (onBeforeLogin) {
+                        onBeforeLogin(form.getValues(), function () {
+                            toLogin();
+                        });
+                    } else {
+                        toLogin();
+                    }
+                }
+            };
+
+            let toLogin = function () {
+                let form = loginPanel.form;
+                if (form.isValid()) {
+                    let loginPassword = loginPanel.form.findField("loginPassword").getValue();
+                    let loginName = loginPanel.form.findField("loginName").getValue();
+                    let loginMember = loginPanel.form.findField("loginMember").getValue();
+
+                    Cookies.set("loginNameValue", loginName, {expires: 30});
+                    Cookies.set("loginMemberValue", loginMember, {expires: 30});
+                    if (parseInt(loginMember) === 1) {
+                        Cookies.set("loginPasswordValue", loginPassword, {expires: 30});
+                    } else {
+                        Cookies.remove("loginPasswordValue");
+                    }
+                    form.submit({
+                        params: {
+                            loginPassword: $.md5(loginPassword)
+                        },
+                        waitMsg: '正在为您登录……',
+                        success: function (form, action) {
+                            FastExt.System.addScript({src: indexUrl + '?v=' + FastExt.System.getExt("version").value});
+                        },
+                        failure: function (form, action) {
+                            refreshCode();
+                            if (action.result.code === -2) {
+                                loginPanel.form.findField("loginPassword").reset();
+                            }
+                            Ext.Msg.alert('登录失败', action.result.message, function () {
+                                if (action.result.code === -3) {
+                                    loginPanel.form.findField("validateCode").focus();
+                                }
+                            });
+                        }
+                    });
+                }
+            };
+
+            let targetValue = "_blank";
+            if (copyrightUrl.startWith("javascript:")) {
+                targetValue = "_self";
+            }
+
+            let bottomPanel = Ext.create('Ext.panel.Panel', {
+                region: 'south',
+                width: '100%',
+                height: 50,
+                bodyCls: 'bgNull',
+                border: 0,
+                html: "<div align='center'><a href='" + copyrightUrl + "' target='" + targetValue + "' style='font-size: xx-small;color:#aaa;text-decoration:none;'>" + copyright + "</a>" +
+                    "</div><div align='center' style='font-size: xx-small;color:#aaa;margin-top: 5px;'>Copyright © " + year + " " + version + "</div>"
+            });
+
+            let rightContainerPanel = Ext.create('Ext.panel.Panel', {
+                region: 'center',
+                layout: {
+                    type: 'vbox',
+                    align: 'stretch',
+                    pack: 'center'
+                },
+                items: [headPanel, loginPanel, bottomPanel]
+            });
+
+            let leftContainerPanel = Ext.create('Ext.panel.Panel', {
+                region: 'west',
+                layout: 'fit',
+                width: 588,
+                border: 0,
+                listeners:{
+                    render: function (obj) {
+                        obj.update("<iframe name='leftTipFrame'  src='" + loginAnimUrl + "' width='100%' height='100%' style='border: 0px; overflow-x: hidden;background-color: " + systemBgColor + "'/>");
+                    }
+                }
+            });
+
+            let win = Ext.create('Ext.window.Window', {
+                resizable: false,
+                header: false,
+                layout: 'border',
+                bodyCls: 'bgNull',
+                closable: false,
+                toFrontOnShow: true,
+                constrain: true,
+                width: 988,
+                height: 500,
+                items: [leftContainerPanel, rightContainerPanel]
+            });
+
             win.show(null, function () {
                 Ext.getCmp("btnLogin").focus();
                 try {

@@ -261,7 +261,7 @@
         }
 
         function copyToBoard(content) {
-            let oInput = document.createElement('input');
+            let oInput = document.createElement('textarea');
             oInput.value = content;
             document.body.appendChild(oInput);
             oInput.select();
@@ -374,15 +374,30 @@
                 " color: #444444 !important;\n" +
                 " }.checked {\n" +
                 "  border-top: 5px solid ${themeColor} !important;" +
-                " }.selected {\n" +
-                "  border-left: 5px solid ${themeColor} !important;" +
-                " background: #eeeeee !important;" +
-                "}li:hover {\n" +
+                "  background: ${themeLightColor} !important;" +
+                "  box-shadow: 0 0 10px ${themeColor}; " +
+                "  text-shadow:1px 1px 3px #ffffff; "+
+                " }" +
+                ".selected {\n" +
                 "  border-left: 5px solid ${themeColor} !important;" +
                 "  background: #eeeeee !important;" +
-                " } .address {" +
+                "  text-shadow:1px 1px 3px #ffffff; "+
+                "  box-shadow: 0 0 5px ${themeColor}; " +
+                "} " +
+                "li:hover {\n" +
+                "  border-left: 5px solid ${themeColor} !important;" +
+                "  background: #eeeeee !important;" +
+                " }" +
+                " .address {" +
                 " line-height: 30px; " +
                 " background: #fefeff !important;" +
+                " border-radius:5px !important;" +
+                "}" +
+                " .checked .address {" +
+                " border: 0px !important;" +
+                "}" +
+                ".params>td:first-child{" +
+                " font-weight:bold;" +
                 "}";
             if (oStyle.styleSheet) {
                 oStyle.styleSheet.cssText = scrollStyleText + selectStyleText + styleText;
@@ -589,6 +604,10 @@
             alert("复制成功！");
         }
 
+        function getProjectHost() {
+            return "${http}";
+        }
+
         function checkRefresh() {
             let id = document.getElementById("contentFrame").tab;
             let menu = document.getElementById(id + "Tab");
@@ -699,7 +718,6 @@
         <span class="searchTip" id="searchTip"></span>
     </div>
     <div class="searchContent" id="searchContent">
-
     </div>
 </div>
 

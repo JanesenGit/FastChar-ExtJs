@@ -160,6 +160,22 @@ namespace FastExtend {
          * {@link FastEnum.TooltipAnchorType}
          */
         helpAnchor: string;
+
+        /**
+         * 帮助提示语锚点位置偏移量，默认-1，系统自动计算
+         */
+        helpAnchorOffset: number = -1;
+
+
+        /**
+         * 是否禁用loadMask
+         */
+        disabledLoadMask: boolean;
+
+        /**
+         * 是否禁用一次loadMask ，当LoadMask 使用此属性一次 后将被设置为false
+         */
+        disabledLoadMaskOnce:boolean
     }
 
     /**
@@ -210,6 +226,22 @@ namespace FastExtend {
          * @see {@link FastExt.GridColumnMenu}
          */
         columnMenu: any;
+
+        /**
+         * 是否配置默认的toolbar按钮
+         */
+        defaultToolBar: boolean = true;
+
+        /**
+         * 当defaultToolBar为true时，是否配置默认的【相关查询】按钮
+         */
+        defaultToolBarLink: boolean = true;
+
+        /**
+         * 当defaultToolBar为true时，是否配置默认的【更多操作】按钮
+         */
+        defaultToolBarMore: boolean = true;
+
     }
 
 

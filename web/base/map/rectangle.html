@@ -66,7 +66,8 @@
     function initMap() {
         try {
             map = new AMap.Map("container", {
-                resizeEnable: true
+                resizeEnable: true,
+                rotateEnable:true
             });
 
             map.plugin([
@@ -245,6 +246,9 @@
     //设置图片的地址
     function setImgLayerUrl(url) {
         imgUrl = url;
+        if (imageLayer) {
+            imageLayer.setImageUrl(url);
+        }
     }
 
 

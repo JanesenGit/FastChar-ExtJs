@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>测试音乐</title>
+    <script src="wavesurfer.min.js"></script>
+</head>
+<body>
+
+<div id="waveform" ></div>
+
+</body>
+
+<script>
+    document.oncontextmenu = function(){
+        return false;
+    }
+    let wavesurfer = WaveSurfer.create({
+        container: "#waveform",
+        waveColor:"#29CA9B",
+        progressColor:"#ffffff",
+        cursorColor:"#00eca9",
+        cursorWidth: 2,
+        height: 128
+    });
+    wavesurfer.on('ready', function () {
+        if (window.parent["onMusicChange"]) {
+            window.parent["onMusicChange"]('ready',wavesurfer);
+        }
+    });
+    wavesurfer.on('loading', function () {
+        if (window.parent["onMusicChange"]) {
+            window.parent["onMusicChange"]('loading',wavesurfer);
+        }
+    });
+    wavesurfer.on('pause', function () {
+        if (window.parent["onMusicChange"]) {
+            window.parent["onMusicChange"]('pause',wavesurfer);
+        }
+    });
+    wavesurfer.on('play', function () {
+        if (window.parent["onMusicChange"]) {
+            window.parent["onMusicChange"]('play',wavesurfer);
+        }
+    });
+    wavesurfer.on('finish', function () {
+        if (window.parent["onMusicChange"]) {
+            window.parent["onMusicChange"]('finish',wavesurfer);
+        }
+    });
+    wavesurfer.on('mute', function () {
+        if (window.parent["onMusicChange"]) {
+            window.parent["onMusicChange"]('mute',wavesurfer);
+        }
+    });
+    wavesurfer.on('seek', function () {
+        if (window.parent["onMusicChange"]) {
+            window.parent["onMusicChange"]('seek',wavesurfer);
+        }
+    });
+    wavesurfer.on('audioprocess', function () {
+        if (window.parent["onMusicChange"]) {
+            window.parent["onMusicChange"]('audioprocess', wavesurfer);
+        }
+    });
+    if (window.parent) {
+        wavesurfer.load(window.parent.getMusicUrl());
+    }
+
+    function play() {
+        wavesurfer.play();
+    }
+
+    function pause() {
+        wavesurfer.pause();
+    }
+
+    function switchPlay() {
+        wavesurfer.playPause();
+    }
+
+    function switchMute() {
+        wavesurfer.toggleMute();
+    }
+
+    function stop() {
+        wavesurfer.stop();
+    }
+
+</script>
+</html>

@@ -625,7 +625,7 @@ namespace FastExt {
             }
             //视频播放器的大小固定
             let win = Ext.create('Ext.window.Window', {
-                title: '查看视频',
+                title: '播放视频',
                 layout: 'fit',
                 height: 600,
                 width: 700,
@@ -781,6 +781,7 @@ namespace FastExt {
                 win.update("<div style='padding: 20px;'>" + result + "</div>");
                 win.show();
             } catch (e) {
+                console.error(e);
                 FastExt.Dialog.showText(obj, null, title, value);
             }
         }
@@ -825,6 +826,7 @@ namespace FastExt {
                 win.update("<div style='padding: 20px;'>" + result + "</div>");
                 win.show();
             } catch (e) {
+                console.error(e);
                 FastExt.Dialog.showText(obj, null, "查看数据", value);
             }
         }
@@ -859,7 +861,7 @@ namespace FastExt {
                 }
                 let defaultDate;
                 if (!Ext.isEmpty(defaultValue)) {
-                    defaultDate = Ext.Date.parse(defaultValue, dateFormat);
+                    defaultDate = Ext.Date.parse(defaultValue, FastExt.Dates.guessDateFormat(defaultValue));
                 }
                 if (!defaultDate) {
                     defaultDate = new Date();
@@ -871,6 +873,7 @@ namespace FastExt {
 
                 let countItem = 0;
 
+                let dateShow = dateFormat.indexOf("d") !== -1;
                 let hourShow = dateFormat.indexOf("H") !== -1;
                 let minuteShow = dateFormat.indexOf("i") !== -1;
                 let secondShow = dateFormat.indexOf("s") !== -1;
@@ -883,6 +886,27 @@ namespace FastExt {
                 }
                 if (secondShow) {
                     countItem++;
+                }
+
+                let pickerCmp: any = {
+                    xtype: 'datepicker',
+                    id: 'dateValue' + token,
+                    region: 'center',
+                    showToday: false,
+                    margin: '0 0 0 0',
+                    border: 0,
+                    value: defaultDate
+                };
+                if (!dateShow) {
+                    pickerCmp = {
+                        xtype: 'monthpicker',
+                        id: 'dateValue' + token,
+                        region: 'center',
+                        showButtons: false,
+                        margin: '0 0 0 0',
+                        border: 0,
+                        value: defaultDate
+                    };
                 }
 
 
@@ -902,15 +926,7 @@ namespace FastExt {
                         }
                     },
                     items: [
-                        {
-                            xtype: 'datepicker',
-                            id: 'dateValue' + token,
-                            region: 'center',
-                            showToday: false,
-                            margin: '0 0 0 0',
-                            border: 0,
-                            value: defaultDate
-                        },
+                        pickerCmp,
                         {
                             xtype: 'panel',
                             layout: 'column',
@@ -1002,10 +1018,18 @@ namespace FastExt {
                                         let minuteCombo = Ext.getCmp("minuteValue" + token);
                                         let secondsCombo = Ext.getCmp("secondsValue" + token);
                                         let dateValue = datePicker.getValue();
-                                        dateValue.setHours(parseInt(hourCombo.getValue()));
-                                        dateValue.setMinutes(parseInt(minuteCombo.getValue()));
-                                        dateValue.setSeconds(parseInt(secondsCombo.getValue()));
-                                        FastExt.Base.runCallBack(resolve, Ext.Date.format(dateValue, dateFormat));
+                                        if (Ext.isDate(dateValue)) {
+                                            dateValue.setHours(parseInt(hourCombo.getValue()));
+                                            dateValue.setMinutes(parseInt(minuteCombo.getValue()));
+                                            dateValue.setSeconds(parseInt(secondsCombo.getValue()));
+                                            FastExt.Base.runCallBack(resolve, Ext.Date.format(dateValue, dateFormat));
+                                        }else{
+                                            let newDate = new Date();
+                                            newDate.setMonth(dateValue[0]);
+                                            newDate.setFullYear(dateValue[1]);
+                                            newDate.setDate(1);
+                                            FastExt.Base.runCallBack(resolve, Ext.Date.format(newDate, dateFormat));
+                                        }
                                         menu.close();
                                     }
                                 }]
@@ -1075,6 +1099,120 @@ namespace FastExt {
                 });
                 menu.showBy(obj);
             });
+        }
+
+
+        /**
+         * 播放音乐
+         * @param obj 弹窗动画对象
+         * @param musicUrl 音乐路径
+         */
+        static showMusic(obj, musicUrl) {
+            if (obj) {
+                obj.blur();
+            }
+            let idPrefix = new Date().getTime();
+            //音乐播放器的大小固定
+            let win = Ext.create('Ext.window.Window', {
+                title: '播放音频',
+                layout: 'fit',
+                height: 230,
+                width: 700,
+                resizable: false,
+                constrain: true,
+                maximizable: false,
+                modal: true,
+                maximized: false,
+                iconCls: 'extIcon extSee',
+                draggable: true,
+                scrollable: false,
+                alwaysOnTop: true,
+                toFrontOnShow: true,
+                items: [
+                    {
+                        xtype: 'panel',
+                        layout: 'border',
+                        iframePanel: true,
+                        itemId: "playerPanel",
+                        listeners: {
+                            afterrender: function (obj, eOpts) {
+                                this.setLoading("加载音频文件中，请稍后……");
+                                let url = FastExt.System.formatUrlVersion("base/music/player.html");
+                                let html = "<iframe allowfullscreen='allowfullscreen' mozallowfullscreen='mozallowfullscreen' msallowfullscreen='msallowfullscreen' oallowfullscreen='oallowfullscreen' webkitallowfullscreen='webkitallowfullscreen' style='background-color: black;' name='showMusicFrame' src='" + url + "'  width='100%' height='100%' frameborder='0' scrolling='no' >";
+                                this.update(html);
+                            }
+                        }
+                    }
+                ],
+                listeners: {
+                    show: function (winObj) {
+                        window["getMusicUrl"] = function () {
+                            return musicUrl;
+                        };
+                        window["onMusicChange"] = function (state, obj) {
+                            if (state === "ready") {
+                                winObj.getComponent("playerPanel").setLoading(false);
+                                obj.play();
+                            } else if (state === "play") {
+                                Ext.getCmp("btnPlay" + idPrefix).setIconCls("extIcon extPause");
+                            } else if (state === "pause") {
+                                Ext.getCmp("btnPlay" + idPrefix).setIconCls("extIcon extPlay");
+                            } else if (state === "finish") {
+                                obj.seekTo(0);
+                            } else if (state === "mute") {
+                                if (obj.getMute()) {
+                                    Ext.getCmp("btnMute" + idPrefix).setIconCls("extIcon extMute");
+                                }else{
+                                    Ext.getCmp("btnMute" + idPrefix).setIconCls("extIcon extUnmute");
+                                }
+                            } else if (state === "loading") {
+                                winObj.getComponent("playerPanel").setLoading("加载音频文件中，请稍后……");
+                            } else if (state === "audioprocess" || state === "seek") {
+                                let currPlayStr = FastExt.Dates.formatMillisecond(obj.getCurrentTime() * 1000, 'i:s');
+                                let totalPlayStr = FastExt.Dates.formatMillisecond(obj.getDuration() * 1000, 'i:s');
+                                winObj.setTitle("播放音乐  " + currPlayStr + " / " + totalPlayStr);
+                            }
+                        };
+                    }
+                },
+                bbar: {
+                    xtype: 'toolbar',
+                    dock: 'bottom',
+                    layout: {
+                        type: 'hbox',
+                        align: 'middle',
+                        pack: 'center'
+                    },
+                    items: [
+                        {
+                            xtype: 'button',
+                            id: "btnPlay" + idPrefix,
+                            iconCls: 'extIcon extPlay',
+                            action: "play",
+                            handler: function () {
+                                window["showMusicFrame"].window.switchPlay();
+                            }
+                        },
+                        {
+                            xtype: 'button',
+                            id: "btnStop" + idPrefix,
+                            iconCls: 'extIcon extStop',
+                            handler: function () {
+                                window["showMusicFrame"].window.stop();
+                            }
+                        },
+                        {
+                            xtype: 'button',
+                            id: "btnMute" + idPrefix,
+                            iconCls: 'extIcon extUnmute',
+                            handler: function () {
+                                window["showMusicFrame"].window.switchMute();
+                            }
+                        }
+                    ]
+                }
+            });
+            win.show();
         }
 
     }

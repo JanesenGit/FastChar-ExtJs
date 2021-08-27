@@ -13,6 +13,9 @@ namespace FastExt{
          * @param shakeCount 抖动次数
          */
         static shakeComment(cmb, callBack?, shakeCount?: number): void {
+            if (!cmb) {
+                return;
+            }
             if (!shakeCount) {
                 shakeCount = 1080;
             }

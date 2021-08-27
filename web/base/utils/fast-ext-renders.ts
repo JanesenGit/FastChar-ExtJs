@@ -143,6 +143,24 @@ namespace FastExt {
         }
 
         /**
+         * MP3渲染器
+         */
+        static mp3(): any {
+            return function (val, m, record) {
+                if (Ext.isEmpty(val) || val === "null") {
+                    return "<span style='color: #ccc;'>暂无文件</span>";
+                }
+                let arrayInfo = val.split("@");
+                let url = arrayInfo[0];
+                let name = url.substring(url.lastIndexOf("/") + 1);
+                if (arrayInfo.length > 1) {
+                    name = arrayInfo[1];
+                }
+                return "&nbsp;<a href=\"javascript:FastExt.Dialog.showMusic(this,'" + FastExt.System.formatUrlVersion(url) + "');\" >" + "<span style='margin-right: 5px;'>" + FastExt.Base.getSVGIcon("extFileMP3") + "</span>" + name + "</a>&nbsp;";
+            };
+        }
+
+        /**
          * word、excel、pdf等office办公软件渲染
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
@@ -305,6 +323,7 @@ namespace FastExt {
             };
         }
 
+
         /**
          * 网页内容渲染为存文本格式
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
@@ -324,6 +343,38 @@ namespace FastExt {
                     .replace(new RegExp(" ", 'g'), "")
                     .replace(/<\/?.+?>/g, "");
                 return val;
+            };
+        }
+
+        /**
+         * JSON内容渲染
+         * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
+         */
+        static json(): any {
+            return function (val, m, record, rowIndex, colIndex, store, view, details) {
+                if (Ext.isEmpty(val) || val === "null") {
+                    return "<span style='color: #ccc;'>无</span>";
+                }
+                let key = $.md5(val);
+                FastExt.Cache.memory[key] = val;
+                let functionStr = "FastExt.Dialog.showJson(null,'查看JSON内容',MemoryCache['" + key + "'])";
+                return "&nbsp;<a href=\"javascript:" + functionStr + ";\">" + val + "</a>&nbsp;";
+            };
+        }
+
+        /**
+         * JSON内容渲染
+         * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
+         */
+        static json2(): any {
+            return function (val, m, record, rowIndex, colIndex, store, view, details) {
+                if (Ext.isEmpty(val) || val === "null") {
+                    return "<span style='color: #ccc;'>无</span>";
+                }
+                let key = $.md5(val);
+                FastExt.Cache.memory[key] = val;
+                let functionStr = "FastExt.Dialog.showJson(null,'查看JSON内容',MemoryCache['" + key + "'])";
+                return "&nbsp;<a href=\"javascript:" + functionStr + ";\">查看JSON内容</a>&nbsp;";
             };
         }
 
@@ -531,7 +582,7 @@ namespace FastExt {
 
         /**
          * 将日期数据进行格式化
-         * @param format
+         * @param format 日期格式 默认：Y-m-d H:i:s
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
         static dateFormat(format?: string): any {
@@ -553,28 +604,54 @@ namespace FastExt {
         }
 
         /**
+         * 格式化时间戳
+         * @param format 日期格式 默认：Y-m-d H:i:s
+         * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
+         */
+        static timestamp(format?: string) {
+            return function (val, m, record) {
+                try {
+                    if (Ext.isEmpty(val) || val === "null") {
+                        return "<span style='color: #ccc;'>无</span>";
+                    }
+                    if (Ext.isEmpty(format)) {
+                        format = "Y-m-d H:i:s";
+                    }
+                    return Ext.Date.format(new Date(parseInt(val)), format);
+                } catch (e) {
+                    console.error(e);
+                    return val;
+                }
+            };
+        }
+
+        /**
          * 渲染枚举数据
          * @param enumName 枚举名称
          * @param enumValue 枚举值的属性名
+         * @param enumText 枚举值的显示文本属性
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
-        static enum(enumName, enumValue): any {
+        static enum(enumName, enumValue, enumText): any {
             return function (val) {
                 try {
                     if (Ext.isEmpty(val)) {
                         return "<span style='color: #ccc;'>无</span>";
                     }
+                    if (Ext.isEmpty(enumText)) {
+                        enumText = "text";
+                    }
                     let enumRecord = FastExt.Store.getEnumRecord(enumName, val, enumValue);
                     if (!enumRecord) {
                         return "<span style='color: #ccc;'>" + val + "</span>";
                     }
-                    let enumText = enumRecord.get("text");
+                    let text = enumRecord.get(enumText);
                     let enumColor = enumRecord.get("color");
-                    if (Ext.isEmpty(enumText)) {
+                    if (Ext.isEmpty(text)) {
                         return "<span style='color: #ccc;'>" + val + "</span>";
                     }
                     let color = FastExt.Color.toColor(enumColor, "#000000");
-                    return "<span style='color: " + color + ";'>" + enumText + "</span>";
+                    return "<span style='color: " + color + ";'>" + text + "</span>";
                 } catch (e) {
                     return "<span style='color: #ccc;'>" + val + "</span>";
                 }

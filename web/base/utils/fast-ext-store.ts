@@ -14,7 +14,7 @@ namespace FastExt {
          * @param splitChar 菜单拼接的分隔符
          * @returns {string|null}
          */
-        static getStoreMenuText(store, menu?,splitChar?:string): string {
+        static getStoreMenuText(store, menu?, splitChar?: string): string {
             if (Ext.isEmpty(splitChar)) {
                 splitChar = ">";
             }
@@ -572,14 +572,7 @@ namespace FastExt {
                     continue;
                 }
                 if (FastExt.Base.toBool(search, false)) {
-                    if (FastExt.Grid.isFilesColumn(column)
-                        || FastExt.Grid.isFileColumn(column)) {
-                        continue;
-                    }
-                    if (!FastExt.Base.toBool(column.search, true)) {
-                        continue;
-                    }
-                    if (FastExt.Base.toBool(column["encrypt"], false)) {
+                    if (!FastExt.Grid.canColumnSearch(column)) {
                         continue;
                     }
                 }

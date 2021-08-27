@@ -19,15 +19,24 @@ function loadParentImgLayer() {
 }
 
 //添加图层
-function addImgLayerInMap(imgUrl, southWestLngLat, northEastLngLat) {
+function addImgLayerInMap(imgUrl, southWestLngLat, northEastLngLat, zIndex) {
     let bounds = new AMap.Bounds(
         new AMap.LngLat(southWestLngLat.split(",")[0], southWestLngLat.split(",")[1]),
         new AMap.LngLat(northEastLngLat.split(",")[0], northEastLngLat.split(",")[1])
     );
+    if (!zIndex) {
+        zIndex = 6;
+    }
     let imageLayer = new AMap.ImageLayer({
         url: imgUrl,
         bounds: bounds,
+        zIndex: zIndex,
         zooms: [0, 50]
+    });
+    imageLayer.on("click", function () {
+        if (window.parent) {
+            window.parent.showImage(null, imgUrl);
+        }
     });
     mapImgLayerArray.push(imageLayer);
     map.add(imageLayer);

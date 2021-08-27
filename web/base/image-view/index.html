@@ -32,6 +32,8 @@
         imageElement.src = src;
         if (!lastViewer) {
             lastViewer = new Viewer(image, {
+                backdrop: false,
+                keyboard: false,
                 button: false,
                 navbar: false,
                 toolbar: false,

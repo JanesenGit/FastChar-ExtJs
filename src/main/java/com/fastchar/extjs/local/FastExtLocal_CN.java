@@ -24,4 +24,7 @@ public final class FastExtLocal_CN extends FastCharLocal_CN {
     private final String ExtEntity_Error3 = "绑定失败！类{0}已被{1}重新定义！";
     private final String ExtEntity_Error4 = "绑定失败！类{0}已存在！";
     private final String ExtEntity_Error5 = "未检测到类{0}关联的表格信息！";
+
+    private final String ExtEnum_Error1 = "枚举名称{0}已存在！";
+
 }

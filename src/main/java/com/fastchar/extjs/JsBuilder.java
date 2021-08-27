@@ -39,10 +39,21 @@ final class JsBuilder {
             }
             ExtFileUtils.merge(targetFile, listFile.toArray(new File[]{}));
             if (file.getName().contains("compress")) {
-                UglifyJsCompress.compress(targetFile.getPath());
+                UglifyJsCompress.compress(targetFile.getPath(),targetFile.getPath());
                 System.out.println("正在压缩中……");
             }
             System.out.println("构建成功！" + targetFile);
+        }
+    }
+
+    public static void tscBuild(String configJsonPath) {
+        String cmdBuilder = "tsc --build " + configJsonPath;
+        try {
+            Process p = Runtime.getRuntime().exec(cmdBuilder);//创建实例进程执行命令行代码
+            p.waitFor();
+            p.destroy();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -53,17 +64,23 @@ final class JsBuilder {
         //合并插件
         build(projectLocalPath + "/FastChar-ExtJs/web/extjs/ux",
                 projectLocalPath + "/FastChar-ExtJs/web/extjs");
-        build(projectLocalPath + "/FastChar-ExtJs/web/base/utils",
-                projectLocalPath + "/FastChar-ExtJs/web/base/utils");
+
+
         UglifyJsCompress.compress(projectLocalPath + "/FastChar-ExtJs/web/base/login/login.js",
                 projectLocalPath + "/FastChar-ExtJs/web/base/login/login.min.js");
 
-
         UglifyJsCompress.compress(projectLocalPath + "/FastChar-ExtJs/web/base/index/index.js",
                 projectLocalPath + "/FastChar-ExtJs/web/base/index/index.min.js");
-        UglifyJsCompress.compress(projectLocalPath + "/FastChar-ExtJs/web/base/welcome/welcome.js",
-                projectLocalPath + "/FastChar-ExtJs/web/base/welcome/welcome.min.js");
 
+        FastFileUtils.deleteQuietly(new File(projectLocalPath + "/FastChar-ExtJs/web/base/utils/fast-ext-utils.js"));
+
+        tscBuild(projectLocalPath + "/FastChar-ExtJs/web/base/utils/tsconfig.json");
+
+        UglifyJsCompress.compress(projectLocalPath + "/FastChar-ExtJs/web/base/utils/fast-ext-utils.js",
+                projectLocalPath + "/FastChar-ExtJs/web/base/utils/fast-ext-utils.js");
+
+
+        System.out.println("构建结束！");
         System.exit(0);
 
     }

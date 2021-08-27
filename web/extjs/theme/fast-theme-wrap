@@ -398,6 +398,8 @@ body>.x-mask {
 	border-width:0 !important;
     background: linear-gradient(0deg, $[color], $[color7]) !important;
     box-shadow: 0 3px 4px #cccccc !important;
+    z-index:9;
+    width:100% !important;
 }
 
 .x-panel-header-default {
@@ -734,9 +736,9 @@ body>.x-mask {
 
 
 .x-toast {
-    -webkit-box-shadow: rgba(0, 0, 0, 0.5) 0 2px 15px 8px;
-    -moz-box-shadow: rgba(0, 0, 0, 0.5)0 2px 15px 8px;
-    box-shadow: rgba(0, 0, 0, 0.5) 0 2px 15px 8px;
+    -webkit-box-shadow: rgba(0, 0, 0, 0.5) 0 15px 20px;
+    -moz-box-shadow: rgba(0, 0, 0, 0.5) 0 15px 20px;
+    box-shadow: rgba(0, 0, 0, 0.5) 0 15px 20px;
 }
 
 .x-toast .x-window-header-title-default{
@@ -796,7 +798,7 @@ body>.x-mask {
 }
 
 .x-mask.x-focus{
-    border-color:$[color];
+   border-color:transparent !important;
 }
 
 .x-grid-group-hd {
@@ -806,4 +808,30 @@ body>.x-mask {
 
 .x-grid-group-title {
     color: #aaaaaa;
+}
+
+.iframe-disabled-panel{
+    cursor: default !important;
+    pointer-events: none !important;
+}
+.iframe-disabled-panel .x-mask{
+    background-color:#00000000 !important;
+}
+
+.x-grid-cell-inner-action-col{
+   text-align: center !important;
+}
+
+.edit-menu{
+     border-radius: 4px !important;
+}
+
+.edit-details-menu{
+    border-bottom-right-radius: 8px !important;
+    border-top-right-radius: 8px !important;
+}
+
+.header-search-menu{
+   border-top-left-radius: 0 !important;
+   border-top-right-radius: 0 !important;
 }

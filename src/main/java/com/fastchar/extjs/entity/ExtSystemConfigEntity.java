@@ -12,6 +12,8 @@ public class ExtSystemConfigEntity extends AbstractExtSystemConfigEntity {
     public static ExtSystemConfigEntity getInstance() {
         return FastChar.getOverrides().singleInstance(ExtSystemConfigEntity.class);
     }
+
+
     @Override
     public String getTableName() {
         return "ext_system_config";
@@ -72,6 +74,17 @@ public class ExtSystemConfigEntity extends AbstractExtSystemConfigEntity {
     public List<ExtSystemConfigEntity> getExtConfigs(int managerId, String configType) {
         String sqlStr = "select * from ext_system_config where  managerId = ? and configType = ? ";
         return selectBySql(sqlStr, managerId, configType);
+    }
+
+    public List<ExtSystemConfigEntity> getList() {
+        String sqlStr = "select * from ext_system_config  ";
+        return selectBySql(sqlStr);
+    }
+
+
+    public int deleteAll() {
+        String sqlStr = "delete from ext_system_config ";
+        return updateBySql(sqlStr);
     }
 
 }

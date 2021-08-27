@@ -8,6 +8,7 @@ import com.fastchar.extjs.entity.ExtSystemLogEntity;
 import com.fastchar.interfaces.IFastInterceptor;
 import com.fastchar.interfaces.IFastJson;
 import com.fastchar.out.FastOutText;
+import com.fastchar.utils.FastStringUtils;
 
 public class FastExtAfterInterceptor implements IFastInterceptor {
 
@@ -49,7 +50,7 @@ public class FastExtAfterInterceptor implements IFastInterceptor {
             }
         } catch (Exception e) {
             e.printStackTrace();
-            fastAction.responseJson(-1, "操作失败！" + e.toString());
+            fastAction.responseJson(-1, "操作失败！" + FastStringUtils.getThrowableMessage(e));
         }
     }
 }

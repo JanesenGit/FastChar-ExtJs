@@ -53,14 +53,14 @@ namespace FastExt {
             if (Ext.isEmpty(obj)) {
                 return defaultValue;
             }
-
             if (Ext.isString(obj)) {
-                if (obj === "0") {
+                if (obj === "0" || obj.toLowerCase() === "false") {
                     return false;
                 }
-                if (obj === "1") {
+                if (obj === "1" || obj.toLowerCase() === "true") {
                     return true;
                 }
+                return defaultValue;
             }
             if (Ext.isNumber(obj)) {
                 if (obj === 0) {
@@ -69,6 +69,7 @@ namespace FastExt {
                 if (obj === 1) {
                     return true;
                 }
+                return defaultValue;
             }
             if (Ext.isBoolean(obj)) {
                 return obj;
@@ -118,6 +119,7 @@ namespace FastExt {
          * loadFunction("function(val){return val+1;}");
          */
         static loadFunction(functionStr: string): any {
+            // @ts-ignore
             if (functionStr.toString().trim().startsWith("function")) {
                 let functionKey = "do" + $.md5(functionStr);
 
@@ -272,69 +274,19 @@ namespace FastExt {
         /**
          * 根据日期值猜测日期类型
          * @param value
+         * {@link FastExt.Dates.guessDateFormat}
          */
         static guessDateFormat(value): string {
-            if (!value || Ext.isDate(value)) {
-                return '';
-            }
-            value = value.toString().trim();
-            let regPattern = new RegExp("[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}");
-            if (regPattern.test(value)) {
-                return "Y-m-d H:i:s";
-            }
-            regPattern = new RegExp("[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}");
-            if (regPattern.test(value)) {
-                return "Y-m-d H:i";
-            }
-            regPattern = new RegExp("[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}");
-            if (regPattern.test(value)) {
-                return "Y-m-d H";
-            }
-            regPattern = new RegExp("[0-9]{4}-[0-9]{2}-[0-9]{2}");
-            if (regPattern.test(value)) {
-                return "Y-m-d";
-            }
-            regPattern = new RegExp("[0-9]{4}-[0-9]{2}");
-            if (regPattern.test(value)) {
-                return "Y-m";
-            }
-            regPattern = new RegExp("[0-9]{4}");
-            if (regPattern.test(value)) {
-                return "Y";
-            }
-            regPattern = new RegExp("[0-9]{4}/[0-9]{2}/[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}");
-            if (regPattern.test(value)) {
-                return "Y/m/d H:i:s";
-            }
-            regPattern = new RegExp("[0-9]{4}/[0-9]{2}/[0-9]{2} [0-9]{2}:[0-9]{2}");
-            if (regPattern.test(value)) {
-                return "Y/m/d H:i";
-            }
-            regPattern = new RegExp("[0-9]{4}/[0-9]{2}/[0-9]{2} [0-9]{2}");
-            if (regPattern.test(value)) {
-                return "Y/m/d H";
-            }
-            regPattern = new RegExp("[0-9]{4}/[0-9]{2}/[0-9]{2}");
-            if (regPattern.test(value)) {
-                return "Y/m/d";
-            }
-            regPattern = new RegExp("[0-9]{4}/[0-9]{2}");
-            if (regPattern.test(value)) {
-                return "Y/m";
-            }
-            return '';
+            return FastExt.Dates.guessDateFormat(value);
         }
 
         /**
          * 将字符串格式化日期
          * @param dateValue
+         * {@link FastExt.Dates.guessDateFormat}
          */
         static parseDate(dateValue: string): Date {
-            if (Ext.isEmpty(dateValue)) {
-                return null;
-            }
-            let guessDateFormat = FastExt.Base.guessDateFormat(dateValue);
-            return Ext.Date.parse(dateValue, guessDateFormat);
+            return FastExt.Dates.parseDate(dateValue);
         }
 
 
@@ -401,6 +353,43 @@ namespace FastExt {
             return Math.floor(Math.random() * (max - min + 1) + min);
         }
 
+        /**
+         * 获取目标控件的html节点对象
+         * @param target
+         */
+        static getTargetElement(target: any): Element {
+            if (target) {
+                if (Ext.isElement(target)) {
+                    return target;
+                }
+                if (!Ext.isEmpty(target.xtype)) {
+                    return target.getEl().dom;
+                }
+            }
+            return null;
+        }
+
+
+        /**
+         * 判断节点元素是否在可视区域
+         * @param element
+         */
+        static isElementInViewport(element: Element): boolean {
+            try {
+                let rect = element.getBoundingClientRect();
+                return (
+                    rect.top >= 0 &&
+                    rect.left >= 0 &&
+                    rect.bottom <=
+                    (window.innerHeight || document.documentElement.clientHeight) &&
+                    rect.right <=
+                    (window.innerWidth || document.documentElement.clientWidth)
+                );
+            } catch (e) {
+            }
+            return false;
+        }
+
 
         /**
          * 动态加载css代码
@@ -443,14 +432,14 @@ namespace FastExt {
         /**
          * 构建uuid4的唯一编号
          */
-        static buildUUID4():string {
+        static buildUUID4(): string {
             return (((1 + Math.random()) * 0x10000) | 0).toString(16).substring(1);
         }
 
         /**
          * 构建uuid8的唯一编号
          */
-        static buildUUID8():string {
+        static buildUUID8(): string {
             return (((1 + Math.random()) * 0x100000000) | 0).toString(16).substring(1);
         }
 

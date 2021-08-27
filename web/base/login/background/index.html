@@ -8,13 +8,13 @@
 <script src="js/particles.min.js"></script>
 <script type="text/javascript">
 	function getUrlParams(name) {
-		var re = new RegExp(name + '=([^&]*)(?:&)?');
+		let re = new RegExp(name + '=([^&]*)(?:&)?');
 		return window.location.href.match(re) && window.location.href.match(re)[1];
 	}
 
 	function includeCssContent(cssContent) {
-		var oHead = document.getElementsByTagName('HEAD').item(0);
-		var oStyle = document.createElement("style");
+		let oHead = document.getElementsByTagName('HEAD').item(0);
+		let oStyle = document.createElement("style");
 		oStyle.type = "text/css";
 		if (oStyle.styleSheet) {
 			oStyle.styleSheet.cssText = cssContent;
@@ -37,12 +37,13 @@
 
 </head>
 <body onload="onPageLoad()" style="background-color: #111;width: 100%;height: 100%;overflow: hidden;">
-	<!-- particles.js container -->
 	<div id="particles-js"></div>
-
-	<!-- scripts -->
 </body>
 <script type="text/javascript">
+    let dotColor = getUrlParams("dot");
+    if (dotColor.replace("#", "").length > 6) {
+        dotColor = dotColor.toString().substr(0, 7);
+    }
 	particlesJS('particles-js',
 		{
 			"particles" : {
@@ -54,7 +55,7 @@
 					}
 				},
 				"color" : {
-					"value" : getUrlParams("dot")
+					"value" : dotColor
 				},
 				"shape" : {
 					"type" : "circle",
@@ -85,7 +86,7 @@
 				"line_linked" : {
 					"enable" : true,
 					"distance" : 120,
-					"color" : getUrlParams("dot"),
+					"color" : dotColor,
 					"opacity" : 1,
 					"width" : 1
 				},

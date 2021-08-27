@@ -7,6 +7,7 @@ import com.fastchar.utils.FastStringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class FastMenuInfo extends FastBaseInfo {
     private static final long serialVersionUID = 2745017046582346313L;
@@ -19,7 +20,7 @@ public class FastMenuInfo extends FastBaseInfo {
     private String iconCls;
     private String color;
     private String parentId;
-    private String index = "9999999";
+    private String index = "9";
     private Boolean checked;
     private Boolean leaf;
     private Integer depth;
@@ -151,6 +152,11 @@ public class FastMenuInfo extends FastBaseInfo {
             setIcon(path);
             iconName = iconValue.substring(iconValue.lastIndexOf("/") + 1);
         }
+    }
+
+    @Override
+    public void set(String attr, Object value) {
+        super.set(attr, value);
     }
 
     /**

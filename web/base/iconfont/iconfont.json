@@ -6,6 +6,76 @@
   "description": "",
   "glyphs": [
     {
+      "icon_id": "4312651",
+      "name": "登录密码",
+      "font_class": "LogPwd",
+      "unicode": "e63f",
+      "unicode_decimal": 58943
+    },
+    {
+      "icon_id": "15297675",
+      "name": "验证码",
+      "font_class": "LoginCode",
+      "unicode": "e760",
+      "unicode_decimal": 59232
+    },
+    {
+      "icon_id": "19233350",
+      "name": "记住密码",
+      "font_class": "LoginRemeber",
+      "unicode": "e641",
+      "unicode_decimal": 58945
+    },
+    {
+      "icon_id": "14096473",
+      "name": "交集",
+      "font_class": "Intersect",
+      "unicode": "e69b",
+      "unicode_decimal": 59035
+    },
+    {
+      "icon_id": "13437071",
+      "name": "取消静音",
+      "font_class": "Unmute",
+      "unicode": "e772",
+      "unicode_decimal": 59250
+    },
+    {
+      "icon_id": "15000922",
+      "name": "静音",
+      "font_class": "Mute",
+      "unicode": "e66c",
+      "unicode_decimal": 58988
+    },
+    {
+      "icon_id": "15329454",
+      "name": "停止",
+      "font_class": "Stop",
+      "unicode": "e63d",
+      "unicode_decimal": 58941
+    },
+    {
+      "icon_id": "19611721",
+      "name": "播放",
+      "font_class": "Play",
+      "unicode": "e63e",
+      "unicode_decimal": 58942
+    },
+    {
+      "icon_id": "21712453",
+      "name": "暂停 停止",
+      "font_class": "Pause",
+      "unicode": "e65b",
+      "unicode_decimal": 58971
+    },
+    {
+      "icon_id": "14759982",
+      "name": "历史",
+      "font_class": "History",
+      "unicode": "e80f",
+      "unicode_decimal": 59407
+    },
+    {
       "icon_id": "7365948",
       "name": "正方形",
       "font_class": "Square",
@@ -97,6 +167,13 @@
       "unicode_decimal": 58911
     },
     {
+      "icon_id": "13725588",
+      "name": "gif",
+      "font_class": "FileGIF",
+      "unicode": "e624",
+      "unicode_decimal": 58916
+    },
+    {
       "icon_id": "13725589",
       "name": "xls",
       "font_class": "FileExcel",
@@ -111,11 +188,25 @@
       "unicode_decimal": 58919
     },
     {
+      "icon_id": "13725591",
+      "name": "avi",
+      "font_class": "FileAVI",
+      "unicode": "e629",
+      "unicode_decimal": 58921
+    },
+    {
       "icon_id": "13725592",
       "name": "txt",
       "font_class": "FileTXT",
       "unicode": "e62a",
       "unicode_decimal": 58922
+    },
+    {
+      "icon_id": "13725593",
+      "name": "eps",
+      "font_class": "FileEPS",
+      "unicode": "e62c",
+      "unicode_decimal": 58924
     },
     {
       "icon_id": "13725595",
@@ -151,6 +242,13 @@
       "font_class": "FilePSD",
       "unicode": "e634",
       "unicode_decimal": 58932
+    },
+    {
+      "icon_id": "13725601",
+      "name": "mp3",
+      "font_class": "FileMP3",
+      "unicode": "e636",
+      "unicode_decimal": 58934
     },
     {
       "icon_id": "13725602",

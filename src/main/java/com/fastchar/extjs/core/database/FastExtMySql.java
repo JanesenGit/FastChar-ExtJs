@@ -12,7 +12,7 @@ import com.fastchar.database.sql.FastMySql;
 import com.fastchar.exception.FastSqlException;
 import com.fastchar.extjs.core.FastExtEntity;
 
-import com.fastchar.extjs.core.FastExtBindHelper;
+import com.fastchar.extjs.core.FastExtLayerHelper;
 import com.fastchar.local.FastCharLocal;
 import com.fastchar.utils.FastClassUtils;
 import com.fastchar.utils.FastStringUtils;
@@ -252,13 +252,13 @@ public class FastExtMySql extends FastMySql {
             //配置权限字段
             FastExtColumnInfo layerColumn = extEntity.getLayerColumn();
             if (layerColumn != null && entity.isEmpty(layerColumn.getName())) {
-                entity.set(layerColumn.getName(), FastExtBindHelper.buildLayerValue(entity));
+                entity.set(layerColumn.getName(), FastExtLayerHelper.buildLayerValue(entity));
             }
         }
     }
 
     /**
-     * 设置绑定关联表格相同属性的值，当相同属性为空的时候
+     * 当相同属性为空的时候，设置绑定关联表格相同属性的值
      */
     private void setSameValue(FastEntity<?> entity) {
         if (entity instanceof FastExtEntity) {
@@ -278,15 +278,18 @@ public class FastExtMySql extends FastMySql {
                         }
                     }
                     if (columns.size() > 0) {
-                        List<FastEntities.EntityInfo> entityInfo = FastChar.getEntities().getEntityInfo(linkInfo.getTableName());
-                        FastEntity<?> fastEntity = FastClassUtils.newInstance(entityInfo.get(0).getTargetClass());
-                        if (fastEntity instanceof FastExtEntity) {
-                            FastExtEntity<?> fastExtEntity = (FastExtEntity<?>) fastEntity;
-                            fastExtEntity.set(linkInfo.getKeyColumnName(), entity.get(sameLinkColumn.getName()));
-                            FastEntity<?> firstValue = fastExtEntity.selectFirstValue(columns.toArray(new String[]{}), linkInfo.getKeyColumnName());
-                            if (firstValue != null) {
-                                for (String column : columns) {
-                                    entity.set(column, firstValue.get(column));
+                        FastEntities.EntityInfo entityInfo = FastChar.getEntities().getFirstEntityInfo(linkInfo.getTableName());
+                        if (entityInfo != null) {
+                            FastEntity<?> fastEntity = FastClassUtils.newInstance(entityInfo.getTargetClass());
+                            if (fastEntity instanceof FastExtEntity) {
+                                FastExtEntity<?> fastExtEntity = (FastExtEntity<?>) fastEntity;
+                                fastExtEntity.setDatabase(entity.getDatabase());
+                                fastExtEntity.set(linkInfo.getKeyColumnName(), entity.get(sameLinkColumn.getName()));
+                                FastEntity<?> firstValue = fastExtEntity.selectFirstValue(columns.toArray(new String[]{}), linkInfo.getKeyColumnName());
+                                if (firstValue != null) {
+                                    for (String column : columns) {
+                                        entity.set(column, firstValue.get(column));
+                                    }
                                 }
                             }
                         }

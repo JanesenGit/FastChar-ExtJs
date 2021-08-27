@@ -164,7 +164,7 @@ namespace FastExt {
                 text: "复制数据",
                 menu: [
                     {
-                        text: '复制单元格',
+                        text: '复制单元格数据',
                         iconCls: 'extIcon extCopy2',
                         handler: function () {
                             let menu = grid.contextMenu;
@@ -173,7 +173,7 @@ namespace FastExt {
                         }
                     },
                     {
-                        text: '复制整行',
+                        text: '复制整行数据',
                         iconCls: 'extIcon extCopy2',
                         handler: function () {
                             let menu = grid.contextMenu;
@@ -186,7 +186,7 @@ namespace FastExt {
                         }
                     },
                     {
-                        text: '复制数据',
+                        text: '复制单元格实际数据',
                         iconCls: 'extIcon extCopy2',
                         handler: function () {
                             let menu = grid.contextMenu;
@@ -202,9 +202,10 @@ namespace FastExt {
                     }
                 ]
             }, index++);
+
             FastExt.Grid.addGridContextMenu(grid, {
                 iconCls: 'extIcon extEdit editColor',
-                text: "编辑数据",
+                text: "编辑单元格数据",
                 onBeforeShow: function () {
                     let menu = this.ownerCt;
                     if (Ext.isEmpty(menu.cellContext.column.dataIndex) || grid.getSelection().length !== 1) {
@@ -236,7 +237,7 @@ namespace FastExt {
             if (grid.getStore().entity) {
                 FastExt.Grid.addGridContextMenu(grid, {
                     iconCls: 'extIcon extLink',
-                    text: "搜索链",
+                    text: "单元格搜索链",
                     onBeforeShow: function () {
                         this.show();
                         let menu = this.ownerCt;
@@ -275,12 +276,11 @@ namespace FastExt {
 
                 FastExt.Grid.addGridContextMenu(grid, {
                     iconCls: 'extIcon extSearch searchColor',
-                    text: "查找此数据",
+                    text: "查找单元格数据",
                     onBeforeShow: function () {
                         let menu = this.ownerCt;
                         if (Ext.isEmpty(menu.cellContext.column.dataIndex)
-                            || FastExt.Grid.isFileColumn(menu.cellContext.column)
-                            || FastExt.Grid.isFilesColumn(menu.cellContext.column)
+                            || !FastExt.Grid.canColumnSearch(menu.cellContext.column)
                             || grid.getSelection().length !== 1) {
                             this.hide();
                         } else {
@@ -297,7 +297,7 @@ namespace FastExt {
 
                 FastExt.Grid.addGridContextMenu(grid, {
                     iconCls: 'extIcon extClear',
-                    text: "清空此数据",
+                    text: "清空单元格数据",
                     onBeforeShow: function () {
                         let menu = this.ownerCt;
                         if (Ext.isEmpty(menu.cellContext.column.dataIndex) || grid.getSelection().length !== 1) {
@@ -628,16 +628,17 @@ namespace FastExt {
                     toolbar.setHidden(true);
                     return;
                 }
-                if (!FastExt.Base.toBool(grid.defaultToolBar, true)) {
-                    return;
-                }
                 if (!grid.operate) {
                     return;
                 }
+                if (!FastExt.Base.toBool(grid.defaultToolBar, true)) {
+                    return;
+                }
+
                 let moreBtn = {
                     xtype: 'button',
                     text: '更多操作',
-                    iconCls: 'extIcon extMore',
+                    iconCls: 'extIcon extMore grayColor',
                     menu: [
                         {
                             text: '导出Excel',
@@ -708,7 +709,7 @@ namespace FastExt {
                             iconCls: 'extIcon extPower redColor',
                             text: '更新权限值',
                             handler: function () {
-                                Ext.Msg.confirm("系统提醒", "确定更新表格的数据权限值吗？请您谨慎操作！", function (button, text) {
+                                Ext.Msg.confirm("系统提醒", "确定更新表格的数据权限值吗？确定后将同时更新所有相关表格的权限值！请您谨慎操作！", function (button, text) {
                                     if (button == "yes") {
                                         let params = {entityCode: grid.getStore().entity.entityCode};
                                         FastExt.System.validOperate("更新表格的数据权限层级值", function () {
@@ -725,26 +726,71 @@ namespace FastExt {
                     );
                 }
 
+
+                let linkBtns = {
+                    xtype: 'button',
+                    text: '相关查询',
+                    checkSelect: 1,
+                    iconCls: 'extIcon extIntersect grayColor',
+                    menu: []
+                };
+
+
+                if (grid.getStore() && grid.getStore().entity && grid.getStore().entity.linkTables) {
+                    for (let i = 0; i < grid.getStore().entity.linkTables.length; i++) {
+                        let linkTable = grid.getStore().entity.linkTables[i];
+                        if (linkTable.linkColumns) {
+                            let linkBtn: any = {
+                                text: linkTable.comment
+                            };
+                            if (linkTable.menu) {
+                                linkBtn["icon"] = FastExt.Server.getIcon(linkTable.menu.iconName, linkTable.menu.color);
+                            }else{
+                                linkBtn["iconCls"] = "extIcon extSearch searchColor";
+                            }
+                            if (linkTable.linkColumns.length == 1) {
+                                let linkColumn = linkTable.linkColumns[0];
+                                linkBtn["handler"] = function () {
+                                    let where = {};
+                                    where['t.' + linkColumn.name] = grid.getSelection()[0].get(linkColumn.linkKey);
+                                    where['^' + linkColumn.linkText[0]] = grid.getSelection()[0].get(linkColumn.linkText[0]);
+                                    let entityJsObj = eval("new " + linkTable.entityCode + "()");
+                                    entityJsObj.showWinList(this, linkTable.comment + "【" + linkColumn.comment + "】", where, true);
+                                };
+                                linkBtns.menu.push(linkBtn);
+                            } else if (linkTable.linkColumns.length > 1) {
+                                linkBtn["menu"] = [];
+                                for (let j = 0; j < linkTable.linkColumns.length; j++) {
+                                    let linkColumn = linkTable.linkColumns[j];
+                                    let linkChildBtn = {
+                                        icon: FastExt.Server.getIcon("icon_column.svg"),
+                                        text: "匹配" + linkColumn.comment,
+                                        handler: function () {
+                                            let where = {};
+                                            where['t.' + linkColumn.name] = grid.getSelection()[0].get(linkColumn.linkKey);
+                                            where['^' + linkColumn.linkText[0]] = grid.getSelection()[0].get(linkColumn.linkText[0]);
+                                            let entityJsObj = eval("new " + linkTable.entityCode + "()");
+                                            entityJsObj.showWinList(this, linkTable.comment + "【" + linkColumn.comment + "】", where, true);
+                                        }
+                                    };
+                                    linkBtn.menu.push(linkChildBtn);
+                                }
+                                linkBtns.menu.push(linkBtn);
+                            }
+                        }
+                    }
+                }
+
+
                 toolbar.add("->");
-                // if (grid.getStore().entity && FastExt.System.existMenu(grid.getStore().entity.menu.id)) {
-                //     let storeMenuText = FastExt.Store.getStoreMenuText(grid.getStore(), null, " > ");
-                //     if (storeMenuText) {
-                //         let anchorMenuBtn = {
-                //             xtype: 'button',
-                //             text: storeMenuText,
-                //             power: false,
-                //             contextMenu: false,
-                //             iconCls: 'extIcon extLastPoint searchColor',
-                //             handler: function () {
-                //                 FastExt.System.selectMenu(grid.getStore().entity.menu.id);
-                //                 FastExt.Dialog.toast("已选中左侧菜单：" + storeMenuText);
-                //             }
-                //         };
-                //         toolbar.add(anchorMenuBtn);
-                //         toolbar.add("-");
-                //     }
-                // }
-                toolbar.add(moreBtn);
+                if (FastExt.Base.toBool(grid.defaultToolBarLink, true)) {
+                    if (linkBtns.menu.length > 0) {
+                        toolbar.add(linkBtns);
+                    }
+                }
+                if (FastExt.Base.toBool(grid.defaultToolBarMore, true)) {
+                    toolbar.add(moreBtn);
+                }
             }
         }
 
@@ -2373,6 +2419,8 @@ namespace FastExt {
                             columnInfo["rendererFunction"] = column.rendererFunction;
                             if (FastExt.Base.toBool(column.editable, true)) {
                                 columnInfo["editorField"] = FastExt.Grid.getColumnSimpleEditorJson(column);
+                            } else {
+                                columnInfo["editorField"] = "";
                             }
                             columnInfos[column.code] = columnInfo;
                         }
@@ -3510,6 +3558,9 @@ namespace FastExt {
                 } else {
                     column.groupHeaderText = null;
                 }
+                if (Ext.isEmpty(column.field)) {
+                    column.editable = false;
+                }
             } catch (e) {
                 console.error(e);
             }
@@ -3709,7 +3760,7 @@ namespace FastExt {
                         },
                         editorField
                     ],
-                    listeners:{
+                    listeners: {
                         render: function (obj, eOpts) {
                             obj.refreshField();
                         }
@@ -3723,25 +3774,35 @@ namespace FastExt {
         }
 
         /**
+         * 检查column是否可以进行搜索
+         * @param column
+         */
+        static canColumnSearch(column) {
+            if (!FastExt.Base.toBool(FastExt.Grid.getColumnGrid(column).columnSearch, true)) {
+                return false;
+            }
+            if (FastExt.Grid.isFilesColumn(column)
+                || FastExt.Grid.isFileColumn(column)) {
+                return false;
+            }
+            if (!FastExt.Base.toBool(column.search, true)) {
+                return false;
+            }
+            if (FastExt.Base.toBool(column["encrypt"], false)) {
+                return false;
+            }
+            return true;
+        }
+
+        /**
          * 弹出列的搜索菜单
          * @param column
          */
         static showColumnSearchMenu(column) {
             try {
-                if (!FastExt.Base.toBool(FastExt.Grid.getColumnGrid(column).columnSearch, true)) {
+                if (!FastExt.Grid.canColumnSearch(column)) {
                     return false;
                 }
-                if (FastExt.Grid.isFilesColumn(column)
-                    || FastExt.Grid.isFileColumn(column)) {
-                    return false;
-                }
-                if (!FastExt.Base.toBool(column.search, true)) {
-                    return false;
-                }
-                if (FastExt.Base.toBool(column["encrypt"], false)) {
-                    return false;
-                }
-
                 if (!column.searchMenu) {
                     column.searchMenu = new Ext.menu.Menu({
                         padding: '0 0 0 0',
@@ -3945,12 +4006,14 @@ namespace FastExt {
                 Ext.each(grid.getColumns(), function (item) {
                     if (item.where) {
                         let data = store.findRecord("id", item.dataIndex, 0, false, false, true);
-                        for (let i = 0; i < item.where.length; i++) {
-                            formPanel.add(buildItem(data, item.where[i]));
+                        if (data) {
+                            for (let i = 0; i < item.where.length; i++) {
+                                formPanel.add(buildItem(data, item.where[i]));
+                            }
                         }
                     }
                 });
-                if (formPanel.items.length === 0) {
+                if (formPanel.items.length === 0 && store.getCount() > 0) {
                     formPanel.add(buildItem(store.getAt(0)));
                 }
                 obj.searchWin = Ext.create('Ext.window.Window', {
@@ -4187,14 +4250,33 @@ namespace FastExt {
 
 
                     let hideFunction = function () {
-                        clearTimeout(Ext.Msg.timeout);
-                        let msgButton = Ext.Msg.msgButtons["yes"];
-                        msgButton.setText("是");
-                        msgButton.enable();
+                        if (Ext.Msg.timeout) {
+                            clearTimeout(Ext.Msg.timeout);
+                            let msgButton = Ext.Msg.msgButtons["yes"];
+                            msgButton.setText("是");
+                            msgButton.enable();
+                        }
+                    };
+
+                    let showFunction = function (obj) {
+                        FastExt.Component.shakeComment(obj, function () {
+                            let time = 5;
+                            if (dataStore.getTotalCount() > 50) {
+                                time = 15;
+                            }
+                            if (dataStore.getTotalCount() > 5000) {
+                                time = 20;
+                            }
+                            if (dataStore.getTotalCount() > 10000) {
+                                time = 30;
+                            }
+                            timeFunction(time);
+                        }, 3000);
                     };
 
                     Ext.Msg.on("hide", hideFunction, this, {single: true});
-                    let msgBox = Ext.Msg.show(confirmConfig);
+                    Ext.Msg.on("show", showFunction, this, {single: true});
+                    Ext.Msg.show(confirmConfig);
                     let timeFunction = function (second) {
                         let msgButton = Ext.Msg.msgButtons["yes"];
                         if (second <= 0) {
@@ -4211,19 +4293,6 @@ namespace FastExt {
                     };
                     let msgButton = Ext.Msg.msgButtons["yes"];
                     msgButton.disable();
-                    FastExt.Component.shakeComment(msgBox, function () {
-                        let time = 5;
-                        if (dataStore.getTotalCount() > 50) {
-                            time = 15;
-                        }
-                        if (dataStore.getTotalCount() > 5000) {
-                            time = 20;
-                        }
-                        if (dataStore.getTotalCount() > 10000) {
-                            time = 30;
-                        }
-                        timeFunction(time);
-                    }, 3000);
                 }
             };
 
@@ -4616,6 +4685,20 @@ namespace FastExt {
                             store: FastExt.Store.getYesOrNoDataStore()
                         },
                         {
+                            xtype: 'combo',
+                            name: 'silence',
+                            displayField: 'text',
+                            valueField: 'id',
+                            fieldLabel: '静默刷新',
+                            editable: false,
+                            flex: 1,
+                            columnWidth: 1,
+                            value: 0,
+                            allowBlank: false,
+                            bind: '{silence}',
+                            store: FastExt.Store.getYesOrNoDataStore()
+                        },
+                        {
                             xtype: "numberfield",
                             name: 'value',
                             bind: '{value}',
@@ -4637,7 +4720,7 @@ namespace FastExt {
                     resizable: true,
                     minHeight: 200,
                     minWidth: 400,
-                    height: 200,
+                    height: 240,
                     animateTarget: obj,
                     items: [formPanel],
                     listeners: {
@@ -4672,6 +4755,7 @@ namespace FastExt {
                                             return;
                                         }
                                         grid.timerTimeout = setTimeout(function () {
+                                            grid.disabledLoadMaskOnce = parseInt(grid.timerConfig["silence"]) === 1;
                                             grid.getStore().reload();
                                             grid.timerRefresh();
                                         }, parseInt(grid.timerConfig["value"]) * 1000);
@@ -4791,8 +4875,9 @@ namespace FastExt {
          * @param title 详情窗体标题
          * @param entity 实体类对象
          * @param record 单个数据record
+         * @param buttons 窗口底部按钮集合
          */
-        static showDetailsWindow(obj, title, entity, record) {
+        static showDetailsWindow(obj, title, entity, record, buttons) {
             if (!entity) {
                 return;
             }
@@ -4968,7 +5053,10 @@ namespace FastExt {
                             }
                         }
                     });
-                    let winButtons = [];
+                    if (!buttons) {
+                        buttons = [];
+                    }
+                    let winButtons = buttons;
                     if (FastExt.System.searchMenuByEntityCode(entity.entityCode)) {
                         winButtons.push({
                             text: '管理界面',

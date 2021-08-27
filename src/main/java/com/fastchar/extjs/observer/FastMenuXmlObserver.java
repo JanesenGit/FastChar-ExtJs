@@ -1,6 +1,7 @@
 package com.fastchar.extjs.observer;
 
 import com.fastchar.core.FastChar;
+import com.fastchar.core.FastClassLoader;
 import com.fastchar.core.FastInterceptors;
 import com.fastchar.extjs.FastExtConfig;
 import com.fastchar.extjs.core.menus.FastMenuInfo;
@@ -15,6 +16,7 @@ import org.xml.sax.helpers.DefaultHandler;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 import java.io.File;
+import java.io.FileFilter;
 import java.io.FilenameFilter;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -31,26 +33,48 @@ public class FastMenuXmlObserver {
                 return true;
             }
         }
-        return getMenuXmlFiles().length > FILE_COUNT;
+        return getMenuXmlFiles().size() > FILE_COUNT;
     }
 
-    private static File[] getMenuXmlFiles() {
-        final FastExtConfig config = FastChar.getConfig(FastExtConfig.class);
+    private static List<File> getMenuXmlFiles() {
+        List<File> menuXmlList = new ArrayList<>();
+        filterMenuXmlFile(FastChar.getPath().getClassRootPath(), menuXmlList);
+        List<String> pathLoaders = FastChar.getModules().getPathLoadModules();
+        for (String key : pathLoaders) {
+            filterMenuXmlFile(key, menuXmlList);
+        }
+        return menuXmlList;
+    }
 
-        File src = new File(FastChar.getPath().getClassRootPath());
-        File[] files = src.listFiles(new FilenameFilter() {
+    private static void filterMenuXmlFile(String path, List<File> xmlList) {
+        final FastExtConfig config = FastChar.getConfig(FastExtConfig.class);
+        File file = new File(path);
+        File[] files = file.listFiles(new FileFilter() {
             @Override
-            public boolean accept(File dir, String name) {
-                return name.toLowerCase().startsWith(config.getMenuPrefix()) && name.toLowerCase().endsWith(".xml");
+            public boolean accept(File pathname) {
+                if (pathname.getName().toLowerCase().startsWith(config.getMenuPrefix()) && pathname.getName().toLowerCase().endsWith(".xml")) {
+                    return true;
+                }
+                if (pathname.isDirectory()) {
+                    return true;
+                }
+                return false;
             }
         });
-        if (files == null) {
-            files = new File[0];
+        if (files != null) {
+            for (File child : files) {
+                if (child.getName().toLowerCase().endsWith(".xml")) {
+                    xmlList.add(child);
+                }
+                if (child.isDirectory()) {
+                    filterMenuXmlFile(child.getAbsolutePath(), xmlList);
+                }
+            }
         }
-        return files;
     }
 
-    private FastMenuInfo menus = new FastMenuInfo();
+
+    private final FastMenuInfo menus = new FastMenuInfo();
 
     public void onScannerFinish() throws Exception {
         FastChar.getValues().put("menus", menus);
@@ -62,13 +86,13 @@ public class FastMenuXmlObserver {
     }
 
     private void initMenuXml() throws Exception {
-        File[] files = getMenuXmlFiles();
-        if (files.length == 0) {
+        List<File> files = getMenuXmlFiles();
+        if (files.size() == 0) {
             return;
         }
-        FILE_COUNT = files.length;
+        FILE_COUNT = files.size();
         menus.clear();
-        Arrays.sort(files, new Comparator<File>() {
+        Collections.sort(files, new Comparator<File>() {
             @Override
             public int compare(File o1, File o2) {
                 return o1.compareTo(o2);

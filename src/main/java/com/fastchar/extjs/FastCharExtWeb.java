@@ -2,11 +2,16 @@ package com.fastchar.extjs;
 
 
 import com.fastchar.annotation.AFastPriority;
+import com.fastchar.core.FastChar;
 import com.fastchar.core.FastEngine;
+import com.fastchar.database.info.FastDatabaseInfo;
 import com.fastchar.extjs.accepter.FastExtEntityAccepter;
 import com.fastchar.extjs.accepter.FastExtEnumAccepter;
 import com.fastchar.extjs.accepter.FastExtAppJsAccepter;
 import com.fastchar.extjs.compress.YuiCompress;
+import com.fastchar.extjs.core.FastExtLayerHelper;
+import com.fastchar.extjs.core.FastExtLayerType;
+import com.fastchar.extjs.exception.FastExtJsException;
 import com.fastchar.extjs.interceptor.FastExtAfterInterceptor;
 import com.fastchar.extjs.interceptor.FastExtGlobalInterceptor;
 import com.fastchar.extjs.interceptor.FastExtFileInterceptor;
@@ -19,6 +24,9 @@ import com.fastchar.extjs.provider.FastExtEnum;
 import com.fastchar.extjs.validators.FastEnumValidator;
 import com.fastchar.interfaces.IFastWebRun;
 import com.fastchar.out.FastOutJson;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @AFastPriority(-1)
 public final class FastCharExtWeb implements IFastWebRun {
@@ -78,5 +86,13 @@ public final class FastCharExtWeb implements IFastWebRun {
 
     @Override
     public void onRun(FastEngine engine) throws Exception {
+        if (!FastChar.getDatabases().hasDatabase()) {
+            throw new FastExtJsException("未检测数据库配置，为了您正常使用FastChar-ExtJs后台界面管理，请先配置数据库！");
+        }
+        List<FastExtLayerHelper.LayerMap> layerMaps = new ArrayList<>();
+        for (FastDatabaseInfo databaseInfo : FastChar.getDatabases().getAll()) {
+            layerMaps.addAll(FastExtLayerHelper.buildLayerMap(databaseInfo));
+        }
+        FastExtConfig.getInstance().setLayerMaps(layerMaps);
     }
 }

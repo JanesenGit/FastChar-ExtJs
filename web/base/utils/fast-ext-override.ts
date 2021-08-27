@@ -136,7 +136,7 @@ namespace FastOverrider {
     export class ComponentOverride {
         constructor() {
             Ext.override(Ext.Component, {
-                initComponent: Ext.Function.createSequence(Ext.Component.prototype.initComponent, function () {
+                initComponent: function () {
                     let me = this;
                     try {
                         //取消blur和change验证，避免控件异常！
@@ -217,10 +217,12 @@ namespace FastOverrider {
                         if (FastExt.Base.toBool(me.iframePanel, false)) {
                             me.disabledCls = "iframe-disabled-panel";
                         }
+
+                        this.callParent(arguments);
                     } catch (e) {
                         console.error(e);
                     }
-                })
+                }
             });
 
             Ext.override(Ext.Component, {
@@ -238,46 +240,8 @@ namespace FastOverrider {
                                 }
                             }
                         }
-                        let me = this,
-                            rendered = me.rendered;
-
-                        if (me.hierarchicallyHidden || (me.floating && !rendered && me.isHierarchicallyHidden())) {
-                            if (!rendered) {
-                                me.initHierarchyEvents();
-                            }
-                            if (arguments.length > 1) {
-                                arguments[0] = null; // jshint ignore:line
-                                me.pendingShow = arguments;
-                            } else {
-                                me.pendingShow = true;
-                            }
-                        } else if (rendered && me.isVisible()) {
-                            if (me.floating) {
-                                me.onFloatShow();
-                            }
-                        } else {
-                            if (me.fireEvent('beforeshow', me) !== false) {
-                                me.hidden = false;
-                                delete this.getInherited().hidden;
-                                Ext.suspendLayouts();
-                                if (!rendered && (me.autoRender || me.floating)) {
-                                    me.doAutoRender();
-                                    rendered = me.rendered;
-                                }
-
-                                if (rendered) {
-                                    me.beforeShow();
-                                    Ext.resumeLayouts();
-                                    me.onShow.apply(me, arguments);
-                                    me.afterShow.apply(me, arguments);
-                                } else {
-                                    Ext.resumeLayouts(true);
-                                }
-                            } else {
-                                me.onShowVeto();
-                            }
-                        }
-                        return me;
+                        this.callParent(arguments);
+                        return this;
                     } catch (e) {
                         console.error(e);
                     }
@@ -286,7 +250,8 @@ namespace FastOverrider {
             });
 
             Ext.override(Ext.Component, {
-                onRender: Ext.Function.createSequence(Ext.Component.prototype.onRender, function () {
+                onRender: function () {
+                    this.callParent(arguments);
                     let me = this;
                     try {
                         if (FastExt.Power.isPower()) {
@@ -304,42 +269,65 @@ namespace FastOverrider {
                             let buildToolTip = function () {
                                 try {
                                     if (me.helpTip) {
-                                        me.helpTip.show();
-                                        return
+                                        if (me.helpTip.showDelay > 0) {
+                                            if (me.helpTipTimeout) {
+                                                clearTimeout(me.helpTipTimeout);
+                                            }
+                                            me.helpTipTimeout = setTimeout(function () {
+                                                if (me.helpTip) {
+                                                    me.helpTip.show();
+                                                }
+                                            }, me.helpTip.showDelay);
+                                        } else {
+                                            me.helpTip.show();
+                                        }
+                                        return;
                                     }
                                     let helpContent = me.help;
                                     if (window["getHelpContent"]) {
                                         helpContent = window["getHelpContent"](me.help);
                                     }
                                     let anchor = me.helpAnchor;
-                                    if (!anchor) {
-                                        anchor = "left"
+                                    if (Ext.isEmpty(anchor)) {
+                                        anchor = "left";
                                     }
-                                    let anchorOffset = (me.getWidth() - 20) / 2;
-                                    if (anchor === "left" || anchor === "right") {
-                                        anchorOffset = (me.getHeight() - 20) / 2;
-                                    }
-                                    if (anchorOffset >= 280) {
-                                        anchorOffset = 0;
+
+                                    let helpShowDelay = me.helpShowDelay;
+                                    if (Ext.isEmpty(helpShowDelay)) {
+                                        helpShowDelay = 0;
                                     }
 
                                     me.helpTip = Ext.create('Ext.tip.ToolTip', {
                                         target: targetEl,
                                         resizable: false,
                                         anchor: anchor,
-                                        anchorOffset: anchorOffset,
+                                        anchorOffset: 0,
                                         autoHide: false,
                                         maxWidth: 400,
                                         closeAction: 'destroy',
                                         html: helpContent,
-                                        showDelay: 0,
-                                        autoShow: true,
+                                        showDelay: helpShowDelay,
+                                        autoShow: helpShowDelay === 0,
                                         listeners: {
                                             beforedestroy: function () {
                                                 me.helpTip = null;
+                                                if (me.helpTipTimeout) {
+                                                    clearTimeout(me.helpTipTimeout);
+                                                }
                                             },
                                             hide: function () {
                                                 this.close();
+                                            },
+                                            move: function (obj, x, y, eOpts) {
+                                                let anchor = obj.anchor;
+                                                let anchorOffset = (me.getWidth() - 20) / 2;
+                                                if (anchor === "left" || anchor === "right") {
+                                                    anchorOffset = (me.getHeight() - 20) / 2;
+                                                }
+                                                if (!Ext.isEmpty(me.helpAnchorOffset) && parseInt(me.helpAnchorOffset) != -1) {
+                                                    anchorOffset = me.helpAnchorOffset;
+                                                }
+                                                obj.anchorOffset = anchorOffset;
                                             }
                                         }
                                     });
@@ -353,22 +341,11 @@ namespace FastOverrider {
                                     me.helpTip.close();
                                 }
                             });
-                            targetEl.on("unload", function () {
-                                if (me.helpTip) {
-                                    me.helpTip.close();
-                                }
-                            });
-                            targetEl.on("DOMNodeRemoved", function () {
-                                if (me.helpTip) {
-                                    me.helpTip.close();
-                                }
-                            });
-
                             if (me.helpType == FastEnum.HelpEnumType.mouse_right_click) {
                                 targetEl.on("contextmenu", function () {
                                     buildToolTip();
                                 });
-                            }else  if (me.helpType == FastEnum.HelpEnumType.mouse_in_out) {
+                            } else if (me.helpType == FastEnum.HelpEnumType.mouse_in_out) {
                                 targetEl.on("mouseover", function () {
                                     buildToolTip();
                                 });
@@ -377,7 +354,7 @@ namespace FastOverrider {
                     } catch (e) {
                         console.error(e);
                     }
-                })
+                }
             });
 
             Ext.override(Ext.Component, {
@@ -415,6 +392,144 @@ namespace FastOverrider {
                     };
                 }
             });
+
+
+            Ext.override(Ext.Component, {
+                afterShow: function (animateTarget, cb, scope) {
+                    let me = this,
+                        myEl = me.el,
+                        fromBox,
+                        toBox,
+                        ghostPanel;
+
+                    // Default to configured animate target if none passed
+                    animateTarget = me.getAnimateTarget(animateTarget);
+
+                    // Need to be able to ghost the Component
+                    if (!me.ghost) {
+                        animateTarget = null;
+                    }
+                    // If we're animating, kick of an animation of the ghost from the target to the *Element* current box
+                    if (animateTarget) {
+                        toBox = {
+                            x: myEl.getX(),
+                            y: myEl.getY(),
+                            width: myEl.dom.offsetWidth,
+                            height: myEl.dom.offsetHeight
+                        };
+                        fromBox = {
+                            x: animateTarget.getX(),
+                            y: animateTarget.getY(),
+                            width: Math.min(animateTarget.dom.offsetWidth, myEl.dom.offsetWidth / 2),
+                            height: Math.min(animateTarget.dom.offsetHeight, myEl.dom.offsetHeight / 2)
+                        };
+                        myEl.addCls(me.offsetsCls);
+                        ghostPanel = me.ghost();
+                        ghostPanel.el.stopAnimation();
+
+                        // Shunting it offscreen immediately, *before* the Animation class grabs it ensure no flicker.
+                        ghostPanel.setX(-10000);
+
+                        me.ghostBox = toBox;
+                        ghostPanel.el.animate({
+                            from: fromBox,
+                            to: toBox,
+                            listeners: {
+                                afteranimate: function () {
+                                    delete ghostPanel.componentLayout.lastComponentSize;
+                                    me.unghost();
+                                    delete me.ghostBox;
+
+                                    //此处新增，修改动画后位置错误问题！
+                                    me.setX(toBox.x);
+                                    me.setY(toBox.y);
+
+                                    myEl.removeCls(me.offsetsCls);
+                                    me.onShowComplete(cb, scope);
+                                }
+                            }
+                        });
+                    } else {
+                        me.onShowComplete(cb, scope);
+                    }
+                    me.fireHierarchyEvent('show');
+                },
+                onHide: function (animateTarget, cb, scope) {
+                    var me = this,
+                        myEl = me.el,
+                        ghostPanel, fromSize, toBox;
+
+                    if (!me.ariaStaticRoles[me.ariaRole]) {
+                        me.ariaEl.dom.setAttribute('aria-hidden', true);
+                    }
+
+                    // Part of the Focusable mixin API.
+                    // If we have focus now, move focus back to whatever had it before.
+                    me.revertFocus();
+
+                    // Default to configured animate target if none passed
+                    animateTarget = me.getAnimateTarget(animateTarget);
+
+                    // Need to be able to ghost the Component
+                    if (!me.ghost) {
+                        animateTarget = null;
+                    }
+                    // If we're animating, kick off an animation of the ghost down to the target
+                    if (animateTarget) {
+                        toBox = {
+                            x: animateTarget.getX(),
+                            y: animateTarget.getY(),
+                            width: Math.min(animateTarget.dom.offsetWidth, myEl.dom.offsetWidth/2),
+                            height: Math.min(animateTarget.dom.offsetHeight, myEl.dom.offsetHeight/2)
+                        };
+                        ghostPanel = me.ghost();
+                        ghostPanel.el.stopAnimation();
+                        fromSize = me.getSize();
+                        ghostPanel.el.animate({
+                            to: toBox,
+                            listeners: {
+                                afteranimate: function () {
+                                    delete ghostPanel.componentLayout.lastComponentSize;
+                                    ghostPanel.el.hide();
+                                    ghostPanel.setHiddenState(true);
+                                    ghostPanel.el.setSize(fromSize);
+                                    me.afterHide(cb, scope);
+                                }
+                            }
+                        });
+                    }
+                    me.el.hide();
+                    if (!animateTarget) {
+                        me.afterHide(cb, scope);
+                    }
+                }
+            });
+
+        }
+    }
+
+
+    /**
+     * 重写Ext.LoadMask相关的功能，
+     */
+    export class LoadMaskOverride {
+        constructor() {
+            Ext.override(Ext.LoadMask, {
+                show: function () {
+                    let me = this;
+                    if (me.target && (me.target.disabledLoadMaskOnce || me.target.disabledLoadMask)) {
+                        me.target.disabledLoadMaskOnce = false;
+                        return me;
+                    }
+                    // Element support to be deprecated
+                    if (me.isElement) {
+                        me.ownerCt.mask(this.useMsg ? this.msg : '', this.msgCls);
+                        me.fireEvent('show', this);
+                        return;
+                    }
+                    return me.callParent(arguments);
+                }
+            });
         }
     }
 
@@ -424,7 +539,7 @@ namespace FastOverrider {
     export class ButtonOverride {
         constructor() {
             Ext.override(Ext.button.Button, {
-                afterRender: Ext.Function.createSequence(Ext.button.Button.prototype.afterRender, function () {
+                afterRender: function () {
                     try {
                         let me = this;
                         if (me.tipText) {
@@ -445,10 +560,11 @@ namespace FastOverrider {
                             //需要检测grid选中项
                             FastExt.Button.buttonToBind(grid, me);
                         }
+                        this.callParent(arguments);
                     } catch (e) {
                         console.error(e);
                     }
-                })
+                }
             });
         }
     }
@@ -584,83 +700,29 @@ namespace FastOverrider {
             Ext.override(Ext.dom.Element, {
                 syncContent: function (source) {
                     try {
-                        source = Ext.getDom(source);
-                        let sourceNodes = source.childNodes,
-                            sourceLen = sourceNodes.length,
-                            dest = this.dom,
-                            destNodes = dest.childNodes,
-                            destLen = destNodes.length,
-                            i, destNode, sourceNode,
-                            nodeType, newAttrs, attLen, attName,
-                            elData = dest._extData;
-
-                        // Copy top node's attributes across. Use IE-specific method if possible.
-                        // In IE10, there is a problem where the className will not get updated
-                        // in the view, even though the className on the dom element is correct.
-                        // See EXTJSIV-9462
-                        if (Ext.isIE9m && dest.mergeAttributes) {
-                            dest.mergeAttributes(source, true);
-
-                            // EXTJSIV-6803. IE's mergeAttributes appears not to make the source's "src" value available until after the image is ready.
-                            // So programmatically copy any src attribute.
-                            dest.src = source.src;
-                        } else {
-                            newAttrs = source.attributes;
-                            attLen = newAttrs.length;
-                            for (i = 0; i < attLen; i++) {
-                                attName = newAttrs[i].name;
-                                if (attName !== 'id') {
-                                    dest.setAttribute(attName, newAttrs[i].value);
-                                }
-                            }
-                        }
-
-                        // The element's data is no longer synchronized. We just overwrite it in the DOM
-                        if (elData) {
-                            elData.isSynchronized = false;
-                        }
-
-                        // If the number of child nodes does not match, fall back to replacing innerHTML
-                        if (sourceLen !== destLen) {
-                            dest.innerHTML = source.innerHTML;
-                            return;
-                        }
-
-                        // Loop through source nodes.
-                        // If there are fewer, we must remove excess
-                        for (i = 0; i < sourceLen; i++) {
-                            sourceNode = sourceNodes[i];
-                            destNode = destNodes[i];
-                            nodeType = sourceNode.nodeType;
-
-                            // If node structure is out of sync, just drop innerHTML in and return
-                            if (nodeType !== destNode.nodeType || (nodeType === 1 && sourceNode.tagName !== destNode.tagName)) {
-                                dest.innerHTML = source.innerHTML;
-                                return;
-                            }
-
-                            // Update text node
-                            if (nodeType === 3) {
-                                destNode.data = sourceNode.data;
-                            }
-                            // Sync element content
-                            else {
-                                try {
-                                    if (sourceNode.id && destNode.id !== sourceNode.id) {
-                                        destNode.id = sourceNode.id;
-                                    }
-                                    destNode.style.cssText = sourceNode.style.cssText;
-                                    destNode.className = sourceNode.className;
-                                    Ext.fly(destNode, '_syncContent').syncContent(sourceNode);
-                                } catch (e) {
-                                }
-                            }
-                        }
+                        this.callParent(arguments);
                     } catch (e) {
                         console.error(e);
                     }
                 }
             });
+
+
+            Ext.override(Ext.dom.Element, {
+                show: function (animate) {
+                    if (this.dom.className.startWith("x-css-shadow")
+                        || this.dom.className.startWith("x-menu")
+                        || this.dom.className.startWith("x-boundlist")) {
+                        this.setVisible(true, this.anim({
+                            duration: 20
+                        }));
+                        return this;
+                    }
+                    this.callParent(arguments);
+                    return this;
+                }
+            });
+
         }
     }
 
@@ -1107,6 +1169,7 @@ namespace FastOverrider {
     export class MenuOverride {
         constructor() {
             Ext.override(Ext.menu.Menu, {
+
                 hide: function () {
                     if (!FastExt.System.isInitSystem()) {
                         return;
@@ -1146,6 +1209,14 @@ namespace FastOverrider {
     export class WindowOverride {
         constructor() {
             Ext.override(Ext.Window, {
+                setIcon: function (value) {
+                    this.callParent(arguments);
+                    let me = this;
+                    let regStr = /([^/]*.svg)/;
+                    if (value && regStr.test(value)) {
+                        me.icon = FastExt.Server.getIcon(regStr.exec(value)[1].trim(), "#ffffff");
+                    }
+                },
                 afterRender: function () {
                     this.callParent(arguments);
                     if (!this.modal) {
@@ -1158,11 +1229,21 @@ namespace FastOverrider {
                         }
                     }
                 },
-                initComponent: Ext.Function.createSequence(Ext.Window.prototype.initComponent, function () {
+                initComponent: function () {
                     try {
+                        this.callParent(arguments);
+                        if (!this.animateTarget) {
+                            this.animateTarget = FastExt.Base.getTargetElement(FastExt.System.currClickTarget);
+                        }
+
                         if (!eval(FastExt.System.getExt("window-anim").value)) {
                             this.animateTarget = null;
                         }
+
+                        if (FastExt.Base.toString(this.xtype, "") === "toast") {
+                            this.animateTarget = null;
+                        }
+
                         let regStr = /([^/]*.svg)/;
                         if (this.icon && regStr.test(this.icon)) {
                             this.icon = FastExt.Server.getIcon(regStr.exec(this.icon)[1].trim(), "#ffffff");
@@ -1175,17 +1256,36 @@ namespace FastOverrider {
                     } catch (e) {
                         console.error(e);
                     }
-                })
+                }
             });
-
-            Ext.override(Ext.window.Window, {
-                setIcon: Ext.Function.createSequence(Ext.window.Window.prototype.setIcon, function (value) {
+            Ext.override(Ext.window.MessageBox, {
+                show: function (cfg) {
                     let me = this;
-                    let regStr = /([^/]*.svg)/;
-                    if (value && regStr.test(value)) {
-                        me.icon = FastExt.Server.getIcon(regStr.exec(value)[1].trim(), "#ffffff");
+                    cfg = cfg || {};
+
+                    if (FastExt.Base.toBool(cfg.progress, false)
+                        || FastExt.Base.toBool(cfg.wait, false)) {
+                        cfg.animateTarget = null;
+                    } else {
+                        if (Ext.isEmpty(cfg.animateTarget)) {
+                            cfg.animateTarget = FastExt.Base.getTargetElement(FastExt.System.currClickTarget);
+                        }
+                        if (!eval(FastExt.System.getExt("window-anim").value)) {
+                            cfg.animateTarget = null;
+                        }
+
+                        if (cfg.animateTarget && Ext.isElement(cfg.animateTarget) && !FastExt.Base.isElementInViewport(cfg.animateTarget)) {
+                            cfg.animateTarget = null;
+                        }
+
+                        me.on("show", function (obj) {
+                            obj.toFront(true);
+                            obj.focus();
+                        }, this, {single: true});
                     }
-                })
+                    me.callParent(arguments);
+                    return me;
+                },
             });
         }
     }
@@ -1205,6 +1305,23 @@ namespace FastOverrider {
                         for (let i = 0; i < menuCmpArray.length; i++) {
                             menuCmpArray[i].hide();
                         }
+                    }
+                }
+            });
+        }
+    }
+
+
+    /**
+     * 重写Ext.tip.ToolTip 相关的功能
+     */
+    export class TooltipOverride {
+        constructor() {
+            Ext.override(Ext.tip.ToolTip, {
+                onDocMouseDown: function (e) {
+                    try {
+                        this.callParent(arguments);
+                    } catch (e) {
                     }
                 }
             });

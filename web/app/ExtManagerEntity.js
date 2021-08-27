@@ -15,6 +15,7 @@ function ExtManagerEntity() {
             contextMenu: true,
             store: dataStore,
             enableLocking: true,
+            defaultToolBarLink: false,
             operate: {
                 alertDelete: true,
                 alertUpdate: true,

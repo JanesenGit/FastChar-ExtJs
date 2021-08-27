@@ -210,6 +210,12 @@ public class FastHeadHtmlObserver {
                     themeColorDarkExt.setValue(ColorUtils.getDarkColor(value, 0.2));
                     themeColorDarkExt.fromProperty();
                     waitAdd.add(themeColorDarkExt);
+
+                    FastHeadExtInfo themeColorLightExt = new FastHeadExtInfo();
+                    themeColorLightExt.setName("theme-color-light");
+                    themeColorLightExt.setValue(ColorUtils.getLightColor(value, 0.2));
+                    themeColorLightExt.fromProperty();
+                    waitAdd.add(themeColorLightExt);
                 }
             }
         }
@@ -307,9 +313,15 @@ public class FastHeadHtmlObserver {
         rootInfo.setValue(FastChar.getPath().getWebRootPath());
         rootInfo.fromProperty();
 
-        heads.add(indexExtInfo);
-        heads.add(loginExtInfo);
-        heads.add(welcomeExtInfo);
+        if (indexExtInfo.isExistFile()) {
+            heads.add(indexExtInfo);
+        }
+        if (loginExtInfo.isExistFile()) {
+            heads.add(loginExtInfo);
+        }
+        if (welcomeExtInfo.isExistFile()) {
+            heads.add(welcomeExtInfo);
+        }
         heads.add(debugExtInfo);
         heads.add(osExtInfo);
         heads.add(javaExtInfo);

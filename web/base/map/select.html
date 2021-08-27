@@ -66,7 +66,8 @@
     function initMap() {
         try {
             map = new AMap.Map("container", {
-                resizeEnable: true
+                resizeEnable: true,
+                rotateEnable:true
             });
 
             map.plugin([
@@ -114,29 +115,37 @@
 
 
     function initMarker(position) {
-        marker = new AMap.Marker({
-            map: map,
-            position: position,
-            draggable: true,
-            cursor: 'move',
-            raiseOnDrag: true
-        });
-        window.parent.closeMapMask();
-        marker.on('dragend', onMarkDragEnd);
+        if (!marker) {
+            marker = new AMap.Marker({
+                map: map,
+                position: position,
+                draggable: true,
+                cursor: 'move',
+                raiseOnDrag: true
+            });
+            window.parent.closeMapMask();
+            marker.on('dragend', onMarkDragEnd);
+            map.setZoomAndCenter(14, position);
+        }else{
+            marker.setPosition(position)
+            map.setCenter(marker.getPosition());
+        }
     }
 
     //开始定位
     function startLocation() {
         geolocation.getCityInfo(function (status, result) {
+            window.parent.closeMapMask();
+            let position;
             if (status === "complete") {
-                window.parent.closeMapMask();
-                let position = new AMap.LngLat(result.position[0], result.position[1], true);
-                initMarker(position);
-                searchPosition(position);
-                map.setZoomAndCenter(14, position);
+                position = new AMap.LngLat(result.position[0], result.position[1], true);
             } else {
-                alert("定位失败！" + result.message);
+                position = new AMap.LngLat(116.410394, 39.934376, true);
+                console.error("定位异常", result);
             }
+            initMarker(position);
+            searchPosition(position);
+            map.setZoomAndCenter(14, position);
         });
     }
 
@@ -154,14 +163,14 @@
                 let city = result.regeocode.addressComponent.city;
                 let district = result.regeocode.addressComponent.district;
 
-                window.parent.setMarkCurrPos(position,
-                    result.regeocode.formattedAddress, province, city, district);
+                window.parent.setMarkCurrPos(position, result.regeocode.formattedAddress, province, city, district);
                 if (marker) {
                     marker.setPosition(position);
                     map.setCenter(position);
                 }
             } else if (status === 'no_data') {
                 window.parent.alert("未检索到位置信息！");
+                window.parent.setMarkCurrPos(position, "未知地址");
             }
         });
     }
@@ -192,11 +201,8 @@
     function setLngLatAddress(lnglat) {
         let position = new AMap.LngLat(lnglat.split(",")[0], lnglat.split(",")[1]);
         initMarker(position);
-        map.setZoomAndCenter(14, position);
         searchPosition(position);
     }
-
-
 
 
 </script>

@@ -96,6 +96,7 @@ Ext.define('Ext.ux.TabCloseMenu', {
             index = me.tabBar.items.indexOf(tab);
 
         me.item = me.tabPanel.getComponent(index);
+        menu.child('#anchorLeftMenu').setDisabled(!me.item.closable);
         menu.child('#close').setDisabled(!me.item.closable);
         menu.child('#copyTab').setDisabled(!me.item.closable);
         menu.child('#openInWindowTab').setDisabled(!me.item.closable);
@@ -136,7 +137,7 @@ Ext.define('Ext.ux.TabCloseMenu', {
             }
         }
 
-        menu.child('#closeRightOthers').setDisabled(this.tabPanel.items.indexOf(this.item) == this.tabPanel.items.getCount() - 1);
+        menu.child('#closeRightOthers').setDisabled(this.tabPanel.items.indexOf(this.item) === this.tabPanel.items.getCount() - 1);
         event.preventDefault();
         me.fireEvent('beforemenu', menu, me.item, me);
 
@@ -148,6 +149,15 @@ Ext.define('Ext.ux.TabCloseMenu', {
 
         if (!me.menu) {
             var items = [];
+            items.push({
+                itemId: 'anchorLeftMenu',
+                text: '定位左侧菜单',
+                scope: me,
+                iconCls: 'extIcon extLastPoint',
+                handler: function(){
+                    me.item.anchorLeftMenu();
+                }
+            });
             items.push({
                 itemId: 'copyUrlTab',
                 text: '复制地址',
@@ -181,35 +191,7 @@ Ext.define('Ext.ux.TabCloseMenu', {
                 scope: me,
                 iconCls: 'extIcon extWindow',
                 handler: function(){
-                    var winWidth = parseInt((document.body.clientWidth * 0.8).toFixed(0));
-                    var winHeight = parseInt((document.body.clientHeight * 0.9).toFixed(0));
-                    var win = Ext.create('Ext.window.Window', {
-                        title: me.item.title,
-                        height: winHeight,
-                        width: winWidth,
-                        minHeight: 500,
-                        minWidth: 800,
-                        icon: me.item.icon,
-                        layout: 'fit',
-                        resizable: true,
-                        constrain: true,
-                        maximizable: true,
-                        listeners: {
-                            show: function (win) {
-                                system.asyncMethod(me.item.method).then(function (obj) {
-                                    if (obj == null) {
-                                        return;
-                                    }
-                                    var entityOwner = obj.down("[entityList=true]");
-                                    if (entityOwner) {
-                                        entityOwner.code = $.md5("Window" + Ext.now());
-                                    }
-                                    win.add(obj);
-                                });
-                            }
-                        }
-                    });
-                    win.show();
+                    me.item.openInWindow();
                 }
             });
             items.push('-');

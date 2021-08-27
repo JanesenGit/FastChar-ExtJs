@@ -27,6 +27,7 @@
     let position;
     let map;
     let mapTitle;
+    let mapAddress;
 
 
     function getQueryString(name) {
@@ -64,6 +65,10 @@
             mapKey = getQueryString("mapKey");
         }
         mapTitle = decodeURI(getQueryString("mapTitle"));
+        mapAddress = decodeURI(getQueryString("mapAddress"));
+        if (!mapAddress) {
+            mapAddress = mapTitle;
+        }
         let srcUrl = "https://webapi.amap.com/maps?v=" + mapVersion + "&key=" + mapKey + "&plugin=AMap.Autocomplete,AMap.Geocoder,AMap.PlaceSearch";
         addScript({src: srcUrl}, function () {
             initMap();
@@ -75,7 +80,8 @@
             lngLat = getQueryString("lnglat");
             position = new AMap.LngLat(lngLat.split(",")[0], lngLat.split(",")[1]);
             map = new AMap.Map("container", {
-                resizeEnable: true
+                resizeEnable: true,
+                rotateEnable: true
             });
             map.plugin([
                 'AMap.ToolBar',
@@ -101,27 +107,30 @@
 
 
     function regeocoder() {  //逆地理编码
-        marker = new AMap.Marker({  //加点
-            map: map,
-            position: position
-        });
-        marker.on("click", function () {
-            infoWindow.open(map, marker.getPosition());
-        });
+        try {
+            marker = new AMap.Marker({  //加点
+                map: map,
+                position: position
+            });
+            marker.on("click", function () {
+                infoWindow.open(map, marker.getPosition());
+            });
 
-        let geocoder = new AMap.Geocoder({
-            radius: 1000,
-            extensions: "all"
-        });
-        geocoder.getAddress(position, function (status, result) {
-            // console.log(status, result);
-            if (status === 'complete' && result.info === 'OK') {
-                geocoder_CallBack(result);
-            } else {
-                alert("获取位置失败！请检查您配置的key和version是否正确！");
-            }
-        });
-        map.setFitView();
+            let geocoder = new AMap.Geocoder({
+                radius: 1000,
+                extensions: "all"
+            });
+            geocoder.getAddress(position, function (status, result) {
+                // console.log(status, result);
+                if (status === 'complete' && result.info === 'OK') {
+                    geocoder_CallBack(result);
+                } else {
+                    geocoder_CallBack({regeocode: {formattedAddress: mapAddress}});
+                }
+            });
+            map.setFitView();
+        } catch (e) {
+        }
     }
 
     function geocoder_CallBack(data) {

@@ -97,7 +97,7 @@ public class ExtManagerAction extends FastAction {
      * loginName 登录名{String}
      * loginPassword 登录密码【MD5加密后提交】 {String}
      * operate 操作的功能介绍
-     * timeout 验证的有效期，单位毫秒 默认：24小时，
+     * timeout 验证的有效期，单位秒 默认：24小时，
      */
     @AFastLog(value = "${managerRole}【${managerName}】进行了操作【${operate}】验证！", type = "安全验证")
     public void valid() {
