@@ -1,8 +1,12 @@
 package com.fastchar.extjs.core.menus;
 
 import com.fastchar.core.FastBaseInfo;
+import com.fastchar.extjs.FastExtConfig;
+import com.fastchar.extjs.core.heads.FastHeadStyleInfo;
 import com.fastchar.extjs.exception.FastMenuException;
+import com.fastchar.extjs.utils.ColorUtils;
 import com.fastchar.utils.FastBooleanUtils;
+import com.fastchar.utils.FastMD5Utils;
 import com.fastchar.utils.FastStringUtils;
 
 import java.util.ArrayList;
@@ -20,10 +24,12 @@ public class FastMenuInfo extends FastBaseInfo {
     private String iconCls;
     private String color;
     private String parentId;
-    private String index = "9";
+    private String index;
     private Boolean checked;
     private Boolean leaf;
     private Integer depth;
+    private String baseCls;
+    private String theme;
 
     private List<FastMenuInfo> children = new ArrayList<>();
 
@@ -143,6 +149,24 @@ public class FastMenuInfo extends FastBaseInfo {
         return this;
     }
 
+    public String getBaseCls() {
+        return baseCls;
+    }
+
+    public FastMenuInfo setBaseCls(String baseCls) {
+        this.baseCls = baseCls;
+        return this;
+    }
+
+    public String getTheme() {
+        return theme;
+    }
+
+    public FastMenuInfo setTheme(String theme) {
+        this.theme = theme;
+        return this;
+    }
+
     public void resetIcon() {
         if (FastStringUtils.isNotEmpty(getIconValue())) {
             String path = "icon?path=" + getIconValue();
@@ -151,6 +175,9 @@ public class FastMenuInfo extends FastBaseInfo {
             }
             setIcon(path);
             iconName = iconValue.substring(iconValue.lastIndexOf("/") + 1);
+        }
+        if (FastStringUtils.isNotEmpty(getColor())) {
+            setBaseCls("baseTab" + FastMD5Utils.MD5To16(getColor()) + "Cls");
         }
     }
 
@@ -220,4 +247,13 @@ public class FastMenuInfo extends FastBaseInfo {
         return newMenu;
     }
 
+    public String getColorValue() {
+        if (FastStringUtils.isEmpty(getColor())) {
+            return null;
+        }
+        if (ColorUtils.isRgbColor(getColor())) {
+            return getColor();
+        }
+        return "#" + FastStringUtils.stripStart(getColor(), "#");
+    }
 }

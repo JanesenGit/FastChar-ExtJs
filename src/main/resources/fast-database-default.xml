@@ -114,6 +114,9 @@
         <column name="configId" comment="用户编号" type="int" length="11"
                 primary="true" autoincrement="true" nullable="not null"/>
 
+        <column name="projectName" comment="项目名称" type="varchar"
+                length="500" nullable="null" index="true"/>
+
         <column name="entityCode" comment="实体编号" type="varchar"
                 length="500" nullable="null" index="true"/>
 

@@ -5,6 +5,17 @@ import com.fastchar.core.FastBaseInfo;
 public class FastEnumInfo extends FastBaseInfo {
     private Object id;
     private String text;
+    private String name;
+
+    public String getName() {
+        return name;
+    }
+
+    public FastEnumInfo setName(String name) {
+        this.name = name;
+        set("name", name);
+        return this;
+    }
 
     public Object getId() {
         return id;

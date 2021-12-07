@@ -38,6 +38,13 @@ public abstract class FastExtEntity<E extends FastEntity<?>> extends FastEntity<
      */
     public abstract FastPage<E> showList(int page, int pageSize);
 
+    /**
+     * 是否打印实体对应的表格不存在
+     * @return 布尔值
+     */
+    public boolean logNotFoundTable() {
+        return true;
+    }
 
     /**
      * 填充权限检测的条件

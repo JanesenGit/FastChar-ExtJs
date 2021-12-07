@@ -17,7 +17,17 @@ public class FastExtRootAttachInterceptor implements IFastRootInterceptor {
             String[] split = contentUrl.split("attach/");
             String child = split[1];
             File file = new File(FastChar.getConstant().getAttachDirectory(), child);
-            String path = file.getAbsolutePath();
+            String path = child;
+            if (file.exists()) {
+                path = file.getAbsolutePath();
+            }else{
+                file = new File(FastChar.getPath().getWebRootPath(), child);
+            }
+
+            if (file.exists()) {
+                path = file.getAbsolutePath();
+            }
+
             if (child.startsWith("http://") || child.startsWith("https://")) {
                 path = child;
             }

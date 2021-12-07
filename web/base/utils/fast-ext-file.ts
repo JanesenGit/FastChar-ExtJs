@@ -18,6 +18,33 @@ namespace FastExt {
         }
 
         /**
+         * 判断文件名是否以后缀名，包含了fastchar文件格式的判断
+         * @param fileName 文件名
+         * @param suffix 后缀名，可传多个
+         */
+        static isSuffixFile(fileName: string, ...suffix): boolean {
+            let realName =  fileName.substring(fileName.lastIndexOf("/") + 1).toString().toLowerCase();
+            for (let i = 0; i < suffix.length; i++) {
+                let realValue = suffix[i].replace(".", "").toLowerCase();
+                // @ts-ignore
+                if (realName.endWith("." + realValue) || realName.startWith(realValue + "-")) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+
+        /**
+         * 打开新窗口在线预览office办公文件
+         * @param url 文件地址
+         */
+        static officeViewer(url: string) {
+            let viewerUrl = "officeViewer?url=" + url;
+            FastExt.Base.openUrl(viewerUrl);
+        }
+
+        /**
          * 弹出上传文件的对话框
          * @param obj 控件对象
          * @param fileModules 文件类型
@@ -76,16 +103,9 @@ namespace FastExt {
                                         let errorMsg = "";
                                         for (let i = 0; i < fileModules.length; i++) {
                                             let fileModule = fileModules[i];
-                                            if (fileModule.reg) {
-                                                if (fileModule.reg.test(value)) {
-                                                    formPanel.doSubmit();
-                                                    return;
-                                                }
-                                            } else if (fileModule.regStr) {
-                                                if (new RegExp(fileModule.regStr).test(value)) {
-                                                    formPanel.doSubmit();
-                                                    return;
-                                                }
+                                            if (fileModule.match(value)) {
+                                                formPanel.doSubmit();
+                                                return;
                                             }
                                             errorMsg = errorMsg + "或" + fileModule.tipMsg;
                                         }
@@ -512,11 +532,12 @@ namespace FastExt {
          */
         static file(): any {
             return {
-                regStr: '\.*',
-                reg: new RegExp(/\.*$/i),
                 tipMsg: '文件',
                 type: 'file',
-                renderer: FastExt.Renders.file()
+                renderer: FastExt.Renders.file(),
+                match: function (name) {
+                    return new RegExp(/\.*$/i).test(name);
+                }
             }
         }
 
@@ -535,11 +556,12 @@ namespace FastExt {
             return {
                 width: width,
                 height: height,
-                regStr: '\.(jpg|png|gif|jpeg|svg|bmp)',
-                reg: new RegExp(/\.(jpg|png|gif|jpeg|svg|bmp)$/i),
                 tipMsg: '图片',
                 type: 'images',
-                renderer: FastExt.Renders.image(24)
+                renderer: FastExt.Renders.image(24),
+                match: function (name) {
+                    return FastExt.File.isSuffixFile(name,"jpg","png","gif","jpeg","svg","bmp","webp");
+                }
             };
         }
 
@@ -550,8 +572,6 @@ namespace FastExt {
          */
         static mp4(maxDuration?: number): any {
             return {
-                regStr: '\.(mp4)',
-                reg: new RegExp(/\.(mp4)$/i),
                 tipMsg: 'mp4',
                 type: 'videos',
                 maxDuration: maxDuration,
@@ -578,7 +598,10 @@ namespace FastExt {
                         });
                     });
                 },
-                renderer: FastExt.Renders.file()
+                renderer: FastExt.Renders.file(),
+                match: function (name) {
+                    return FastExt.File.isSuffixFile(name,"mp4");
+                }
             };
         }
 
@@ -587,8 +610,6 @@ namespace FastExt {
          */
         static mp3(): any {
             return {
-                regStr: '\.(mp3)',
-                reg: new RegExp(/\.(mp3)$/i),
                 tipMsg: 'mp3',
                 type: 'music',
                 renderer: FastExt.Renders.file(),
@@ -606,6 +627,9 @@ namespace FastExt {
                         });
                     });
                 },
+                match: function (name) {
+                    return FastExt.File.isSuffixFile(name,"mp3");
+                }
             };
         }
 
@@ -614,11 +638,12 @@ namespace FastExt {
          */
         static word(): any {
             return {
-                regStr: '\.(doc|docx)',
-                reg: new RegExp(/\.(doc|docx)$/i),
                 tipMsg: 'word文档',
                 type: 'words',
-                renderer: FastExt.Renders.file()
+                renderer: FastExt.Renders.file(),
+                match: function (name) {
+                    return FastExt.File.isSuffixFile(name,"doc","docx");
+                }
             };
         }
 
@@ -627,11 +652,12 @@ namespace FastExt {
          */
         static excel(): any {
             return {
-                regStr: '\.(xls|xlsx)',
-                reg: new RegExp(/\.(xls|xlsx)$/i),
                 tipMsg: 'excel文档',
                 type: 'excels',
-                renderer: FastExt.Renders.file()
+                renderer: FastExt.Renders.file(),
+                match: function (name) {
+                    return FastExt.File.isSuffixFile(name,"xls","xlsx");
+                }
             };
         }
 
@@ -640,11 +666,12 @@ namespace FastExt {
          */
         static ppt(): any {
             return {
-                regStr: '\.(ppt|pptx)',
-                reg: new RegExp(/\.(ppt|pptx)$/i),
                 tipMsg: 'ppt文档',
                 type: 'ppt',
-                renderer: FastExt.Renders.file()
+                renderer: FastExt.Renders.file(),
+                match: function (name) {
+                    return FastExt.File.isSuffixFile(name,"ppt","pptx");
+                }
             };
         }
 
@@ -653,11 +680,12 @@ namespace FastExt {
          */
         static pdf(): any {
             return {
-                regStr: '\.(pdf)',
-                reg: new RegExp(/\.(pdf)$/i),
                 tipMsg: 'pdf文档',
                 type: 'pdf',
-                renderer: FastExt.Renders.file()
+                renderer: FastExt.Renders.file(),
+                match: function (name) {
+                    return FastExt.File.isSuffixFile(name,"pdf");
+                }
             };
         }
 
@@ -666,11 +694,12 @@ namespace FastExt {
          */
         static zip(): any {
             return {
-                regStr: '\.(zip|rar)',
-                reg: new RegExp(/\.(zip|rar)$/i),
                 tipMsg: 'zip压缩包',
                 type: 'zip',
-                renderer: FastExt.Renders.file()
+                renderer: FastExt.Renders.file(),
+                match: function (name) {
+                    return FastExt.File.isSuffixFile(name,"zip", "rar");
+                }
             };
         }
 
@@ -679,11 +708,12 @@ namespace FastExt {
          */
         static text(): any {
             return {
-                regStr: '\.(txt)',
-                reg: new RegExp(/\.(txt)$/i),
                 tipMsg: 'txt文档',
                 type: 'txt',
-                renderer: FastExt.Renders.file()
+                renderer: FastExt.Renders.file(),
+                match: function (name) {
+                    return FastExt.File.isSuffixFile(name,"txt");
+                }
             };
         }
 
@@ -692,14 +722,55 @@ namespace FastExt {
          */
         static data(): any {
             return {
-                regStr: '\.(data)',
-                reg: new RegExp(/\.(data)$/i),
                 tipMsg: '数据文件',
                 type: 'data',
-                renderer: FastExt.Renders.file()
+                renderer: FastExt.Renders.file(),
+                match: function (name) {
+                    return FastExt.File.isSuffixFile(name,"data");
+                }
             };
         }
 
+        /**
+         * JSON文件
+         */
+        static json(): any {
+            return {
+                tipMsg: 'JSON文件',
+                type: 'json',
+                renderer: FastExt.Renders.file(),
+                match: function (name) {
+                    return FastExt.File.isSuffixFile(name,"json");
+                }
+            };
+        }
+        /**
+         * APK文件
+         */
+        static apk(): any {
+            return {
+                tipMsg: '安卓安装包（APK）',
+                type: 'apk',
+                renderer: FastExt.Renders.file(),
+                match: function (name) {
+                    return FastExt.File.isSuffixFile(name,"apk");
+                }
+            };
+        }
+
+        /**
+         * ipa文件
+         */
+        static ipa(): any {
+            return {
+                tipMsg: '苹果安装包（IPA）',
+                type: 'ipa',
+                renderer: FastExt.Renders.file(),
+                match: function (name) {
+                    return FastExt.File.isSuffixFile(name,"ipa");
+                }
+            };
+        }
     }
 
 }

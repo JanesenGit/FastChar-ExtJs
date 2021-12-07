@@ -38,9 +38,6 @@ public class FastExtTableInfo extends FastTableInfo<FastExtTableInfo> {
             return getString("shortName");
         }
         if (FastStringUtils.isNotEmpty(getComment())) {
-            if (getComment().endsWith("管理")) {
-
-            }
             return getComment().replace("管理", "");
         }
         return "";

@@ -191,6 +191,21 @@ namespace FastExtend {
          * 如果button按钮放置在grid中的toolbar中，此属性表示是否自动将按钮添加到grid的右键菜单中，默认为：true
          */
         contextMenu: boolean = true;
+
+        /**
+         * 当grid选中指定行数时按钮可用
+         */
+        checkSelect: number;
+
+        /**
+         * 当grid修改了数据时按钮可用
+         */
+        checkUpdate: number;
+
+        /**
+         * 是否弹出数据详情窗体时绑定此按钮，绑定的函数支持引用外部变量名有：grid : Ext.grid.Panel  me : FastExtEntity
+         */
+        bindDetail: boolean = false;
     }
 
 
@@ -241,7 +256,6 @@ namespace FastExtend {
          * 当defaultToolBar为true时，是否配置默认的【更多操作】按钮
          */
         defaultToolBarMore: boolean = true;
-
     }
 
 
@@ -264,13 +278,19 @@ namespace FastExtend {
                 return this.getForm().findField(fieldName);
             };
 
-            Ext.form.FormPanel.prototype.submitForm = function (entity, extraParams, waitMsg) {
+            Ext.form.FormPanel.prototype.submitForm = function (entity, extraParams, waitMsg,successAlert,failAlert) {
                 let me = this;
                 if (!extraParams) {
                     extraParams = {};
                 }
                 if (!waitMsg) {
                     waitMsg = "正在提交中……"
+                }
+                if (Ext.isEmpty(successAlert)) {
+                    successAlert = true;
+                }
+                if (Ext.isEmpty(failAlert)) {
+                    failAlert = true;
                 }
                 if (me.submiting) {
                     return new Ext.Promise(function (resolve, reject) {
@@ -284,15 +304,21 @@ namespace FastExtend {
                         params: extraParams,
                         success: function (form, action) {
                             me.submiting = false;
-                            Ext.Msg.alert('系统提醒', action.result.message, function (btn) {
-                                if (btn === "ok") {
-                                    resolve(action.result);
-                                }
-                            });
+                            if (successAlert) {
+                                Ext.Msg.alert('系统提醒', action.result.message, function (btn) {
+                                    if (btn === "ok") {
+                                        resolve(action.result);
+                                    }
+                                });
+                            }else{
+                                resolve(action.result);
+                            }
                         },
                         failure: function (form, action) {
                             me.submiting = false;
-                            Ext.Msg.alert('系统提醒', action.result.message);
+                            if (failAlert) {
+                                Ext.Msg.alert('系统提醒', action.result.message);
+                            }
                             reject(action.result);
                         }
                     };
@@ -407,9 +433,11 @@ namespace FastExtend {
          * @param entity 实体的类对象
          * @param extraParams 扩展参数
          * @param waitMsg 提交时等待的消息
+         * @param successAlert 弹出成功框 默认：true
+         * @param failAlert 弹出失败消息 默认：true
          * @see {@link FastExtend.FormPanel.constructor}
          */
-        abstract submitForm(entity, extraParams, waitMsg);
+        abstract submitForm(entity, extraParams, waitMsg,successAlert,failAlert);
 
         /**
          * 暂存form表单的数据
@@ -556,11 +584,58 @@ namespace FastExtend {
          */
         where: any;
 
+        /**
+         * 是否允许搜索，默认true
+         */
+        search: boolean = true;
+
+        /**
+         * 当前列弹出的搜索菜单
+         */
+        searchMenu: "Ext.menu.Menu";
+
+        /**
+         * 列配置的搜索链信息
+         */
+        searchLink: [];
+
+        /**
+         * 列数据是否是加密数据
+         */
+        encrypt: boolean;
+
+        /**
+         * 列是否是密码类型
+         */
+        password: boolean;
 
         /**
          * 组件的唯一标识
          */
         code: string;
+
+        /**
+         * 列的渲染函数名，当渲染函数需要参数的时候，建议使用字符串配置，便于系统记忆和恢复！
+         */
+        rendererFunction: string;
+
+
+        /**
+         * 当前列的排序类型 asc或desc
+         */
+        sortDirection: string;
+
+
+        /**
+         * 当前列弹出的编辑菜单
+         */
+        editMenu: "Ext.menu.Menu";
+
+        /**
+         * 当前列批量编辑的编辑组件
+         */
+        batchField: "Ext.Form.Field";
+
 
         /**
          * 获取搜索列数据的条件属性名
@@ -609,6 +684,26 @@ namespace FastExtend {
          * 当手势滑动滚动条时，隐藏menu
          */
         scrollToHidden: boolean;
+    }
+
+    /**
+     * FastChar-ExtJs的实体类（Entity）对象扩展属性
+     */
+    export abstract class EntityExtend {
+        /**
+         * 是否允许自动配置清空数据按钮，默认 true
+         */
+        actionDeleteAll: boolean = true;
+
+        /**
+         * 是否允许自动配置复制数据按钮，默认 true
+         */
+        actionCopy: boolean = true;
+
+        /**
+         * 是否允许自动配置定时刷新器按钮，默认 true
+         */
+        actionTimer: boolean = true;
     }
 
 

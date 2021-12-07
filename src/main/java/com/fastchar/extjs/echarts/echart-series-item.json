@@ -1,0 +1,8 @@
+{
+  "name": "标题",
+  "type": "line",
+  "data": [],
+  "emphasis": {
+    "focus": "series"
+  }
+}

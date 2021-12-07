@@ -2,5 +2,5 @@ Manifest-Version: 1.0
 FastChar-Web: com.fastchar.extjs.FastCharExtWeb
 FastChar-Scanner: true
 FastChar-Extract: true
-FastChat-Exclude: */build-compress.txt,*/*.ts,*/base/index/index.js,*/base/login/login.js
-FastChar-Plugin-Version: 1.2.7
+FastChar-Exclude: */build-compress.txt,*/*.ts,*/base/index/index.js,*/base/login/login.js,*/base/utils/fast-ext-utils.js,*/fastchar/extjs/echarts/*.json,readme.txt
+FastChar-Plugin-Version: 1.7.1

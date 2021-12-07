@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--suppress ALL -->
-<html lang="en">
+<html lang="zh">
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
@@ -10,9 +10,13 @@
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
     <base href="${http}">
     <script src="js/jquery.js"></script>
+    <script src="base/lottie/lottie.min.js"></script>
     ${head}
 
     <style type="text/css">
+        html {
+            overflow: hidden !important;
+        }
         body {
             margin: 0px;
             padding: 0px;
@@ -33,328 +37,24 @@
             height: 100%;
             width: 100%;
             position: fixed;
-            margin-top: 0px;
-            top: 0px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             background-color: ${color};
+            overflow: hidden;
         }
 
         #loading-center {
-            width: 100%;
-            height: 100%;
-            position: relative;
+            width: 30%;
+            height: 30%;
+            overflow: hidden;
         }
-
-        #loading-center-absolute {
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            height: 150px;
-            width: 150px;
-            margin-top: -75px;
-            margin-left: -75px;
-            -ms-transform: rotate(45deg);
-            -webkit-transform: rotate(45deg);
-            transform: rotate(45deg);
-        }
-
-        .object {
-            width: 20px;
-            height: 20px;
-            background-color: #FFF;
-            position: absolute;
-            left: 65px;
-            top: 65px;
-            -moz-border-radius: 50% 50% 50% 50%;
-            -webkit-border-radius: 50% 50% 50% 50%;
-            border-radius: 50% 50% 50% 50%;
-        }
-
-        .object:nth-child(2n+0) {
-            margin-right: 0px;
-
-        }
-
-        #object_one {
-            -webkit-animation: object_one 2s infinite;
-            animation: object_one 2s infinite;
-            -webkit-animation-delay: 0.2s;
-            animation-delay: 0.2s;
-        }
-
-        #object_two {
-            -webkit-animation: object_two 2s infinite;
-            animation: object_two 2s infinite;
-            -webkit-animation-delay: 0.3s;
-            animation-delay: 0.3s;
-        }
-
-        #object_three {
-            -webkit-animation: object_three 2s infinite;
-            animation: object_three 2s infinite;
-            -webkit-animation-delay: 0.4s;
-            animation-delay: 0.4s;
-        }
-
-        #object_four {
-            -webkit-animation: object_four 2s infinite;
-            animation: object_four 2s infinite;
-            -webkit-animation-delay: 0.5s;
-            animation-delay: 0.5s;
-        }
-
-        #object_five {
-            -webkit-animation: object_five 2s infinite;
-            animation: object_five 2s infinite;
-            -webkit-animation-delay: 0.6s;
-            animation-delay: 0.6s;
-        }
-
-        #object_six {
-            -webkit-animation: object_six 2s infinite;
-            animation: object_six 2s infinite;
-            -webkit-animation-delay: 0.7s;
-            animation-delay: 0.7s;
-        }
-
-        #object_seven {
-            -webkit-animation: object_seven 2s infinite;
-            animation: object_seven 2s infinite;
-            -webkit-animation-delay: 0.8s;
-            animation-delay: 0.8s;
-        }
-
-        #object_eight {
-            -webkit-animation: object_eight 2s infinite;
-            animation: object_eight 2s infinite;
-            -webkit-animation-delay: 0.9s;
-            animation-delay: 0.9s;
-        }
-
-        #object_big {
-            position: absolute;
-            width: 50px;
-            height: 50px;
-            left: 50px;
-            top: 50px;
-            -webkit-animation: object_big 2s infinite;
-            animation: object_big 2s infinite;
-            -webkit-animation-delay: 0.5s;
-            animation-delay: 0.5s;
-        }
-
-        .wrap,
-        .circle,
-        .percent {
-            position: absolute;
-            width: 280px;
-            height: 280px;
-            border-radius: 50%;
-        }
-
-        .wrap {
-            top: 50%;
-            left: 50%;
-            margin-left: -140px;
-            margin-top: -140px;
-        }
-
-        .circle {
-            box-sizing: border-box;
-            border: 8px solid transparent;
-            clip: rect(0, 280px, 280px, 140px);
-        }
-
-        .clip-auto {
-            clip: rect(auto, auto, auto, auto);
-        }
-
-        .percent {
-            box-sizing: border-box;
-            top: -8px;
-            left: -8px;
-        }
-
-        .left {
-            transition: transform ease;
-            border: 8px solid #fff;
-            clip: rect(0, 140px, 280px, 0);
-        }
-
-        .right {
-            border: 8px solid #fff;
-            clip: rect(0, 280px, 280px, 140px);
-        }
-
-        .wth0 {
-            width: 0;
-        }
-
-        @-webkit-keyframes object_big {
-            50% {
-                -webkit-transform: scale(0.35);
-            }
-
-        }
-
-        @keyframes object_big {
-            50% {
-                transform: scale(0.35);
-                -webkit-transform: scale(0.35);
-            }
-
-        }
-
-        @-webkit-keyframes object_one {
-            50% {
-                -webkit-transform: translate(-65px, -65px);
-            }
-        }
-
-        @keyframes object_one {
-            50% {
-                transform: translate(-65px, -65px);
-                -webkit-transform: translate(-65px, -65px);
-            }
-
-        }
-
-        @-webkit-keyframes object_two {
-            50% {
-                -webkit-transform: translate(0, -65px);
-            }
-        }
-
-        @keyframes object_two {
-            50% {
-                transform: translate(0, -65px);
-                -webkit-transform: translate(0, -65px);
-            }
-
-        }
-
-        @-webkit-keyframes object_three {
-            50% {
-                -webkit-transform: translate(65px, -65px);
-            }
-        }
-
-        @keyframes object_three {
-            50% {
-                transform: translate(65px, -65px);
-                -webkit-transform: translate(65px, -65px);
-            }
-        }
-
-        @-webkit-keyframes object_four {
-
-            50% {
-                -webkit-transform: translate(65px, 0);
-            }
-
-        }
-
-        @keyframes object_four {
-            50% {
-                transform: translate(65px, 0);
-                -webkit-transform: translate(65px, 0);
-            }
-        }
-
-        @-webkit-keyframes object_five {
-            50% {
-                -webkit-transform: translate(65px, 65px);
-            }
-        }
-
-        @keyframes object_five {
-            50% {
-                transform: translate(65px, 65px);
-                -webkit-transform: translate(65px, 65px);
-            }
-        }
-
-        @-webkit-keyframes object_six {
-
-            50% {
-                -webkit-transform: translate(0, 65px);
-            }
-
-        }
-
-        @keyframes object_six {
-            50% {
-                transform: translate(0, 65px);
-                -webkit-transform: translate(0, 65px);
-            }
-        }
-
-        @-webkit-keyframes object_seven {
-
-            50% {
-                -webkit-transform: translate(-65px, 65px);
-            }
-
-        }
-
-        @keyframes object_seven {
-            50% {
-                transform: translate(-65px, 65px);
-                -webkit-transform: translate(-65px, 65px);
-            }
-
-        }
-
-        @-webkit-keyframes object_eight {
-
-            50% {
-                -webkit-transform: translate(-65px, 0);
-            }
-
-        }
-
-        @keyframes object_eight {
-            50% {
-                transform: translate(-65px, 0);
-                -webkit-transform: translate(-65px, 0);
-            }
-        }
-
-        @media all and (-webkit-min-device-pixel-ratio: 0) and (min-resolution: .001dpcm) {
-            .masked {
-                background-image: -webkit-linear-gradient(left, #147B96, #E6D205 25%, #147B96 50%, #E6D205 75%, #147B96);
-                -webkit-text-fill-color: transparent;
-                -webkit-background-clip: text;
-                -webkit-background-size: 200% 100%;
-                -webkit-animation: masked-animation 4s infinite linear;
-            }
-        }
-
-        @-webkit-keyframes masked-animation {
-            0% {
-                background-position: 0 0;
-            }
-            100% {
-                background-position: -100% 0;
-            }
-        }
-
     </style>
 </head>
 
 <body style="width: 100%;height: 100%;overflow: hidden;">
 <div id="loading">
     <div id="loading-center">
-        <div id="loading-center-absolute">
-            <div class="object" id="object_one"></div>
-            <div class="object" id="object_two"></div>
-            <div class="object" id="object_three"></div>
-            <div class="object" id="object_four"></div>
-            <div class="object" id="object_five"></div>
-            <div class="object" id="object_six"></div>
-            <div class="object" id="object_seven"></div>
-            <div class="object" id="object_eight"></div>
-            <div class="object" id="object_big"></div>
-        </div>
     </div>
 </div>
 </body>
@@ -362,18 +62,28 @@
     console.log("%cFastChar-ExtJs框架提供技术支持！http://www.fastchar.com", "color: #8d9294;");
 </script>
 <script>
-    let data = null, powerValue = "${power}", loadIndex = [],fontSize="${fontSize}";
+    let data = null, powerValue = "${power}", loadIndex = [], fontSize = "${fontSize}";
     $(function () {
-        if (checkBroswer()) {
-            $.post("loadApp", function (result) {
-                if (result.success) {
-                    data = result.data;
-                    load(0);
-                } else {
-                    alert(result.message);
-                }
-            });
-        }
+        let lottie = bodymovin.loadAnimation({
+            container: document.getElementById("loading-center"),
+            renderer: 'svg',
+            loop: true,
+            autoplay: true,
+            path: "waiting_anim.json"
+        });
+
+        lottie.addEventListener("data_ready", function () {
+            if (checkBroswer()) {
+                $.post("loadApp", function (result) {
+                    if (result.success) {
+                        data = result.data;
+                        load(0);
+                    } else {
+                        alert(result.message);
+                    }
+                });
+            }
+        });
     });
 
     function removeLoading() {
@@ -426,14 +136,14 @@
             oScript.src = script.src + "?v=" + getExt("version").value;
         } else if (script.href != null && script.href.length > 0) {
             oScript.src = script.href + "?v=" + getExt("version").value;
-        } else if(script.text){
+        } else if (script.text) {
             try {
                 oScript.appendChild(document.createTextNode(script.text));
             } catch (ex) {
                 oScript.text = script.text;
             }
             isCode = true;
-        }else{
+        } else {
             if (callBack != null) {
                 callBack();
             }

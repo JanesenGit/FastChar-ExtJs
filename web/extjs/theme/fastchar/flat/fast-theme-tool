@@ -1,0 +1,7 @@
+.x-tool-default {
+	background-color: transparent !important;
+}
+
+.x-tool-img {
+	background-color: transparent !important;
+}

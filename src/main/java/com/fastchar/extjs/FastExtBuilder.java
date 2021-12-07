@@ -14,7 +14,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-final class JsBuilder {
+final class FastExtBuilder {
     public static void build(String targetPath, String savePath) throws Exception {
         File[] files = new File(targetPath).listFiles(new FilenameFilter() {
             @Override
@@ -38,8 +38,10 @@ final class JsBuilder {
                 listFile.add(new File(targetPath, lines.get(i)));
             }
             ExtFileUtils.merge(targetFile, listFile.toArray(new File[]{}));
-            if (file.getName().contains("compress")) {
-                UglifyJsCompress.compress(targetFile.getPath(),targetFile.getPath());
+            if (file.getName().contains("compress-css")) {
+                FastFileUtils.writeStringToFile(targetFile, YuiCompress.compressCss(FastFileUtils.readFileToString(targetFile, "utf-8")));
+            }else if (file.getName().contains("compress")) {
+                UglifyJsCompress.compress(targetFile.getPath(), targetFile.getPath());
                 System.out.println("正在压缩中……");
             }
             System.out.println("构建成功！" + targetFile);
@@ -61,6 +63,14 @@ final class JsBuilder {
         String projectLocalPath = "/Users/Janesen/工作/space_idea/FrameWork";
         FastChar.getConfig(FastExtConfig.class).setUglifyJsPath("/Users/Janesen/node_modules/uglify-js");
 
+        //合并主题
+        build(projectLocalPath + "/FastChar-ExtJs/web/extjs/theme/fastchar/flat",
+                projectLocalPath + "/FastChar-ExtJs/web/extjs/theme");
+
+        build(projectLocalPath + "/FastChar-ExtJs/web/extjs/theme/fastchar/wrap",
+                projectLocalPath + "/FastChar-ExtJs/web/extjs/theme");
+
+
         //合并插件
         build(projectLocalPath + "/FastChar-ExtJs/web/extjs/ux",
                 projectLocalPath + "/FastChar-ExtJs/web/extjs");
@@ -73,12 +83,12 @@ final class JsBuilder {
                 projectLocalPath + "/FastChar-ExtJs/web/base/index/index.min.js");
 
         FastFileUtils.deleteQuietly(new File(projectLocalPath + "/FastChar-ExtJs/web/base/utils/fast-ext-utils.js"));
+        FastFileUtils.deleteQuietly(new File(projectLocalPath + "/FastChar-ExtJs/web/base/utils/fast-ext-utils.min.js"));
 
         tscBuild(projectLocalPath + "/FastChar-ExtJs/web/base/utils/tsconfig.json");
 
         UglifyJsCompress.compress(projectLocalPath + "/FastChar-ExtJs/web/base/utils/fast-ext-utils.js",
-                projectLocalPath + "/FastChar-ExtJs/web/base/utils/fast-ext-utils.js");
-
+                projectLocalPath + "/FastChar-ExtJs/web/base/utils/fast-ext-utils.min.js");
 
         System.out.println("构建结束！");
         System.exit(0);

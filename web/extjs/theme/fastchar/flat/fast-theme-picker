@@ -1,0 +1,17 @@
+.x-datepicker-selected div.x-datepicker-date{
+	background-color:$[color];
+}
+
+.x-datepicker-month .x-btn-default-small{
+    background:transparent !important;
+}
+
+.x-monthpicker-item a.x-monthpicker-selected{
+	background-color:$[color];
+	border-color:$[color];
+}
+
+.x-monthpicker-item a.x-monthpicker-selected{
+	background-color:$[color];
+	border-color:$[color];
+}

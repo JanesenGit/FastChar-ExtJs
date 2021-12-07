@@ -66,10 +66,10 @@ Ext.define('Ext.ux.colorpick.ColorUtils', function (ColorUtils) {
             }
         },
 
-        hexRe: /#?([0-9a-f]{3,8})/i,
-        rgbaAltRe: /rgba\(\s*([\w#\d]+)\s*,\s*([\d\.]+)\s*\)/,
-        rgbaRe: /rgba\(\s*([\d\.]+)\s*,\s*([\d\.]+)\s*,\s*([\d\.]+)\s*,\s*([\d\.]+)\s*\)/,
-        rgbRe: /rgb\(\s*([\d\.]+)\s*,\s*([\d\.]+)\s*,\s*([\d\.]+)\s*\)/,
+        hexRe: /#([0-9a-f]{3,8})/i,
+        rgbaAltRe: /rgba\(\s*([\w#\d]+)\s*,\s*([\d.]+)\s*\)/,
+        rgbaRe: /rgba\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*\)/,
+        rgbRe: /rgb\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*\)/,
 
         /**
          * Turn a string to a color object. Supports these formats:

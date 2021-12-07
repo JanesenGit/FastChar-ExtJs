@@ -212,6 +212,9 @@ namespace FastExt {
         static showText(obj, icon, title, text) {
             let winWidth = parseInt((document.body.clientWidth * 0.4).toFixed(0));
             let winHeight = parseInt((document.body.clientHeight * 0.6).toFixed(0));
+            if (Ext.isEmpty(icon)) {
+                icon = 'extIcon extSee';
+            }
             let win = Ext.create('Ext.window.Window', {
                 title: title,
                 icon: icon,
@@ -388,229 +391,7 @@ namespace FastExt {
          * @param modal 是否有背景阴影层
          */
         static showImage(obj, url, callBack, modal?: boolean) {
-            if (Ext.isEmpty(modal)) {
-                modal = false;
-            }
-            let jsonData = [];
-            if (Ext.isArray(url)) {
-                jsonData = url
-            } else {
-                jsonData.push({
-                    "url": url
-                });
-            }
-
-            let selectIndex = -1;
-            if (Ext.getStore("ImageViewStore") != null) {
-                let hasValue = false;
-                let currStore = Ext.getStore("ImageViewStore");
-
-                currStore.each(function (record, index) {
-                    if (record.get("url") === url) {
-                        hasValue = true;
-                        Ext.getCmp("ImageViewGrid").getSelectionModel().select(index);
-                        return false;
-                    }
-                });
-                if (!hasValue) {
-                    currStore.add(jsonData);
-                    if (selectIndex === -1) {
-                        selectIndex = currStore.count() - 1;
-                    }
-                    currStore.imgSelectIndex = selectIndex;
-                    Ext.getCmp("ImageViewGrid").getSelectionModel().select(selectIndex);
-                }
-                return;
-            } else {
-                if (selectIndex === -1) {
-                    selectIndex = 0;
-                }
-            }
-
-            let imageStore = Ext.create('Ext.data.Store', {
-                fields: ['url'],
-                autoLoad: false,
-                imgSelectIndex: selectIndex,
-                id: "ImageViewStore",
-                data: jsonData
-            });
-
-            let dataGridImages = Ext.create('Ext.grid.Panel', {
-                store: imageStore,
-                region: 'west',
-                hideHeaders: true,
-                id: "ImageViewGrid",
-                width: 125,
-                disabled: true,
-                border: 1,
-                scrollable: "y",
-                columns: [{
-                    header: '文件',
-                    dataIndex: 'url',
-                    flex: 1,
-                    align: 'center',
-                    renderer: function (val) {
-                        if (Ext.isEmpty(val)) {
-                            return "<span style='color: #ccc;'>无</span>";
-                        }
-                        return "<img width='30px' onerror=\"javascript:this.src='images/default_img.png';\" src='" + val + "'/>";
-                    }
-                }],
-                tbar: [{
-                    xtype: 'button',
-                    border: 1,
-                    text: '打包下载',
-                    iconCls: 'extIcon extDownload',
-                    handler: function (obj) {
-                        let params = {};
-                        imageStore.each(function (record, index) {
-                            params["path" + index] = record.get("url");
-                        });
-                        FastExt.Form.buildForm("zipFile", params).submit();
-                    }
-                }],
-                listeners: {
-                    selectionchange: function () {
-                        try {
-                            let time = 0;
-                            if (this.getStore().getCount() > 1) {
-                                this.setHidden(false);
-                                time = 120;
-                            } else {
-                                this.setHidden(true);
-                            }
-                            let data = this.getSelectionModel().getSelection();
-                            setTimeout(function () {
-                                window["imgViewFrame"].window.showImage(FastExt.System.formatUrl(data[0].get("url")), FastExt.System.http);
-                            }, time);
-                        } catch (e) {
-                            FastExt.Dialog.showException(e, "showImage");
-                        }
-                    }
-                }
-            });
-
-            window["imageViewerLoadDone"] = function () {
-                Ext.getCmp("ImageViewGrid").setDisabled(false);
-                try {
-                    let index = Ext.getStore("ImageViewStore").imgSelectIndex;
-                    Ext.getCmp("ImageViewGrid").getSelectionModel().select(index);
-                } catch (e) {
-                    FastExt.Dialog.showException(e, "showImage")
-                }
-            };
-            window["imageViewerSize"] = function (width, height) {
-                Ext.getCmp("ImageViewWindow").setTitle("查看图片 " + width + "x" + height);
-            };
-
-            let imagePanel = Ext.create('Ext.panel.Panel', {
-                layout: 'fit',
-                region: 'center',
-                border: 0,
-                height: 'auto',
-                iframePanel: true,
-                html: '<div style="background: #000000;width: 100%;height: 100%;"></div>',
-                listeners: {
-                    afterrender: function (obj, eOpts) {
-                        if (imageStore.getCount() <= 1) {
-                            dataGridImages.setHidden(true);
-                        } else {
-                            dataGridImages.setHidden(false);
-                        }
-                        obj.update("<iframe style='background: #000000;width: 100%;height: 100%;' name='imgViewFrame' " +
-                            " src='" + FastExt.System.formatUrlVersion("base/image-view/index.html") + "' width='100%' height='100%' frameborder='0' scrolling='no' />");
-                    }
-                },
-                bbar: {
-                    xtype: 'toolbar',
-                    dock: 'bottom',
-                    layout: {
-                        type: 'hbox',
-                        align: 'middle',
-                        pack: 'center'
-                    },
-                    items: [
-                        {
-                            xtype: 'button',
-                            iconCls: 'extIcon extZoomOut',
-                            handler: function () {
-                                window["imgViewFrame"].window.zoomOut();
-                            }
-                        },
-                        {
-                            xtype: 'button',
-                            iconCls: 'extIcon extZoomIn',
-                            handler: function () {
-                                window["imgViewFrame"].window.zoomIn();
-                            }
-                        },
-                        {
-                            xtype: 'button',
-                            iconCls: 'extIcon extOneOne',
-                            handler: function () {
-                                window["imgViewFrame"].window.oneOne();
-                            }
-                        },
-                        {
-                            xtype: 'button',
-                            iconCls: 'extIcon extAround',
-                            handler: function () {
-                                window["imgViewFrame"].window.rotate();
-                            }
-                        },
-                        {
-                            xtype: 'button',
-                            iconCls: 'extIcon extLeftRight',
-                            handler: function () {
-                                window["imgViewFrame"].window.flipA();
-                            }
-                        },
-                        {
-                            xtype: 'button',
-                            iconCls: 'extIcon extTopBottom',
-                            handler: function () {
-                                window["imgViewFrame"].window.flipB();
-                            }
-                        },
-                        {
-                            xtype: 'button',
-                            iconCls: 'extIcon extDownload2',
-                            handler: function () {
-                                let data = dataGridImages.getSelectionModel().getSelection();
-                                FastExt.Base.download(data[0].get("url"));
-                            }
-                        }
-                    ]
-                }
-            });
-            let winWidth = parseInt((document.body.clientWidth * 0.4).toFixed(0));
-            let winHeight = parseInt((document.body.clientHeight * 0.6).toFixed(0));
-            let newWin = Ext.create('Ext.window.Window', {
-                title: "查看图片",
-                height: winHeight,
-                width: winWidth,
-                minHeight: 500,
-                minWidth: 600,
-                id: 'ImageViewWindow',
-                layout: 'border',
-                iconCls: 'extIcon extImage',
-                resizable: true,
-                alwaysOnTop: true,
-                maximizable: true,
-                modal: modal,
-                constrain: true,
-                animateTarget: obj,
-                items: [dataGridImages, imagePanel],
-                listeners: {
-                    close: function (val) {
-                        imageStore.destroy();
-                        if (Ext.isFunction(callBack)) {
-                            callBack();
-                        }
-                    }
-                }
-            });
-            newWin.show();
+            FastExt.Image.showImage(obj,url, callBack, modal);
         }
 
 
@@ -747,43 +528,7 @@ namespace FastExt {
          * @param value 弹框内容
          */
         static showJson(obj, title, value) {
-            try {
-                if (obj) {
-                    obj.blur();
-                }
-                let winWidth = parseInt((document.body.clientWidth * 0.4).toFixed(0));
-                let winHeight = parseInt((document.body.clientHeight * 0.6).toFixed(0));
-                let win = Ext.create('Ext.window.Window', {
-                    title: title,
-                    height: winHeight,
-                    width: winWidth,
-                    minHeight: 500,
-                    minWidth: 600,
-                    animateTarget: obj,
-                    resizable: true,
-                    layout: 'fit',
-                    maximizable: true,
-                    iconCls: 'extIcon extSee',
-                    autoScroll: true,
-                    modal: true,
-                    constrain: true,
-                    buttons: [
-                        {
-                            text: '复制JSON数据',
-                            handler: function () {
-                                FastExt.Dialog.toast("复制成功！");
-                                FastExt.Base.copyToBoard(value);
-                            }
-                        }
-                    ]
-                });
-                let result = new JSONFormat(value, 4).toString();
-                win.update("<div style='padding: 20px;'>" + result + "</div>");
-                win.show();
-            } catch (e) {
-                console.error(e);
-                FastExt.Dialog.showText(obj, null, title, value);
-            }
+            FastExt.Json.showFormatJson(obj, value, title);
         }
 
         /**
@@ -792,44 +537,18 @@ namespace FastExt {
          * @param value
          */
         static showFormatJson(obj, value) {
-            try {
-                if (obj) {
-                    obj.blur();
-                }
-                let winWidth = parseInt((document.body.clientWidth * 0.4).toFixed(0));
-                let winHeight = parseInt((document.body.clientHeight * 0.6).toFixed(0));
-                let win = Ext.create('Ext.window.Window', {
-                    title: "查看数据",
-                    height: winHeight,
-                    width: winWidth,
-                    minHeight: 500,
-                    minWidth: 600,
-                    animateTarget: obj,
-                    layout: 'fit',
-                    resizable: true,
-                    maximizable: true,
-                    iconCls: 'extIcon extSee',
-                    autoScroll: true,
-                    modal: true,
-                    constrain: true,
-                    buttons: [
-                        {
-                            text: '复制JSON数据',
-                            handler: function () {
-                                FastExt.Dialog.toast("复制成功！");
-                                FastExt.Base.copyToBoard(value);
-                            }
-                        }
-                    ]
-                });
-                let result = new JSONFormat(value, 4).toString();
-                win.update("<div style='padding: 20px;'>" + result + "</div>");
-                win.show();
-            } catch (e) {
-                console.error(e);
-                FastExt.Dialog.showText(obj, null, "查看数据", value);
-            }
+            FastExt.Json.showFormatJson(obj, value);
         }
+
+        /**
+         * 查看lottie动效
+         * @param obj 弹框动画对象
+         * @param jsonPath lottie的json文件路径
+         */
+        static showLottie(obj, jsonPath) {
+            FastExt.Lottie.showLottie(obj, jsonPath);
+        }
+
 
         /**
          * 弹出日期时间选择控件
@@ -839,204 +558,7 @@ namespace FastExt {
          * @return Ext.Promise
          */
         static showFastDatePicker(obj, defaultValue, dateFormat) {
-            return new Ext.Promise(function (resolve, reject) {
-                let token = new Date().getTime();
-                if (Ext.isEmpty(dateFormat)) {
-                    dateFormat = "Y-m-d H:i:s";
-                }
-                let hourStoreValue = [];
-                for (let i = 0; i < 24; i++) {
-                    let value = FastExt.Base.prefixInteger(i, 2);
-                    hourStoreValue.push({
-                        text: value
-                    });
-                }
-
-                let secondStoreValue = [];
-                for (let i = 0; i < 60; i++) {
-                    let value = FastExt.Base.prefixInteger(i, 2);
-                    secondStoreValue.push({
-                        text: value
-                    });
-                }
-                let defaultDate;
-                if (!Ext.isEmpty(defaultValue)) {
-                    defaultDate = Ext.Date.parse(defaultValue, FastExt.Dates.guessDateFormat(defaultValue));
-                }
-                if (!defaultDate) {
-                    defaultDate = new Date();
-                }
-
-                let hour = Ext.Date.format(defaultDate, 'H');
-                let minute = Ext.Date.format(defaultDate, 'i');
-                let second = Ext.Date.format(defaultDate, 's');
-
-                let countItem = 0;
-
-                let dateShow = dateFormat.indexOf("d") !== -1;
-                let hourShow = dateFormat.indexOf("H") !== -1;
-                let minuteShow = dateFormat.indexOf("i") !== -1;
-                let secondShow = dateFormat.indexOf("s") !== -1;
-
-                if (hourShow) {
-                    countItem++;
-                }
-                if (minuteShow) {
-                    countItem++;
-                }
-                if (secondShow) {
-                    countItem++;
-                }
-
-                let pickerCmp: any = {
-                    xtype: 'datepicker',
-                    id: 'dateValue' + token,
-                    region: 'center',
-                    showToday: false,
-                    margin: '0 0 0 0',
-                    border: 0,
-                    value: defaultDate
-                };
-                if (!dateShow) {
-                    pickerCmp = {
-                        xtype: 'monthpicker',
-                        id: 'dateValue' + token,
-                        region: 'center',
-                        showButtons: false,
-                        margin: '0 0 0 0',
-                        border: 0,
-                        value: defaultDate
-                    };
-                }
-
-
-                let menu = Ext.create('Ext.menu.Menu', {
-                    showSeparator: false,
-                    layout: 'border',
-                    padding: '0 0 0 0',
-                    style: {
-                        background: "#ffffff"
-                    },
-                    alwaysOnTop: true,
-                    width: 330,
-                    height: 400,
-                    listeners: {
-                        hide: function (obj, epts) {
-                            FastExt.Base.runCallBack(resolve);
-                        }
-                    },
-                    items: [
-                        pickerCmp,
-                        {
-                            xtype: 'panel',
-                            layout: 'column',
-                            margin: '0 0 0 0',
-                            region: 'south',
-                            border: 0,
-                            items: [
-                                {
-                                    xtype: 'panel',
-                                    columnWidth: 1,
-                                    layout: 'column',
-                                    border: 0,
-                                    items: [
-                                        {
-                                            id: 'hourValue' + token,
-                                            columnWidth: 1.0 / countItem,
-                                            emptyText: '时',
-                                            minValue: 0,
-                                            margin: '0 0 0 5',
-                                            maxValue: 23,
-                                            displayField: 'text',
-                                            valueField: 'text',
-                                            editable: false,
-                                            hidden: !hourShow,
-                                            value: hour,
-                                            store: Ext.create('Ext.data.Store', {
-                                                autoLoad: true,
-                                                data: hourStoreValue
-                                            }),
-                                            xtype: 'combo'
-                                        }, {
-                                            xtype: 'displayfield',
-                                            width: 30,
-                                            hidden: !hourShow,
-                                            value: "<div align='center'>时</div>"
-                                        }, {
-                                            id: 'minuteValue' + token,
-                                            columnWidth: 1.0 / countItem,
-                                            emptyText: '分',
-                                            minValue: 0,
-                                            maxValue: 59,
-                                            displayField: 'text',
-                                            valueField: 'text',
-                                            editable: false,
-                                            value: minute,
-                                            hidden: !minuteShow,
-                                            store: Ext.create('Ext.data.Store', {
-                                                autoLoad: true,
-                                                data: secondStoreValue
-                                            }),
-                                            xtype: 'combo'
-                                        }, {
-                                            xtype: 'displayfield',
-                                            width: 30,
-                                            hidden: !minuteShow,
-                                            value: "<div align='center'>分</div>"
-                                        }, {
-                                            id: 'secondsValue' + token,
-                                            columnWidth: 1.0 / countItem,
-                                            emptyText: '秒',
-                                            minValue: 0,
-                                            maxValue: 59,
-                                            displayField: 'text',
-                                            valueField: 'text',
-                                            editable: false,
-                                            value: second,
-                                            hidden: !secondShow,
-                                            store: Ext.create('Ext.data.Store', {
-                                                autoLoad: true,
-                                                data: secondStoreValue
-                                            }),
-                                            xtype: 'combo'
-                                        }, {
-                                            xtype: 'displayfield',
-                                            width: 30,
-                                            hidden: !secondShow,
-                                            value: "<div align='center'>秒</div>"
-                                        },
-                                    ]
-                                },
-                                {
-                                    xtype: 'button',
-                                    columnWidth: 1,
-                                    margin: '5 5 5 5',
-                                    text: '确定',
-                                    handler: function () {
-                                        let datePicker = Ext.getCmp("dateValue" + token);
-                                        let hourCombo = Ext.getCmp("hourValue" + token);
-                                        let minuteCombo = Ext.getCmp("minuteValue" + token);
-                                        let secondsCombo = Ext.getCmp("secondsValue" + token);
-                                        let dateValue = datePicker.getValue();
-                                        if (Ext.isDate(dateValue)) {
-                                            dateValue.setHours(parseInt(hourCombo.getValue()));
-                                            dateValue.setMinutes(parseInt(minuteCombo.getValue()));
-                                            dateValue.setSeconds(parseInt(secondsCombo.getValue()));
-                                            FastExt.Base.runCallBack(resolve, Ext.Date.format(dateValue, dateFormat));
-                                        }else{
-                                            let newDate = new Date();
-                                            newDate.setMonth(dateValue[0]);
-                                            newDate.setFullYear(dateValue[1]);
-                                            newDate.setDate(1);
-                                            FastExt.Base.runCallBack(resolve, Ext.Date.format(newDate, dateFormat));
-                                        }
-                                        menu.close();
-                                    }
-                                }]
-                        }]
-                });
-                menu.showBy(obj);
-            });
+            return FastExt.Dates.showDatePicker(obj, defaultValue, dateFormat);
         }
 
         /**
@@ -1047,58 +569,7 @@ namespace FastExt {
          * @return Ext.Promise
          */
         static showFastColorPicker(obj, defaultValue, onColorChange) {
-            if (Ext.isEmpty(defaultValue)) {
-                defaultValue = "#42445a";
-            }
-            return new Ext.Promise(function (resolve, reject) {
-                let menu = Ext.create('Ext.menu.Menu', {
-                    showSeparator: false,
-                    layout: 'border',
-                    padding: '0 0 0 0',
-                    style: {
-                        background: "#ffffff"
-                    },
-                    alwaysOnTop: true,
-                    width: 250,
-                    height: 320,
-                    listeners: {
-                        hide: function (obj, epts) {
-                            FastExt.Base.runCallBack(resolve);
-                        },
-                        mouseleave: function (obj) {
-                            const targetElement = window["colorPickerFrame"].window.document.getElementsByTagName("body")[0];
-                            FastExt.Base.dispatchTargetEvent(window["colorPickerFrame"].window.document, targetElement, "mouseup");
-                        }
-                    },
-                    items: [
-                        {
-                            xtype: 'panel',
-                            region: 'center',
-                            margin: '0 0 0 0',
-                            border: 0,
-                            listeners: {
-                                afterrender: function () {
-                                    let me = this;
-                                    window["onColorPickerLoadDone"] = function (colorPicker) {
-                                        me.setLoading(false);
-                                        colorPicker.on('change', function (color, source, instance) {
-                                            if (Ext.isFunction(onColorChange)) {
-                                                onColorChange(color, source, instance)
-                                            }
-                                        });
-                                    };
-                                    me.setLoading("加载控件中……");
-                                    let url = FastExt.System.formatUrlVersion('base/colorpicker/index.html',
-                                        {
-                                            color: defaultValue.replace("#", "")
-                                        });
-                                    me.update("<iframe name='colorPickerFrame'  src='" + url + "' width='100%' height='100%' frameborder='0' scrolling='no' />");
-                                }
-                            }
-                        }]
-                });
-                menu.showBy(obj);
-            });
+            return FastExt.Color.showColorPicker(obj, defaultValue, onColorChange);
         }
 
 

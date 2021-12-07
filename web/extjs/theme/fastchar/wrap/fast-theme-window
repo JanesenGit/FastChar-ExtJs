@@ -1,0 +1,25 @@
+.x-window-default {
+    border-radius: 8px !important;
+    overflow: inherit !important;
+}
+
+.x-window-header-default {
+	border-width:0 !important;
+    background: linear-gradient(0deg, $[color], $[color7]) !important;
+    box-shadow: 0 3px 4px #cccccc !important;
+    z-index:9;
+    width:100% !important;
+}
+
+.x-window-default {
+	border-width:0 !important;
+}
+
+.x-window-body-default {
+	border-width:0 !important;
+}
+
+.x-window-header-title-default>.x-title-icon-wrap-default>.x-title-icon-default {
+    color: white;
+    line-height: 20px;
+}

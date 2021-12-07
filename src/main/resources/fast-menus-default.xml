@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE menus>
 <menus>
-    <menu text="系统管理" icon="icons/icon_system.svg" color="#9d55b8">
+    <menu text="系统管理" icon="icons/icon_system.svg" color="#B42DE7">
         <menu text="管理员角色" power="false" method="showList('ExtManagerRoleEntity')" icon="icons/icon_role.svg"/>
         <menu text="管理员信息" method="showList('ExtManagerEntity')" icon="icons/icon_admin.svg"/>
     </menu>

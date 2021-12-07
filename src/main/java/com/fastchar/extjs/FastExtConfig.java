@@ -1,24 +1,26 @@
 package com.fastchar.extjs;
 
 import com.fastchar.core.FastChar;
-import com.fastchar.core.FastClassLoader;
+import com.fastchar.core.FastFile;
+import com.fastchar.extjs.compress.YuiCompress;
 import com.fastchar.extjs.core.FastExtEntities;
 import com.fastchar.extjs.core.FastExtLayerHelper;
 import com.fastchar.extjs.core.FastExtLayerType;
 import com.fastchar.extjs.core.heads.FastHeadExtInfo;
 import com.fastchar.extjs.core.heads.FastHeadInfo;
 import com.fastchar.extjs.core.heads.FastHeadStyleInfo;
+import com.fastchar.extjs.core.menus.FastMenuInfo;
 import com.fastchar.extjs.interfaces.IFastAppJsListener;
 import com.fastchar.extjs.utils.ColorUtils;
 import com.fastchar.extjs.utils.ExtFileUtils;
 import com.fastchar.interfaces.IFastConfig;
-import com.fastchar.utils.FastFileUtils;
-import com.fastchar.utils.FastNumberUtils;
-import com.fastchar.utils.FastStringUtils;
+import com.fastchar.utils.*;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * FastChar-ExtJs配置
@@ -39,11 +41,13 @@ public final class FastExtConfig implements IFastConfig {
     private String menuPrefix = "fast-menus";
     private final Set<String> excludeMenuFiles = new HashSet<>();//被排除的menu文件名
     private String uglifyJsPath; //uglify-js 压缩工具的本地路径
+    private boolean noticeListener;//是否开启后台通知监听
 
     private List<FastExtLayerHelper.LayerMap> layerMaps;//表格的层级拓扑图
 
     /**
      * 获取系统默认的主题色
+     *
      * @return 字符串
      */
     public String getDefaultThemeColor() {
@@ -52,6 +56,7 @@ public final class FastExtConfig implements IFastConfig {
 
     /**
      * 设置系统默认的主题色
+     *
      * @param defaultThemeColor 颜色值以#开头
      * @return 当前对象
      */
@@ -62,6 +67,7 @@ public final class FastExtConfig implements IFastConfig {
 
     /**
      * 设置FastExtEntity实体集合
+     *
      * @param extEntities 实体集合
      * @return 当前对象
      */
@@ -72,6 +78,7 @@ public final class FastExtConfig implements IFastConfig {
 
     /**
      * 是否压缩appjs文件夹的所有js文件
+     *
      * @return 布尔值
      */
     public boolean isCompressAppJs() {
@@ -80,6 +87,7 @@ public final class FastExtConfig implements IFastConfig {
 
     /**
      * 设置是否压缩appjs文件夹的所有js文件
+     *
      * @param compressAppJs 布尔值
      * @return 当前对象
      */
@@ -93,6 +101,7 @@ public final class FastExtConfig implements IFastConfig {
 
     /**
      * 是否打印附件日志
+     *
      * @return 布尔值
      */
     public boolean isAttachLog() {
@@ -101,6 +110,7 @@ public final class FastExtConfig implements IFastConfig {
 
     /**
      * 设置是否打印附件日志
+     *
      * @param attachLog 布尔值
      * @return 当前对象
      */
@@ -111,6 +121,7 @@ public final class FastExtConfig implements IFastConfig {
 
     /**
      * 是否合并appjs文件夹下的所有js文件，最终在webroot目录下生成一个app.js文件
+     *
      * @return 布尔值
      */
     public boolean isMergeAppJs() {
@@ -119,6 +130,7 @@ public final class FastExtConfig implements IFastConfig {
 
     /**
      * 设置是否合并appjs文件夹下的所有js文件，最终在webroot目录下生成一个app.js文件
+     *
      * @param mergeAppJs 布尔值
      * @return 当前对象
      */
@@ -129,6 +141,7 @@ public final class FastExtConfig implements IFastConfig {
 
     /**
      * 获取合并后生成的js文件
+     *
      * @return 文件对象
      */
     public File getMergeJs() {
@@ -137,6 +150,7 @@ public final class FastExtConfig implements IFastConfig {
 
     /**
      * 获取系统权限类型
+     *
      * @return 权限类型@FastLayerType
      */
     public FastExtLayerType getLayerType() {
@@ -145,6 +159,7 @@ public final class FastExtConfig implements IFastConfig {
 
     /**
      * 设置系统的权限的类型
+     *
      * @param layerType 权限类型
      * @return 当前对象
      */
@@ -155,6 +170,7 @@ public final class FastExtConfig implements IFastConfig {
 
     /**
      * 获取系统菜单的配置文件前缀，默认：fast-menus
+     *
      * @return 字符串
      */
     public String getMenuPrefix() {
@@ -163,6 +179,7 @@ public final class FastExtConfig implements IFastConfig {
 
     /**
      * 设置系统菜单的配置文件前缀，默认：fast-menus
+     *
      * @param menuPrefix 前缀，默认：fast-menus
      * @return 当前对象
      */
@@ -173,6 +190,7 @@ public final class FastExtConfig implements IFastConfig {
 
     /**
      * 排除menus文件菜单
+     *
      * @param menuFileName 文件名
      * @return 当前对象
      */
@@ -183,6 +201,7 @@ public final class FastExtConfig implements IFastConfig {
 
     /**
      * 判断菜单文件是否被排除在外
+     *
      * @param menuFileName 文件名
      * @return 布尔值
      */
@@ -193,6 +212,7 @@ public final class FastExtConfig implements IFastConfig {
 
     /**
      * 获取配置的ext值，在fast-head-*.html配置的scheme="ext"值
+     *
      * @param name ext名称
      * @return FastHeadExtInfo对象值
      */
@@ -213,6 +233,7 @@ public final class FastExtConfig implements IFastConfig {
 
     /**
      * 获取所有ext值，在fast-head-*.html配置的scheme="ext"值
+     *
      * @return FastHeadExtInfo值集合
      */
     public List<FastHeadExtInfo> getExtInfo() {
@@ -231,6 +252,7 @@ public final class FastExtConfig implements IFastConfig {
 
     /**
      * 获取配置的项目标题
+     *
      * @return 字符串
      */
     public String getProjectTitle() {
@@ -248,6 +270,7 @@ public final class FastExtConfig implements IFastConfig {
 
     /**
      * 获取配置的项目logo
+     *
      * @return 字符串
      */
     public String getProjectIcon() {
@@ -267,6 +290,7 @@ public final class FastExtConfig implements IFastConfig {
 
     /**
      * 获取所有appjs文件夹下的所有js文件夹
+     *
      * @return File对象集合
      */
     public List<File> getAppJs() {
@@ -317,7 +341,6 @@ public final class FastExtConfig implements IFastConfig {
     }
 
 
-
     private Map<String, List<File>> getJsFiles(File file) {
         Map<String, List<File>> mapFiles = new LinkedHashMap<>();
         if (file.isDirectory()) {
@@ -350,6 +373,7 @@ public final class FastExtConfig implements IFastConfig {
 
     /**
      * 获取所有FastExtEntity对象集合
+     *
      * @return FastExtEntities
      */
     public FastExtEntities getExtEntities() {
@@ -359,38 +383,90 @@ public final class FastExtConfig implements IFastConfig {
 
     /**
      * 获取系统主题的css代码
+     *
      * @return FastHeadStyleInfo
      */
     public FastHeadStyleInfo getThemeInfo() {
+        FastHeadExtInfo themeInfo = getExtInfo("theme");
+        if (themeInfo != null) {
+            File file = new File(FastChar.getPath().getWebRootPath(), themeInfo.getValue());
+            if (file.exists()) {
+                FastHeadExtInfo themeColor = getExtInfo("theme-color");
+                if (themeColor != null) {
+                    return getThemeInfo(themeColor.getColorValue());
+                } else {
+                    return getThemeInfo(defaultThemeColor);
+                }
+            }
+        }
+        return null;
+    }
+
+
+    public Collection<FastHeadStyleInfo> getAllTabThemeInfo() {
+        FastMenuInfo menus = FastChar.getValues().get("menus");
+        Map<String, FastHeadStyleInfo> themeMap = new LinkedHashMap<>();
+        buildTabThemeContent(menus.getChildren(), themeMap);
+        return themeMap.values();
+    }
+
+
+    private void buildTabThemeContent(List<FastMenuInfo> menus, Map<String, FastHeadStyleInfo> themeMap) {
+        for (FastMenuInfo menu : menus) {
+            String baseCls = menu.getBaseCls();
+            if (!themeMap.containsKey(baseCls)) {
+                FastHeadStyleInfo themeInfo = FastExtConfig.getInstance().getThemeInfo(menu.getColorValue(), true, "." + baseCls);
+                if (themeInfo != null) {
+                    themeMap.put(baseCls, themeInfo);
+                }
+            }
+            buildTabThemeContent(menu.getChildren(), themeMap);
+        }
+    }
+
+
+    /**
+     * 获取系统主题下的tab页面的css代码
+     */
+    public FastHeadStyleInfo getThemeInfo(String colorValue) {
+        return getThemeInfo(colorValue, false, null);
+    }
+
+    /**
+     * 获取系统主题下的tab页面的css代码
+     */
+    public FastHeadStyleInfo getThemeInfo(String colorValue, boolean tabTheme, String cssPrefix) {
         try {
+            if (FastStringUtils.isEmpty(colorValue)) {
+                return null;
+            }
+
             FastHeadExtInfo themeInfo = getExtInfo("theme");
             if (themeInfo != null) {
                 File file = new File(FastChar.getPath().getWebRootPath(), themeInfo.getValue());
+                if (tabTheme) {
+                    file = new File(FastChar.getPath().getWebRootPath(), themeInfo.getValue() + "-tab");
+                }
                 if (file.exists()) {
+
                     String themeContent = FastFileUtils.readFileToString(file, "utf-8");
                     Map<String, Object> placeholder = new HashMap<String, Object>();
-
-                    FastHeadExtInfo themeColor = getExtInfo("theme-color");
-                    if (themeColor != null) {
-                        placeholder.put("color", themeColor.getColorValue());
-                        placeholder.put("themeColor", themeColor.getColorValue());
-                        for (int i = 1; i < 9; i++) {
-                            placeholder.put("color" + i, ColorUtils.getLightColor(themeColor.getColorValue(), 1-FastNumberUtils.formatToDouble("0." + i)));
-                        }
-                    } else {
-                        placeholder.put("color", defaultThemeColor);
-                        for (int i = 1; i < 9; i++) {
-                            placeholder.put("color" + i, ColorUtils.getLightColor(defaultThemeColor, 1-FastNumberUtils.formatToDouble("0." + i)));
-                        }
+                    placeholder.put("color", colorValue);
+                    placeholder.put("themeColor", colorValue);
+                    for (int i = 1; i < 9; i++) {
+                        placeholder.put("color" + i, ColorUtils.getLightColor(colorValue, 1 - FastNumberUtils.formatToDouble("0." + i)));
+                        placeholder.put("colorDark" + i, ColorUtils.getDarkColor(colorValue, 1 - FastNumberUtils.formatToDouble("0." + i)));
                     }
+
                     FastHeadExtInfo frontColor = getExtInfo("front-color");
                     if (frontColor != null) {
                         placeholder.put("frontColor", frontColor.getColorValue());
                         for (int i = 1; i < 9; i++) {
-                            placeholder.put("frontColor" + i, ColorUtils.getLightColor(frontColor.getColorValue(), 1-FastNumberUtils.formatToDouble("0." + i)));
-                            placeholder.put("frontColorDark" + i, ColorUtils.getDarkColor(frontColor.getColorValue(), 1-FastNumberUtils.formatToDouble("0." + i)));
+                            placeholder.put("frontColor" + i, ColorUtils.getLightColor(frontColor.getColorValue(), 1 - FastNumberUtils.formatToDouble("0." + i)));
+                            placeholder.put("frontColorDark" + i, ColorUtils.getDarkColor(frontColor.getColorValue(), 1 - FastNumberUtils.formatToDouble("0." + i)));
                         }
                     }
+
                     FastHeadExtInfo fontSize = getExtInfo("font-size");
                     int fontNumber = 14;
                     if (fontSize != null) {
@@ -403,8 +479,13 @@ public final class FastExtConfig implements IFastConfig {
                     }
 
                     String theme = replacePlaceholder(placeholder, themeContent);
+
+                    if (FastStringUtils.isNotEmpty(cssPrefix)) {
+                        theme = addPrefixCss(theme, cssPrefix);
+                    }
+
                     FastHeadStyleInfo styleInfo = new FastHeadStyleInfo();
-                    styleInfo.setText(theme);
+                    styleInfo.setText(YuiCompress.compressCss(theme));
                     styleInfo.fromProperty();
                     return styleInfo;
                 }
@@ -415,10 +496,12 @@ public final class FastExtConfig implements IFastConfig {
         return null;
     }
 
+
     /**
      * 替换占位符 ${.*}
+     *
      * @param placeholders 属性值
-     * @param content 需要替换的内容
+     * @param content      需要替换的内容
      * @return 替换后的内容
      */
     public static String replacePlaceholder(Map<String, Object> placeholders, String content) {
@@ -431,9 +514,31 @@ public final class FastExtConfig implements IFastConfig {
         return content;
     }
 
+    /**
+     * 在css内容中给所有样式组插入前缀
+     *
+     * @param cssContent 原css内容
+     * @param prefix     前缀
+     * @return 新的css内容
+     */
+    public static String addPrefixCss(String cssContent, String prefix) {
+        String regStr = "([^{}]*)\\{([^{}]*)}";
+        Pattern compile = Pattern.compile(regStr);
+        Matcher matcher = compile.matcher(cssContent);
+        StringBuilder newContent = new StringBuilder();
+        while (matcher.find()) {
+            String oldPrefix = matcher.group(1);
+            String[] split = oldPrefix.split(",");
+            String newPrefix = " " + prefix+" " + FastStringUtils.join(split, " , " + prefix + " ");
+            newContent.append(newPrefix).append("{").append(matcher.group(2)).append("}");
+        }
+        return newContent.toString();
+    }
+
 
     /**
      * 获取uglify-js的本地项目路径
+     *
      * @return 字符串
      */
     public String getUglifyJsPath() {
@@ -442,6 +547,7 @@ public final class FastExtConfig implements IFastConfig {
 
     /**
      * 设置uglify-js的本地项目路径
+     *
      * @param uglifyJsPath 本地项目路径
      * @return 当前对象
      */
@@ -452,6 +558,7 @@ public final class FastExtConfig implements IFastConfig {
 
     /**
      * 获取表格权限层级的拓扑图
+     *
      * @return
      */
     public List<FastExtLayerHelper.LayerMap> getLayerMaps() {
@@ -460,11 +567,21 @@ public final class FastExtConfig implements IFastConfig {
 
     /**
      * 设置表格权限层级的拓扑图
+     *
      * @param layerMaps
      * @return
      */
     public FastExtConfig setLayerMaps(List<FastExtLayerHelper.LayerMap> layerMaps) {
         this.layerMaps = layerMaps;
+        return this;
+    }
+
+    public boolean isNoticeListener() {
+        return noticeListener;
+    }
+
+    public FastExtConfig setNoticeListener(boolean noticeListener) {
+        this.noticeListener = noticeListener;
         return this;
     }
 }

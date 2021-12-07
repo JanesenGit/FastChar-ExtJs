@@ -1,0 +1,10 @@
+.x-panel-header-default {
+	border-width:0 !important;
+    background: linear-gradient(0deg, $[color], $[color7]);
+    box-shadow: 0 3px 4px #cccccc !important;
+}
+
+
+.x-panel-header-title-default>.x-title-icon-wrap-default>.x-title-icon-default{
+    line-height: 20px;
+}

@@ -8,6 +8,11 @@ namespace FastExt {
         }
 
         /**
+         * 每页最大页数
+         */
+        static maxPageSize: number = 50;
+
+        /**
          * 获取store相关的功能菜单文字，包含了父类
          * @param store 数据源
          * @param menu 数据源的菜单对象
@@ -454,7 +459,7 @@ namespace FastExt {
          * @return Ext.data.Store
          */
         static getPageDataStore(maxSize?, iteration?) {
-            if (!maxSize || maxSize.length === 0) maxSize = 100;
+            if (!maxSize || maxSize.length === 0) maxSize = FastExt.Store.maxPageSize;
             if (!iteration || iteration.length === 0) iteration = 10;
             let dataArray = [];
             for (let i = 0; i < maxSize / 10; i++) {
@@ -577,9 +582,9 @@ namespace FastExt {
                     }
                 }
                 dataArray.push({
-                    'text': column.configText,
+                    "text": column.configText,
                     "id": column.dataIndex,
-                    'index': i
+                    "index": i
                 });
             }
             return Ext.create('Ext.data.Store', {
@@ -588,6 +593,35 @@ namespace FastExt {
             });
         }
 
+        /**
+         * 获取支持图表功能的grid列的数据源
+         * @param grid
+         * @return Ext.data.Store
+         */
+        static getChartGridColumnStore(grid) {
+            let dataArray = [];
+            let configColumns = grid.getColumns();
+            for (let i = 0; i < configColumns.length; i++) {
+                let column = configColumns[i];
+                if (Ext.isEmpty(column.dataIndex)) {
+                    continue;
+                }
+                if ((FastExt.Grid.isNumberColumn(column) && FastExt.Base.toBool(column.chart, true))
+                    || FastExt.Grid.isIdPropertyColumn(column)
+                    || FastExt.Base.toBool(column.chart, true)) {
+
+                    dataArray.push({
+                        "text": column.configText,
+                        "id": column.dataIndex,
+                        "index": i
+                    });
+                }
+            }
+            return Ext.create('Ext.data.Store', {
+                fields: ["id", "text", "index"],
+                data: dataArray
+            });
+        }
 
         /**
          * 获取yes或no的数据源

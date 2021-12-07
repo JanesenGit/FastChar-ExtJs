@@ -2,6 +2,8 @@
  * ExtManagerEntity实体类
  */
 function ExtManagerEntity() {
+    this.actionDeleteAll = false;
+    this.actionTimer = false;
     this.getList = function (where) {
         let me = this;
         let dataStore = getEntityDataStore(me, where);
@@ -23,14 +25,15 @@ function ExtManagerEntity() {
                 autoDetails: true,
                 hoverTip: false
             },
-            columns: [{
-                text: "登录名",
-                dataIndex: "managerLoginName",
-                align: "center",
-                width: 220,
-                renderer: renders.normal(),
-                field: "textfield"
-            },
+            columns: [
+                {
+                    text: "登录名",
+                    dataIndex: "managerLoginName",
+                    align: "center",
+                    width: 220,
+                    renderer: renders.normal(),
+                    field: "textfield"
+                },
                 {
                     text: "登录密码",
                     dataIndex: "managerPassword",
@@ -205,8 +208,8 @@ function ExtManagerEntity() {
                         checkSelect: 2,
                         iconCls: 'extIcon extPower redColor',
                         handler: function () {
-                            Ext.Msg.confirm("系统提醒", "您确定与角色权限同步吗？", function (button, text) {
-                                if (button == "yes") {
+                            Ext.Msg.confirm("系统提醒", "将与角色权限同步，确定后将修改已选中管理员的权限与所属角色的权限一致！您确定操作吗？", function (button, text) {
+                                if (button === "yes") {
                                     showWait("正在同步中，请稍后……");
                                     let selectLength = grid.getSelection().length;
                                     let params = {};

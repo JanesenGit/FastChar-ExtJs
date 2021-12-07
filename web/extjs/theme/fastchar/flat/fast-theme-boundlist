@@ -1,0 +1,10 @@
+
+.x-boundlist-selected {
+	background-color: $[color] !important;
+	border-color: $[color] !important;
+}
+
+.x-boundlist-item-over {
+	background-color: $[color] !important;
+	border-color: $[color] !important;
+}

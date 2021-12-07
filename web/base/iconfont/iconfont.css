@@ -1,8 +1,8 @@
 @font-face {
   font-family: "extIcon"; /* Project id 1144120 */
-  src: url('iconfont.woff2?t=1630044647051') format('woff2'),
-       url('iconfont.woff?t=1630044647051') format('woff'),
-       url('iconfont.ttf?t=1630044647051') format('truetype');
+  src: url('iconfont.woff2?t=1637201718721') format('woff2'),
+       url('iconfont.woff?t=1637201718721') format('woff'),
+       url('iconfont.ttf?t=1637201718721') format('truetype');
 }
 
 .extIcon {
@@ -11,6 +11,54 @@
   font-style: normal;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.extFileIOS:before {
+  content: "\e64f";
+}
+
+.extFileAPK:before {
+  content: "\e810";
+}
+
+.extFileCSV:before {
+  content: "\e642";
+}
+
+.extFileWord:before {
+  content: "\e648";
+}
+
+.extFileExcel:before {
+  content: "\e649";
+}
+
+.extFileOUTLOOK:before {
+  content: "\e64b";
+}
+
+.extFilePPT:before {
+  content: "\e64c";
+}
+
+.extFilePDF:before {
+  content: "\e64e";
+}
+
+.extNoSee:before {
+  content: "\e6a3";
+}
+
+.extLeftAround:before {
+  content: "\e668";
+}
+
+.extReport:before {
+  content: "\e742";
+}
+
+.extLoginRemember2:before {
+  content: "\e62d";
 }
 
 .extLogPwd:before {
@@ -97,24 +145,12 @@
   content: "\e640";
 }
 
-.extFileAPK:before {
-  content: "\e61d";
-}
-
 .extFileZIP:before {
   content: "\e61f";
 }
 
 .extFileGIF:before {
   content: "\e624";
-}
-
-.extFileExcel:before {
-  content: "\e625";
-}
-
-.extFilePPT:before {
-  content: "\e627";
 }
 
 .extFileAVI:before {
@@ -155,10 +191,6 @@
 
 .extFileHTMl:before {
   content: "\e637";
-}
-
-.extFileWord:before {
-  content: "\e638";
 }
 
 .extFile:before {

@@ -42,6 +42,7 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.*;
@@ -185,6 +186,7 @@ public class ExtDefaultAction extends FastAction {
         headScriptInfo.setSrc(baseJsUrl);
         headScriptInfo.fromProperty();
         newHeads.add(FastExtConfig.getInstance().getThemeInfo());
+        newHeads.addAll(FastExtConfig.getInstance().getAllTabThemeInfo());
         newHeads.add(headScriptInfo);
 
         for (FastHeadInfo newHead : newHeads) {
@@ -255,6 +257,7 @@ public class ExtDefaultAction extends FastAction {
         data.put("menus", newMenus);
         data.put("menusCss", buildCssContent(newMenus));
 
+        data.put("noticeListener", FastExtConfig.getInstance().isNoticeListener());
         data.put("manager", getSession("manager"));
         responseJson(0, "获取成功！", data);
     }
@@ -644,7 +647,10 @@ public class ExtDefaultAction extends FastAction {
                         fileName = matcher.group(1);
                     }
                 }
-                FastFileUtils.copyURLToFile(url, new File(folderFile, fileName));
+                InputStream source = FastHttpURLConnectionUtils.getInputStream(path);
+                if (source != null) {
+                    FastFileUtils.copyInputStreamToFile(source, new File(folderFile, fileName));
+                }
             } else {
                 path = path.replace("attach/", "").split("\\?")[0];
                 File file = new File(FastChar.getConstant().getAttachDirectory(), path);
@@ -713,7 +719,6 @@ public class ExtDefaultAction extends FastAction {
             setRequestAttr("themeColor", "#3DB6A4");
             setRequestAttr("themeLightColor", "#fde9e4");
         }
-
 
 
         String projectIcon = FastExtConfig.getInstance().getProjectIcon();
@@ -1000,4 +1005,27 @@ public class ExtDefaultAction extends FastAction {
     }
 
 
+    /**
+     * 清除当前ExtDefaultAction产生的缓存
+     */
+    public void clearCache() {
+        FastChar.getCache().delete(ExtDefaultAction.class.getName());
+        responseJson(0, "清除成功！");
+    }
+
+
+    /**
+     * 预览office文件
+     * 参数：
+     * url 文件地址
+     */
+    public void officeViewer() {
+        String url = getParam("url", true);
+        url = url.split("@")[0].split("\\?")[0];
+        String fileName = url.substring(url.lastIndexOf("/") + 1);
+        if (FastFileUtils.isPDFFile(fileName) && FastChar.getFindClass().test("com.fastchar.pdfviewer.action.PDFAction")) {
+            redirect("/web/pdf/viewer?url=" + url);
+        }
+        redirect("https://view.officeapps.live.com/op/view.aspx?src=" + url);
+    }
 }

@@ -28,9 +28,13 @@ public abstract class FastExtBaseEnum implements IFastExtEnum {
                 FastEnumInfo info = new FastEnumInfo();
                 info.setId(enumValue.ordinal());
                 info.setText(enumValue.name());
+                info.setName(enumValue.name());
 
                 for (Field declaredField : declaredFields) {
                     if (declaredField.isEnumConstant()) {
+                        continue;
+                    }
+                    if (Modifier.isTransient(declaredField.getModifiers())) {
                         continue;
                     }
                     if (Modifier.isPublic(declaredField.getModifiers())) {

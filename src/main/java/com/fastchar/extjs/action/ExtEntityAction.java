@@ -5,6 +5,7 @@ import com.fastchar.database.FastPage;
 import com.fastchar.database.FastType;
 import com.fastchar.database.info.FastColumnInfo;
 import com.fastchar.database.info.FastSqlInfo;
+import com.fastchar.database.sql.FastSql;
 import com.fastchar.extjs.FastExtConfig;
 import com.fastchar.extjs.accepter.FastExtEnumAccepter;
 import com.fastchar.extjs.annotation.AFastLog;
@@ -15,6 +16,7 @@ import com.fastchar.extjs.core.database.FastExtData;
 import com.fastchar.extjs.core.database.FastExtTableInfo;
 import com.fastchar.extjs.core.enums.FastEnumInfo;
 import com.fastchar.extjs.core.heads.FastHeadExtInfo;
+import com.fastchar.extjs.echarts.FastEChartsBean;
 import com.fastchar.extjs.entity.ExtManagerEntity;
 import com.fastchar.extjs.core.FastExtEntity;
 import com.fastchar.extjs.entity.ExtSystemConfigEntity;
@@ -437,11 +439,7 @@ public class ExtEntityAction extends FastAction {
         String sqlStr = "select t." + keyName + " " + showListSql.substring(fromIndex, whereIndex);
 
         String field = getParam("field", true);
-        field = field.replace("__", ".");
-
-        if (!field.contains(".")) {
-            field = "t." + field;
-        }
+        field = FastSql.formatAlias(field, "t");
 
 
         FastSqlInfo fastSqlInfo = entity.toSelectSql(sqlStr);
@@ -517,13 +515,10 @@ public class ExtEntityAction extends FastAction {
 
         String type = getParam("type", true);
         String field = getParam("field", true);
-        field = field.replace("__", ".");
+        field = FastSql.formatAlias(field, "t");
         String sqlStr;
         String showListSql = managerEntity.getString("Sql" + entityCode + "_" + entity.getBoolean("^fromRecycle"));
         if (FastStringUtils.isNotEmpty(showListSql)) {
-            if (!field.contains(".")) {
-                field = "t." + field;
-            }
             int fromIndex = showListSql.indexOf("from");
             int whereIndex = showListSql.lastIndexOf("where");
             sqlStr = "select " + type + "(" + field + ") as result " + showListSql.substring(fromIndex, whereIndex);
@@ -1133,7 +1128,7 @@ public class ExtEntityAction extends FastAction {
         if (version != null) {
             versionStr = version.getString("desc", "v1.0").toLowerCase().replace(".", "_");
         }
-        File dataFile = new File(FastChar.getPath().getWebRootPath(), entityCode + "_" + versionStr.toUpperCase() + ".data");
+        File dataFile = new File(FastChar.getConstant().getAttachDirectory(), entityCode + "_" + versionStr.toUpperCase() + ".data");
 
         Map<String, Object> data = new HashMap<>();
         data.put("entity", extEntityClass.getName());
@@ -1178,15 +1173,17 @@ public class ExtEntityAction extends FastAction {
         Map<String, Object> dataMap = (Map<String, Object>) FastSerializeUtils.deserialize(bytes);
         if (dataMap != null) {
             FastMapWrap fastMapWrap = FastMapWrap.newInstance(dataMap);
-            String entityCacheName = fastMapWrap.getString("entity");
-            if (!entityCacheName.equals(extEntityClass.getName())) {
-                responseJson(-1, "上传失败！数据类型不匹配！");
+            if (getParamToBoolean("strict")) {
+                String entityCacheName = fastMapWrap.getString("entity");
+                if (!entityCacheName.equals(extEntityClass.getName())) {
+                    responseJson(-1, "上传失败！数据类型不匹配！");
+                }
             }
             List<FastEntity<?>> entityList = new ArrayList<>();
             String dataJson = fastMapWrap.getString("data");
             List<?> data = FastChar.getJson().fromJson(dataJson, List.class);
             for (Object datum : data) {
-                FastEntity<?> entityData = FastClassUtils.newInstance(entityCacheName);
+                FastEntity<?> entityData = FastChar.getOverrides().newInstance(extEntityClass);
                 entityData.setAll((Map<String, Object>) datum);
                 entityData.clearEmpty();
                 if (entityData.isEmptyColumn()) {
@@ -1234,5 +1231,113 @@ public class ExtEntityAction extends FastAction {
         }
         responseJson(-1, "更新失败！表格未绑定权限层级！");
     }
+
+
+    /**
+     * 获取图表echarts的配置json数据
+     * 参数：
+     * type 图表类型：0 日图表 1 月图表 2 时段图表
+     */
+    public void echarts() {
+        String entityCode = getParam("entityCode", true);
+        String columnDate = getParam("columnDate", true);
+
+        int type = getParamToInt("type", 0);
+        String beginDate = getParam("beginDate", "1912-01-01");
+        String endDate = getParam("endDate", FastDateUtils.getDateString("yyyy-MM-dd"));
+        String chartTitle = getParam("chartTitle", "FastChart图表");
+        String chartType = getParam("chartType", "line");
+
+        beginDate = beginDate + " 00:00:00";
+        endDate = endDate + " 23:59:59";
+
+
+        Class<? extends FastExtEntity<?>> extEntityClass = FastExtConfig.getInstance().getExtEntities().getExtEntity(entityCode);
+        if (extEntityClass == null) {
+            responseJson(-1, "EntityCode不存在！" + entityCode);
+            return;
+        }
+
+        FastExtEntity<?> entity = FastChar.getOverrides().newInstance(extEntityClass);
+        if (entity == null) {
+            responseJson(-1, "EntityCode不存在！" + entityCode);
+            return;
+        }
+        setRequestAttr("entityDetails", entity.getTableDetails());
+
+        Map<String, Object> where = getParamToMap("where");
+        entity.putAll(where);
+
+        ExtManagerEntity managerEntity = getSession("manager");
+        entity.pullLayer(managerEntity);
+
+        List<String> seriesColumns = new ArrayList<>();
+
+        Map<String, String> selectColumnMap = new LinkedHashMap<>();
+
+        List<Map<String, Object>> echarts = getParamToMapList("echarts");
+        for (Map<String, Object> echart : echarts) {
+            String column = FastStringUtils.defaultValue(echart.get("property"), "");
+            String function = FastStringUtils.defaultValue(echart.get("function"), "");
+            String details = FastStringUtils.defaultValue(echart.get("details"), "");
+            String nickName = column + FastStringUtils.firstCharToUpper(function);
+
+            if (FastStringUtils.isNotEmpty(column) && FastStringUtils.isNotEmpty(function)) {
+                seriesColumns.add(function + "(" + FastSql.formatAlias(column, "t") + ") as " + nickName);
+                selectColumnMap.put(nickName, details);
+            }
+        }
+        columnDate = FastSql.formatAlias(columnDate, "t");
+
+        String dateSelect = "date_format(" + columnDate + ",'%Y-%m-%d') as reportDate ";
+        if (type == 1) {//月报表
+            dateSelect = "date_format(" + columnDate + ",'%Y-%m') as reportDate ";
+        } else if (type == 2) {//时报表
+            dateSelect = "date_format(" + columnDate + ",'%H:00') as reportDate ";
+        } else if (type == 3) {//时分报表
+            dateSelect = "date_format(" + columnDate + ",'%H:%i') as reportDate ";
+        }
+
+        boolean fromRecycle = entity.getBoolean("^fromRecycle");
+        String showListSql = managerEntity.getString("Sql" + entityCode + "_" + fromRecycle);
+        if (FastStringUtils.isEmpty(showListSql)) {
+            responseJson(-1, "清除失败！请稍后重试！");
+        }
+        int fromIndex = showListSql.indexOf("from");
+        int whereIndex = showListSql.lastIndexOf("where");
+        String sqlStr = "select " + FastStringUtils.join(seriesColumns, ",") + " , " + dateSelect
+                + showListSql.substring(fromIndex, whereIndex);
+
+        sqlStr += " where 1=1 and " + columnDate + " >= '" + beginDate + "' " +
+                " and " + columnDate + " <= '" + endDate + "' " +
+                " group by reportDate ";
+
+        FastSqlInfo sqlInfo = entity.toSelectSql(sqlStr);
+        try {
+            List<FastEChartsBean> chartBeans = new ArrayList<>();
+            List<? extends FastEntity<?>> list = FastChar.getDb().setDatabase(entity.getDatabase()).select(sqlInfo.getSql(), sqlInfo.toParams());
+            for (FastEntity<?> result : list) {
+                for (String key : selectColumnMap.keySet()) {
+                    FastEChartsBean fastChartBean = new FastEChartsBean();
+                    fastChartBean.setTitle(chartTitle);
+                    fastChartBean.setName(selectColumnMap.get(key));
+                    fastChartBean.setDate(result.getString("reportDate"));
+                    fastChartBean.setValue(result.get(key));
+                    if (chartType.equalsIgnoreCase("stack")) {
+                        fastChartBean.setType("bar");
+                        fastChartBean.setStack("true");
+                    } else {
+                        fastChartBean.setType(chartType);
+                    }
+                    chartBeans.add(fastChartBean);
+                }
+            }
+            responseJson(0, "获取成功！", FastEChartsBean.toJsonData(chartTitle, chartBeans));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
+
 
 }

@@ -7,6 +7,7 @@ import com.fastchar.extjs.FastExtConfig;
 import com.fastchar.extjs.core.menus.FastMenuInfo;
 import com.fastchar.extjs.interfaces.IFastMenuListener;
 import com.fastchar.utils.FastMD5Utils;
+import com.fastchar.utils.FastNumberUtils;
 import com.fastchar.utils.FastStringUtils;
 import org.xml.sax.Attributes;
 import org.xml.sax.Locator;
@@ -119,6 +120,7 @@ public class FastMenuXmlObserver {
         if (parent == null || parent.getChildren() == null) {
             return;
         }
+        int index = 0;
         for (FastMenuInfo child : parent.getChildren()) {
             if (FastStringUtils.isEmpty(child.getColor())) {
                 child.setColor(parent.getColor());
@@ -126,24 +128,29 @@ public class FastMenuXmlObserver {
             if (FastStringUtils.isEmpty(child.getIconValue())) {
                 child.setIconValue(parent.getIconValue());
             }
+            if (FastStringUtils.isEmpty(child.getIndex())) {
+                child.setIndex(String.valueOf(index));
+            }
             child.resetIcon();
             child.fromProperty();
             pullDefault(child);
+            index++;
         }
     }
 
 
     private void sortMenus(FastMenuInfo menuInfo) {
+        Comparator<FastMenuInfo> comparator = new Comparator<FastMenuInfo>() {
+            @Override
+            public int compare(FastMenuInfo o1, FastMenuInfo o2) {
+                return Integer.compare(FastNumberUtils.formatToInt(o1.getIndex()), FastNumberUtils.formatToInt(o2.getIndex()));
+            }
+        };
+        Collections.sort(menuInfo.getChildren(), comparator);
         for (FastMenuInfo child : menuInfo.getChildren()) {
-            Comparator<FastMenuInfo> comparator = new Comparator<FastMenuInfo>() {
-                @Override
-                public int compare(FastMenuInfo o1, FastMenuInfo o2) {
-                    return o1.getIndex().compareTo(o2.getIndex());
-                }
-            };
             sortMenus(child);
-            Collections.sort(child.getChildren(), comparator);
         }
+
     }
 
     private void notifyListener(FastMenuInfo menuInfo) {
@@ -167,9 +174,9 @@ public class FastMenuXmlObserver {
 
 
     public class MenuInfoHandler extends DefaultHandler {
-        private File xmlFile;
+        private final File xmlFile;
         private Locator locator;
-        private LinkedList<FastMenuInfo> linked = new LinkedList<>();
+        private final LinkedList<FastMenuInfo> linked = new LinkedList<>();
 
         MenuInfoHandler(File xmlFile) {
             this.xmlFile = xmlFile;

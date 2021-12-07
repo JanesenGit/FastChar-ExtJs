@@ -5,6 +5,22 @@ namespace FastExt {
      */
     export class Renders {
 
+        private static saveRenderFun(obj, colIndex, functionStr) {
+            try {
+                if (Ext.isFunction(obj.getHeaderContainer)) {
+                    let headerCt = obj.getHeaderContainer();
+                    if (headerCt) {
+                        let column = headerCt.getHeaderAtIndex(colIndex);
+                        if (column) {
+                            FastExt.Cache.setCache(column.getRenderCacheKey(), functionStr);
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
         /**
          * 常规的渲染
          * @param append 追加的单位或其他字符
@@ -13,7 +29,10 @@ namespace FastExt {
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
         static normal(append?: string, position?: string): any {
+            let renderFunctionStr = "FastExt.Renders.normal(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
             return function (val, m, record, rowIndex, colIndex, store, view, details) {
+                FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
+
                 if (Ext.isEmpty(val)) {
                     return "<span style='color: #ccc;'>无</span>";
                 }
@@ -45,7 +64,10 @@ namespace FastExt {
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
         static money(): any {
-            return function (val) {
+            let renderFunctionStr = "FastExt.Renders.money(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
+            return function (val, m, record, rowIndex, colIndex) {
+                FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
+
                 if (Ext.isEmpty(val)) {
                     return "<span style='color: #ccc;'>无</span>";
                 }
@@ -58,12 +80,37 @@ namespace FastExt {
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
         static text(): any {
-            return function (val) {
+            let renderFunctionStr = "FastExt.Renders.text(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
+            return function (val, m, record, rowIndex, colIndex, store, view, details) {
+                FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 if (Ext.isEmpty(val)) {
                     return "<span style='color: #ccc;'>无</span>";
                 }
                 val = val.replace(/<\/?.+?>/g, "");
+                if (details) {
+                    return val.replace(new RegExp("\n", 'g'), "<br/>")
+                        .replace(new RegExp("\t", 'g'), "&nbsp;&nbsp;&nbsp;&nbsp;")
+                        .replace(new RegExp(" ", 'g'), "&nbsp;")
+                        .replace(/<\/?.+?>/g, "");
+                }
                 return "<span style='white-space: pre;'>" + val + "</span>";
+            };
+        }
+
+        /**
+         * 大文本渲染器
+         */
+        static bigText(): any {
+            let renderFunctionStr = "FastExt.Renders.bigText(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
+            return function (val, m, record, rowIndex, colIndex) {
+                FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
+                if (Ext.isEmpty(val) || val === "null") {
+                    return "<span style='color: #ccc;'>无</span>";
+                }
+                let key = $.md5(val);
+                FastExt.Cache.memory[key] = val;
+                let functionStr = "FastExt.Dialog.showText(null,null,'查看内容',MemoryCache['" + key + "'])";
+                return "&nbsp;<a href=\"javascript:" + functionStr + ";\">查看内容</a>&nbsp;";
             };
         }
 
@@ -74,8 +121,11 @@ namespace FastExt {
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
         static image(height?: number, width?: number): any {
-            return function (val) {
+            let renderFunctionStr = "FastExt.Renders.image(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
+            return function (val, m, record, rowIndex, colIndex) {
                 try {
+                    FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
+
                     let imageHeight = "14px";
                     let imageWidth = "auto";
                     if (Ext.isEmpty(val) || val === "null") {
@@ -97,6 +147,11 @@ namespace FastExt {
 
                     let arrayInfo = val.split("@");
                     let url = arrayInfo[0];
+                    let name = url.substring(url.lastIndexOf("/") + 1);
+                    if (FastExt.FileModule.json().match(name)) {
+                        return "&nbsp;<a href=\"javascript:FastExt.Dialog.showLottie(this,'" + FastExt.System.formatUrlVersion(url) + "');\" >查看动效</a>&nbsp;";
+                    }
+
                     let dataId: string = $.md5(url);
                     window[dataId] = "<img  alt=''" +
                         " style='object-fit: cover;border:1px solid #cccccc;width: 100px; min-height:14px;  ' " +
@@ -113,9 +168,8 @@ namespace FastExt {
                         " height='" + imageHeight.replace("px", "") + "' " +
                         " onclick=\"FastExt.Dialog.showImage(this,'" + url + "')\"  " +
                         " onerror=\"javascript:this.src = 'images/default_img.png';\"" +
-                        " src='" + url + "' " +
+                        " src='" + FastExt.Image.smallOSSImgUrl(url) + "' " +
                         " />";
-                    // return "<img height='10px' width='10px' src='" + url + "'/>";
                 } catch (e) {
                     console.error(e);
                     return "<span style='color: #ccc;'>暂无图片</span>";
@@ -128,7 +182,10 @@ namespace FastExt {
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
         static mp4(): any {
-            return function (val, m, record) {
+            let renderFunctionStr = "FastExt.Renders.mp4(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
+            return function (val, m, record, rowIndex, colIndex) {
+                FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
+
                 if (Ext.isEmpty(val) || val === "null") {
                     return "<span style='color: #ccc;'>暂无文件</span>";
                 }
@@ -146,7 +203,10 @@ namespace FastExt {
          * MP3渲染器
          */
         static mp3(): any {
-            return function (val, m, record) {
+            let renderFunctionStr = "FastExt.Renders.mp3(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
+            return function (val, m, record, rowIndex, colIndex) {
+                FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
+
                 if (Ext.isEmpty(val) || val === "null") {
                     return "<span style='color: #ccc;'>暂无文件</span>";
                 }
@@ -165,19 +225,24 @@ namespace FastExt {
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
         static office(): any {
-            return function (val, m, record) {
+            let renderFunctionStr = "FastExt.Renders.office(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
+            return function (val, m, record, rowIndex, colIndex) {
+                FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 if (Ext.isEmpty(val) || val === "null") {
                     return "<span style='color: #ccc;'>暂无文件</span>";
                 }
                 let arrayInfo = val.split("@");
                 let url = arrayInfo[0];
-                let name = url.substring(url.lastIndexOf("/") + 1);
+                let realUrl = url.split("?")[0];
+                let name  = realUrl.substring(realUrl.lastIndexOf("/") + 1);
                 if (arrayInfo.length > 1) {
                     name = arrayInfo[1];
                 }
-                let fileClassName = FastExt.Base.getSVGClassName(name);
-                let viewerUrl = "https://view.officeapps.live.com/op/view.aspx?src=" + FastExt.System.formatUrlVersion(url);
-                let viewStr = "&nbsp;<a href=\"" + viewerUrl + "\" target='_blank' >在线预览</a>&nbsp;";
+
+                let fileClassName = FastExt.Base.getSVGClassName(realUrl);
+                let functionStr = "FastExt.File.officeViewer('" + FastExt.System.formatUrlVersion(url) + "')";
+
+                let viewStr = "&nbsp;<a href=\"javascript:" + functionStr + ";\" >在线预览</a>&nbsp;";
                 return viewStr + "&nbsp;<a href=\"" + FastExt.System.formatUrlVersion(url) + "\" target='_blank' >" + "<span style='margin-right: 5px;'>" + FastExt.Base.getSVGIcon(fileClassName) + "</span>" + name + "</a>&nbsp;";
             };
         }
@@ -189,29 +254,35 @@ namespace FastExt {
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
         static file(fileNameAttr?): any {
-            return function (val, m, record) {
+            let renderFunctionStr = "FastExt.Renders.file(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
+            return function (val, m, record, rowIndex, colIndex) {
+                FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 if (Ext.isEmpty(val) || val === "null") {
                     return "<span style='color: #ccc;'>暂无文件</span>";
                 }
                 let arrayInfo = val.split("@");
                 let url = arrayInfo[0];
-                let name = url.substring(url.lastIndexOf("/") + 1);
+                let realUrl = url.split("?")[0];
+                let name = realUrl.substring(realUrl.lastIndexOf("/") + 1);
                 if (arrayInfo.length > 1) {
                     name = arrayInfo[1];
                 }
                 if (!Ext.isEmpty(fileNameAttr)) {
                     name = record.get(fileNameAttr);
                 }
-                if (FastExt.FileModule.image().reg.test(name)) {
+                if (FastExt.FileModule.image().match(realUrl)) {
                     return FastExt.Renders.image()(val);
                 }
-                if (FastExt.FileModule.mp4().reg.test(name)) {
+                if (FastExt.FileModule.mp4().match(realUrl)) {
                     return FastExt.Renders.mp4()(val);
                 }
-                if (FastExt.FileModule.pdf().reg.test(name) || FastExt.FileModule.word().reg.test(name) || FastExt.FileModule.excel().reg.test(name) || FastExt.FileModule.ppt().reg.test(name)) {
+                if (FastExt.FileModule.pdf().match(realUrl)
+                    || FastExt.FileModule.word().match(realUrl)
+                    || FastExt.FileModule.excel().match(realUrl)
+                    || FastExt.FileModule.ppt().match(realUrl)) {
                     return FastExt.Renders.office()(val);
                 }
-                let fileClassName = FastExt.Base.getSVGClassName(name);
+                let fileClassName = FastExt.Base.getSVGClassName(realUrl);
                 return "&nbsp;<a href=\"" + FastExt.System.formatUrlVersion(url) + "\" target='_blank' >" + "<span style='margin-right: 5px;'>" + FastExt.Base.getSVGIcon(fileClassName) + "</span>" + name + "</a>&nbsp;";
             };
         }
@@ -221,7 +292,9 @@ namespace FastExt {
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
         static files(): any {
+            let renderFunctionStr = "FastExt.Renders.files(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
             return function (val, m, record, rowIndex, colIndex, store, view, details) {
+                FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 try {
                     if (Ext.isEmpty(val) || val === "null") {
                         return "<span style='color: #ccc;'>暂无文件</span>";
@@ -248,7 +321,7 @@ namespace FastExt {
                     if (details) {
                         return detailsList;
                     }
-                    FastExt.Cache.memory[dataId] = detailsList;
+                    FastExt.Cache.memory[dataId] = "<div style='overflow: scroll;max-height: 300px;'>"+detailsList+"</div>";
                     let functionStr = "FastExt.Dialog.showAlert('查看文件',MemoryCache['" + dataId + "'],null,false)";
                     let html = "&nbsp;<a href=\"javascript:" + functionStr + ";\">共有" + data.length + "个文件！</a>&nbsp;";
                     let detailsId: string = $.md5(html);
@@ -266,8 +339,10 @@ namespace FastExt {
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
         static images(): any {
+            let renderFunctionStr = "FastExt.Renders.images(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
             return function (val, m, record, rowIndex, colIndex, store, view, details) {
                 try {
+                    FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                     if (Ext.isEmpty(val) || val === "null") {
                         return "<span style='color: #ccc;'>暂无图片</span>";
                     }
@@ -312,7 +387,9 @@ namespace FastExt {
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
         static html(): any {
-            return function (val, m, record, rowIndex, colIndex, store, view, details) {
+            let renderFunctionStr = "FastExt.Renders.html(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
+            return function (val, m, record, rowIndex, colIndex) {
+                FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 if (Ext.isEmpty(val) || val === "null") {
                     return "<span style='color: #ccc;'>无</span>";
                 }
@@ -329,7 +406,9 @@ namespace FastExt {
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
         static html2(): any {
+            let renderFunctionStr = "FastExt.Renders.html2(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
             return function (val, m, record, rowIndex, colIndex, store, view, details) {
+                FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 if (Ext.isEmpty(val) || val === "null") {
                     return "<span style='color: #ccc;'>无</span>";
                 }
@@ -351,7 +430,9 @@ namespace FastExt {
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
         static json(): any {
-            return function (val, m, record, rowIndex, colIndex, store, view, details) {
+            let renderFunctionStr = "FastExt.Renders.json(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
+            return function (val, m, record, rowIndex, colIndex) {
+                FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 if (Ext.isEmpty(val) || val === "null") {
                     return "<span style='color: #ccc;'>无</span>";
                 }
@@ -367,7 +448,9 @@ namespace FastExt {
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
         static json2(): any {
-            return function (val, m, record, rowIndex, colIndex, store, view, details) {
+            let renderFunctionStr = "FastExt.Renders.json2(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
+            return function (val, m, record, rowIndex, colIndex) {
+                FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 if (Ext.isEmpty(val) || val === "null") {
                     return "<span style='color: #ccc;'>无</span>";
                 }
@@ -386,7 +469,9 @@ namespace FastExt {
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
         static link(name, entityCode, entityId): any {
-            return function (val, m, record) {
+            let renderFunctionStr = "FastExt.Renders.link(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
+            return function (val, m, record, rowIndex, colIndex) {
+                FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 try {
                     if (Ext.isEmpty(val) || val === "null") {
                         return "<span style='color: #ccc;'>无</span>";
@@ -409,7 +494,9 @@ namespace FastExt {
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
         static target(targetId, targetType, targetFunction?: string): any {
-            return function (val, m, record) {
+            let renderFunctionStr = "FastExt.Renders.target(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
+            return function (val, m, record, rowIndex, colIndex) {
+                FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 try {
                     if (Ext.isEmpty(val) || val === "null") {
                         return "<span style='color: #ccc;'>无</span>";
@@ -444,7 +531,9 @@ namespace FastExt {
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
         static map(lngName, latName, titleName): any {
-            return function (val, m, record) {
+            let renderFunctionStr = "FastExt.Renders.map(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
+            return function (val, m, record, rowIndex, colIndex) {
+                FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 try {
                     if (Ext.isEmpty(val) || val === "null") {
                         return "<span style='color: #ccc;'>无</span>";
@@ -476,7 +565,9 @@ namespace FastExt {
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
         static mapImgLayer(imgUrlName, southWestLngLatName, northEastLngLatName, rotateName): any {
-            return function (val, m, record) {
+            let renderFunctionStr = "FastExt.Renders.mapImgLayer(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
+            return function (val, m, record, rowIndex, colIndex) {
+                FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 try {
                     if (Ext.isEmpty(val) || val === "null") {
                         return "<span style='color: #ccc;'>无</span>";
@@ -504,7 +595,9 @@ namespace FastExt {
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
         static password(): any {
-            return function (val, m, record, rowIndex, colIndex, store, view, details) {
+            let renderFunctionStr = "FastExt.Renders.password(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
+            return function (val, m, record, rowIndex, colIndex) {
+                FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 if (Ext.isEmpty(val)) {
                     return "<span style='color: #ccc;'>无</span>";
                 }
@@ -517,7 +610,9 @@ namespace FastExt {
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
         static href(): any {
-            return function (val, m, record) {
+            let renderFunctionStr = "FastExt.Renders.href(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
+            return function (val, m, record, rowIndex, colIndex) {
+                FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 if (Ext.isEmpty(val) || val === "null") {
                     return "<span style='color: #ccc;'>无</span>";
                 }
@@ -530,7 +625,9 @@ namespace FastExt {
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
         static fileSize(): any {
-            return function (val, m, record) {
+            let renderFunctionStr = "FastExt.Renders.fileSize(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
+            return function (val, m, record, rowIndex, colIndex) {
+                FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 try {
                     if (Ext.isEmpty(val) || val === "null") {
                         return "<span style='color: #ccc;'>无</span>";
@@ -557,7 +654,9 @@ namespace FastExt {
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
         static duration(): any {
-            return function (val, m, record) {
+            let renderFunctionStr = "FastExt.Renders.duration(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
+            return function (val, m, record, rowIndex, colIndex) {
+                FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 try {
                     if (Ext.isEmpty(val) || val === "null") {
                         return "<span style='color: #ccc;'>无</span>";
@@ -586,7 +685,9 @@ namespace FastExt {
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
         static dateFormat(format?: string): any {
-            return function (val, m, record) {
+            let renderFunctionStr = "FastExt.Renders.dateFormat(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
+            return function (val, m, record, rowIndex, colIndex) {
+                FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 try {
                     if (Ext.isEmpty(val) || val === "null") {
                         return "<span style='color: #ccc;'>无</span>";
@@ -609,7 +710,9 @@ namespace FastExt {
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
         static timestamp(format?: string) {
-            return function (val, m, record) {
+            let renderFunctionStr = "FastExt.Renders.timestamp(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
+            return function (val, m, record, rowIndex, colIndex) {
+                FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 try {
                     if (Ext.isEmpty(val) || val === "null") {
                         return "<span style='color: #ccc;'>无</span>";
@@ -633,7 +736,9 @@ namespace FastExt {
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
         static enum(enumName, enumValue, enumText): any {
-            return function (val) {
+            let renderFunctionStr = "FastExt.Renders.enum(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
+            return function (val, m, record, rowIndex, colIndex) {
+                FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 try {
                     if (Ext.isEmpty(val)) {
                         return "<span style='color: #ccc;'>无</span>";
@@ -659,16 +764,39 @@ namespace FastExt {
         }
 
         /**
+         * 异常内容渲染器
+         */
+        static exception(): any {
+            let renderFunctionStr = "FastExt.Renders.exception(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
+            return function (val, m, record, rowIndex, colIndex) {
+                FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
+                try {
+                    if (Ext.isEmpty(val)) {
+                        return "<span style='color: #ccc;'>无</span>";
+                    }
+                    let key = $.md5(val);
+                    FastExt.Cache.memory[key] = val;
+                    let functionStr = "FastExt.Dialog.showCode(null,MemoryCache['" + key + "'])";
+                    return "&nbsp;<a href=\"javascript:" + functionStr + ";\">查看异常内容</a>&nbsp;";
+                } catch (e) {
+                    return "<span style='color: #ccc;'>" + val + "</span>";
+                }
+            }
+        }
+
+        /**
          * 颜色值渲染器
          */
         static color(): any {
-            return function (val) {
+            let renderFunctionStr = "FastExt.Renders.color(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
+            return function (val, m, record, rowIndex, colIndex) {
+                FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 try {
                     if (Ext.isEmpty(val)) {
                         return "<span style='color: #ccc;'>无</span>";
                     }
                     let color = FastExt.Color.toColor(val);
-                    return "<!--suppress ALL --><img style='background: " + color + ";width: 30px;height: 14px;'/>";
+                    return "<div style='background: " + color + ";padding: 0 25px;height: 14px;display: inline;'></div>";
                 } catch (e) {
                     return "<span style='color: #ccc;'>" + val + "</span>";
                 }

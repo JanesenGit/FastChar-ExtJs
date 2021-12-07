@@ -24,7 +24,8 @@ public class FastExtAppJsAccepter implements IFastScannerAccepter {
             if (file.getName().endsWith(".js")) {
                 String filePath = file.getPath();
                 filePath = FastStringUtils.strip(filePath.replace(engine.getPath().getWebRootPath(), ""), "/");
-                if (filePath.startsWith("app/")) {
+                if (filePath.startsWith("app/")
+                        && !filePath.endsWith(".min.js")) {
                     YuiCompress.compress(file.getPath());
                 }
             }

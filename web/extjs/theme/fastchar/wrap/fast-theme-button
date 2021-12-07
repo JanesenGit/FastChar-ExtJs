@@ -1,0 +1,102 @@
+
+.x-btn-icon-el-default-toolbar-small, .x-btn-icon-el-default-small {
+	width: 20px !important;
+	height: 20px !important;
+}
+
+.x-btn-focus.x-btn-default-toolbar-small-focus {
+	box-shadow: transparent 0 0 0 0 !important;
+}
+
+.x-btn-wrap-default-toolbar-small.x-btn-arrow-right:after {
+    color: $[color] !important;
+}
+
+
+
+.x-btn{
+    border-radius: 8px;
+}
+
+.x-btn-default-small {
+	background: linear-gradient(0deg, $[color], $[color7]) !important;
+	//border-color: #dddddd;
+    border: 1px solid $[color7];
+    //box-shadow: 0 1px 2px $[color7] inset, 0 -1px 0 #f0f0f0 inset, 0 -2px 3px $[color7] inset;
+    -webkit-box-shadow: 0 1px 2px #bbbbbb, inset 0 -1px 0 #eeeeee;
+    -moz-box-shadow: 0 1px 2px #bbbbbb, inset 0 -1px 0 #eeeeee;
+    box-shadow: 0 1px 2px #bbbbbb, inset 0 -1px 0 #eeeeee;
+}
+
+.x-btn-over.x-btn-default-small {
+    background: linear-gradient(0deg, $[color7], $[color]) !important;
+    border-color:  $[color];
+    -webkit-box-shadow: 0 1px 2px #bbbbbb, inset 0 1px 0 #f0f0f0;
+    -moz-box-shadow: 0 1px 2px #bbbbbb, inset 0 1px 0 #f0f0f0;
+    box-shadow: 0 1px 2px #bbbbbb, inset 0 1px 0 #f0f0f0;
+}
+
+.x-btn-over .x-btn-default-small-mc {
+    background-color: $[color];
+	border-color: $[color];
+	filter:alpha(opacity=70);
+    -moz-opacity:0.7;
+    -khtml-opacity: 0.7;
+    opacity: 0.7;
+}
+
+
+.x-btn-focus.x-btn-default-small {
+	background: linear-gradient(0deg, $[color7], $[color]) !important;
+	border-color:  $[color];
+}
+
+
+.x-btn-focus {
+	border-color: $[color] !important;
+}
+
+.x-btn-default-small-focus {
+	border-color:$[color] !important;
+}
+
+.x-btn.x-btn-pressed.x-btn-default-small{
+	background-color: $[color];
+	border-color:$[color];
+	filter:alpha(opacity=50);
+    -moz-opacity:0.5;
+    -khtml-opacity: 0.5;
+    opacity: 0.5;
+}
+.x-btn.x-btn-disabled.x-btn-default-small{
+	background-color: $[color6];
+	border-color:$[color6];
+}
+
+/*toolbar上面的按钮   开始*/
+.x-btn-default-toolbar-small {
+    background: linear-gradient(0deg, #eeeeee, #ffffff);
+}
+.x-btn-over.x-btn-default-toolbar-small{
+     background: linear-gradient(0deg, #ffffff,#eeeeee) ;
+}
+.x-btn-focus.x-btn-pressed.x-btn-default-toolbar-small{
+     background: linear-gradient(0deg, #ffffff,#cccccc) ;
+}
+.x-btn.x-btn-menu-active.x-btn-default-toolbar-small, .x-btn.x-btn-pressed.x-btn-default-toolbar-small {
+ background: linear-gradient(0deg, #ffffff,#cccccc) ;
+}
+/*toolbar上面的按钮   结束*/
+
+
+.x-btn-icon-el-default-small{
+    line-height: 20px;
+}
+
+.x-btn .x-unselectable .x-box-item .x-toolbar-item .x-btn-default-small .x-btn-menu-active{
+    border-color:$[color];
+}
+
+.x-btn.x-btn-menu-active.x-btn-default-small, .x-btn.x-btn-pressed.x-btn-default-small{
+    border-color:$[color];
+}

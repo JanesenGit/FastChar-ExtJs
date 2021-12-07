@@ -228,7 +228,7 @@ public final class FastExtLayerHelper {
     }
 
     private static LayerMap filterLayerMap(List<LayerMap> layerMaps, String databaseName, String tableName) {
-        if (FastStringUtils.isEmpty(databaseName) || FastStringUtils.isEmpty(tableName)) {
+        if (FastStringUtils.isEmpty(databaseName) || FastStringUtils.isEmpty(tableName) || layerMaps == null) {
             return null;
         }
         for (LayerMap layerMap : layerMaps) {

@@ -1,0 +1,3 @@
+.x-progress-bar-default {
+	background-color:$[color] !important;
+}

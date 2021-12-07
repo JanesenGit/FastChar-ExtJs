@@ -23,8 +23,9 @@ public class ExtSystemConfigEntity extends AbstractExtSystemConfigEntity {
     public boolean save() {
         String configKey = getString("configKey");
         String configType = getString("configType");
+        String projectName = getString("projectName");
         int managerId = getInt("managerId");
-        deleteConfig(managerId, configKey, configType);
+        deleteConfig(managerId, projectName, configKey, configType);
         return super.save();
     }
 
@@ -34,9 +35,9 @@ public class ExtSystemConfigEntity extends AbstractExtSystemConfigEntity {
         set("configDateTime", FastDateUtils.getDateString());
     }
 
-    public int deleteConfig(int managerId, String configKey, String configType) {
-        String sqlStr = "delete from ext_system_config where configKey = ? and managerId = ? and configType = ?";
-        return updateBySql(sqlStr, configKey, managerId, configType);
+    public int deleteConfig(int managerId,String projectName, String configKey, String configType) {
+        String sqlStr = "delete from ext_system_config where configKey = ? and managerId = ? and configType = ? and projectName = ? ";
+        return updateBySql(sqlStr, configKey, managerId, configType, projectName);
     }
 
     public int deleteConfig(int managerId, String configType) {
@@ -45,7 +46,12 @@ public class ExtSystemConfigEntity extends AbstractExtSystemConfigEntity {
     }
 
 
-    public ExtSystemConfigEntity getExtConfig(int managerId, String configKey, String configType) {
+    public ExtSystemConfigEntity getExtConfig(int managerId,String projectName, String configKey, String configType) {
+        String sqlStr = "select * from ext_system_config where configKey = ? and managerId = ? and configType = ? and projectName = ? ";
+        return selectFirstBySql(sqlStr, configKey, managerId, configType, projectName);
+    }
+
+    public ExtSystemConfigEntity getExtConfig(int managerId,String configKey, String configType) {
         String sqlStr = "select * from ext_system_config where configKey = ? and managerId = ? and configType = ? ";
         return selectFirstBySql(sqlStr, configKey, managerId, configType);
     }

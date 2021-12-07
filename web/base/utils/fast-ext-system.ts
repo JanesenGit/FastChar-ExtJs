@@ -58,6 +58,7 @@ namespace FastExt {
          * 系统项目的根路径，例如：http://localhost:8080/
          */
         static baseUrl = null;
+
         /**
          * 图片的正则表达式
          */
@@ -125,6 +126,16 @@ namespace FastExt {
         static currClickTarget = null;
 
         /**
+         * 当前应用的Tab主题class
+         */
+        static currTabThemeCls = null;
+
+        /**
+         * 配置监听实体类构建组件的函数
+         */
+        static entityCreateFilter = {};
+
+        /**
          * 移除全局加载的等待界面
          */
         static removeLoading() {
@@ -190,7 +201,7 @@ namespace FastExt {
 
         /**
          * 动态加载js文件
-         * @param script js文件对象
+         * @param script js文件对象 {src:""}
          * @param callBack
          * @see FastExt.SystemScript
          */
@@ -239,7 +250,7 @@ namespace FastExt {
          * @param style css代码
          * @param callBack 加载成功后回调
          */
-        static addStyle(style, callBack) {
+        static addStyle(style, callBack?) {
             let oHead = document.getElementsByTagName('head').item(0);
             let oStyle: any = document.createElement("style");
             oStyle.type = "text/css";
@@ -252,6 +263,44 @@ namespace FastExt {
                 callBack();
             }
             oHead.appendChild(oStyle);
+            return oStyle;
+        }
+
+        /**
+         * 删除样式标签
+         * @param code
+         */
+        static removeStyle(code) {
+            let styles = document.getElementsByTagName('style');
+            for (let i = 0; i < styles.length; i++) {
+                let style = styles[i];
+                if (style["code"] === code) {
+                    style.parentNode.removeChild(style);
+                }
+            }
+        }
+
+
+        /**
+         * 动态加载style文件
+         * @param link 文件地址 {href:""}
+         * @param callBack
+         */
+        static addStylesheet(link, callBack) {
+            if (link == null) return;
+            let oHead = document.getElementsByTagName('head').item(0);
+            let oLink: any = document.createElement("link");
+            oLink.rel = "stylesheet";
+            oLink.href = FastExt.System.formatUrl(link.href);
+            oHead.appendChild(oLink);
+            oLink.onload = oLink.readystatechange = function () {
+                if (callBack != null) {
+                    callBack();
+                }
+            };
+            oLink.onerror = function () {
+                alert("系统Link文件" + link.href + "加载失败，请您稍后重试！");
+            };
         }
 
 
@@ -353,6 +402,7 @@ namespace FastExt {
             let entities = FastExt.System["entities"];
             for (let i = 0; i < entities.length; i++) {
                 let entity = entities[i];
+
                 for (let key in entity) {
                     if (entity.hasOwnProperty(key)) {
                         entity.js = false;
@@ -758,6 +808,7 @@ namespace FastExt {
                         }
                     },
                     activate: function (tab) {
+                        FastExt.System.clearAllTabTheme();
                         if (FastExt.System.silenceGlobalSave) {
                             return;
                         }
@@ -1168,6 +1219,9 @@ namespace FastExt {
          * @param params
          */
         static formatUrlVersion(url: string, params?): string {
+            if (Ext.isEmpty(url)) {
+                return url;
+            }
             let newUrl = url;
             if (url.indexOf("v=") < 0) {
                 if (url.indexOf("?") > 0) {
@@ -1192,8 +1246,11 @@ namespace FastExt {
          * @param params
          */
         static formatUrl(url, params?): string {
-            if (url.startWith("http://") || url.startWith("https://")) {
+            if (Ext.isEmpty(url)) {
                 return url;
+            }
+            if (url.startWith("http://") || url.startWith("https://")) {
+                return this.formatUrlVersion(url, params);
             }
             if (this.http) {
                 return this.formatUrlVersion(this.http + url, params);
@@ -1276,7 +1333,7 @@ namespace FastExt {
                     });
 
                     FastExt.Server.setSilence(true);
-                    FastExt.Server.saveExtConfig("SystemTabs", "TabRecord", FastExt.Json.objectToJson(tabArray), function (success, message) {
+                    FastExt.Server.saveExtConfig($.md5("SystemTabs"), "TabRecord", FastExt.Json.objectToJson(tabArray), function (success, message) {
                         resolve(success);
                         FastExt.Server.setSilence(false);
                     });
@@ -1293,7 +1350,7 @@ namespace FastExt {
         static restoreTab(): any {
             return new Ext.Promise(function (resolve, reject) {
                 try {
-                    FastExt.Server.showExtConfig("SystemTabs", "TabRecord", function (success, value) {
+                    FastExt.Server.showExtConfig($.md5("SystemTabs"), "TabRecord", function (success, value) {
                         resolve(value);
                     });
                 } catch (e) {
@@ -1644,55 +1701,59 @@ namespace FastExt {
                                 return;
                             }
                             me.lastTabId = tab.id;
-                            if (!FastExt.System.silenceGlobalSave) {
-                                if (me.existMenu(tab.id)) {
-                                    me.selectMenu(tab.id, false);
+
+                            let doShow = function () {
+                                if (!FastExt.System.silenceGlobalSave) {
+                                    if (me.existMenu(tab.id)) {
+                                        me.selectMenu(tab.id, false);
+                                    }
+                                    changeIcon(tab, true);
                                 }
-                                changeIcon(tab, true);
-                            }
-                            if (!tab.methodInvoked || FastExt.System.silenceGlobalSave) {
-                                me.asyncMethod(method).then(function (obj) {
+                                if (!tab.methodInvoked || FastExt.System.silenceGlobalSave) {
+                                    me.asyncMethod(method).then(function (obj) {
+                                        try {
+                                            if (!obj) {
+                                                return;
+                                            }
+                                            tab.methodInvoked = true;
+                                            let entityOwner = obj.down("[entityList=true]");
+                                            if (entityOwner) {
+                                                entityOwner.where = FastExt.Json.mergeJson(tab.where, entityOwner.where);
+                                                entityOwner.code = $.md5(tab.id);
+                                            }
+                                            tab.add(obj);
+                                        } catch (e) {
+                                            console.error(e);
+                                        }
+                                    });
+                                } else {
+                                    let entityOwner = tab.down("[entityList=true]");
+                                    if (entityOwner && entityOwner.onTabActivate) {
+                                        entityOwner.onTabActivate(tab);
+                                    }
+                                }
+
+                                if (!FastExt.System.silenceGlobalSave) {
                                     try {
-                                        if (!obj) {
-                                            return;
+                                        let href = window.location.href;
+                                        if (href.indexOf("#") > 0) {
+                                            let menuId = href.substring(href.lastIndexOf("/") + 1);
+                                            if (tab.id === menuId) {
+                                                return;
+                                            }
                                         }
-                                        tab.methodInvoked = true;
-                                        let entityOwner = obj.down("[entityList=true]");
-                                        if (entityOwner) {
-                                            entityOwner.where = FastExt.Json.mergeJson(tab.where, entityOwner.where);
-                                            entityOwner.code = $.md5(tab.id);
-                                        }
-                                        tab.add(obj);
+                                        let state = {
+                                            title: tab.title,
+                                            url: me.baseUrl + "#/" + tab.title + "/" + tab.id
+                                        };
+                                        window.history.pushState(state, tab.title, me.baseUrl + "#/" + tab.title + "/" + tab.id);
                                     } catch (e) {
                                         console.error(e);
                                     }
-                                });
-                            } else {
-                                let entityOwner = tab.down("[entityList=true]");
-                                if (entityOwner && entityOwner.onTabActivate) {
-                                    entityOwner.onTabActivate(tab);
+                                    me.recordTab();
                                 }
-                            }
-
-                            if (!FastExt.System.silenceGlobalSave) {
-                                try {
-                                    let href = window.location.href;
-                                    if (href.indexOf("#") > 0) {
-                                        let menuId = href.substring(href.lastIndexOf("/") + 1);
-                                        if (tab.id === menuId) {
-                                            return;
-                                        }
-                                    }
-                                    let state = {
-                                        title: tab.title,
-                                        url: me.baseUrl + "#/" + tab.title + "/" + tab.id
-                                    };
-                                    window.history.pushState(state, tab.title, me.baseUrl + "#/" + tab.title + "/" + tab.id);
-                                } catch (e) {
-                                    console.error(e);
-                                }
-                                me.recordTab();
-                            }
+                            };
+                            FastExt.System.changeTabTheme(tab.id, doShow);
                         },
                         afterlayout: function (tab, container, pos) {
                             if (!FastExt.System.silenceGlobalSave) {
@@ -1741,6 +1802,55 @@ namespace FastExt {
                     tabs.setActiveTab(currTab);
                 }
             }
+        }
+
+
+        /**
+         * 切换Tab的主题
+         * @param tabId tabId
+         * @param callBack 回调函数
+         */
+        static changeTabTheme(tabId, callBack?) {
+            try {
+                let menu = FastExt.System.getMenu(tabId);
+                if (menu && menu.baseCls) {
+                    if (FastExt.Base.toString(FastExt.System.currTabThemeCls, "") === menu.baseCls) {
+                        return;
+                    }
+                    let tabTheme = FastExt.System.getExt("tab-theme").value;
+                    if (!FastExt.Base.toBool(tabTheme, false)) {
+                        return;
+                    }
+                    FastExt.System.clearAllTabTheme();
+                    FastExt.System.getBodyContainer().setUserCls(menu.baseCls);
+                    FastExt.System.currTabThemeCls = menu.baseCls;
+                } else {
+                    FastExt.System.clearAllTabTheme();
+                }
+            } catch (e) {
+                console.error(e);
+            } finally {
+                callBack();
+            }
+        }
+
+
+        /**
+         * 清除所有Tab的主题
+         */
+        static clearAllTabTheme() {
+            FastExt.System.currTabThemeCls = null;
+            $("body").removeClass(function (index, oldclass) {
+                let classArray = oldclass.split(" ");
+                let removeClassArray = [];
+                for (let i = 0; i < classArray.length; i++) {
+                    let currClass = classArray[i];
+                    if (currClass.startWith("baseTab")) {
+                        removeClassArray.push(currClass);
+                    }
+                }
+                return removeClassArray.join(" ");
+            });
         }
 
 
@@ -1908,7 +2018,7 @@ namespace FastExt {
 
 
             let win = Ext.create('Ext.window.Window', {
-                title: '修改登录密码',
+                title: '修改管理员登录密码',
                 height: 250,
                 icon: obj.icon,
                 iconCls: obj.iconCls,
@@ -2944,9 +3054,11 @@ namespace FastExt {
                 }
             }
             if (FastExt.System.silenceGlobalSave) {
-                (<any>FastExt.Server).checkWaitNoticeTimer = setTimeout(function () {
-                    FastExt.System.startCheckSystemWait();
-                }, 3000);
+                if (FastExt.Base.toBool(FastExt.System["noticeListener"], false)) {
+                    (<any>FastExt.Server).checkWaitNoticeTimer = setTimeout(function () {
+                        FastExt.System.startCheckSystemWait();
+                    }, 3000);
+                }
                 return;
             }
             FastExt.Server.checkWaitNotice(params, function (success, data) {
@@ -3066,9 +3178,11 @@ namespace FastExt {
                         }
                     }
                 } finally {
-                    (<any>FastExt.Server).checkWaitNoticeTimer = setTimeout(function () {
-                        FastExt.System.startCheckSystemWait();
-                    }, 3000);
+                    if (FastExt.Base.toBool(FastExt.System["noticeListener"], false)) {
+                        (<any>FastExt.Server).checkWaitNoticeTimer = setTimeout(function () {
+                            FastExt.System.startCheckSystemWait();
+                        }, 3000);
+                    }
                 }
             });
         }
@@ -3438,6 +3552,18 @@ namespace FastExt {
                                 store: FastExt.Store.getYesOrNoDataStore()
                             },
                             {
+                                name: 'tab-theme',
+                                fieldLabel: '标签主题应用',
+                                columnWidth: 1,
+                                xtype: 'combo',
+                                displayField: 'text',
+                                valueField: 'id',
+                                editable: false,
+                                value: 1,
+                                bind: '{tab-theme}',
+                                store: FastExt.Store.getYesOrNoDataStore()
+                            },
+                            {
                                 name: 'font-size',
                                 fieldLabel: '系统字体大小',
                                 columnWidth: 1,
@@ -3680,7 +3806,7 @@ namespace FastExt {
          */
         static showLogin(container) {
             let loginTitle = $("title").text();
-            let loginBgUrl = FastExt.System.getExt("login-background").href;
+            let loginBgUrl = FastExt.System.getExt("login-background").value;
             let systemBgColor = FastExt.Color.toColor(FastExt.System.getExt("theme-color").value);
             let loginLogo = FastExt.System.getExt("login-logo").value;
             let loginNormal = FastExt.System.getExt("login-type").value === "normal";
@@ -3700,7 +3826,7 @@ namespace FastExt {
             });
 
 
-            let headHtml = "<div align='center' class='headPanel' style='color:" + systemBgColor + ";'><img class='loginLogo'  width='50px' height='50px;' src='" + loginLogo + "' /><h2>" + loginTitle + "</h2></div>";
+            let headHtml = "<div align='center' class='headPanel' style='color:" + systemBgColor + ";'><img class='loginLogo'  width='50px' height='50px;' src='" + FastExt.System.formatUrlVersion(loginLogo) + "' /><h2>" + loginTitle + "</h2></div>";
 
             if (!loginLogo || loginLogo.length === 0) {
                 headHtml = "<div align='center' class='headPanel' style='color:" + systemBgColor + ";'><h2>" + loginTitle + "</h2></div>";
@@ -3983,9 +4109,8 @@ namespace FastExt {
         static showLogin2(container) {
 
             let loginTitle = $("title").text();
-            let loginBgUrl = FastExt.System.getExt("login-background").href;
-            let loginAnimUrl = FastExt.System.getExt("login-animation").href;
-
+            let loginBgUrl = FastExt.System.getExt("login-background").value;
+            let loginLottieJsonUrl = FastExt.System.getExt("login-lottie-json").value;
             let systemBgColor = FastExt.Color.toColor(FastExt.System.getExt("theme-color").value);
             let loginLogo = FastExt.System.getExt("login-logo").value;
             let loginNormal = FastExt.System.getExt("login-type").value === "normal";
@@ -3996,7 +4121,7 @@ namespace FastExt {
             let year = new Date().getFullYear();
 
             loginBgUrl = FastExt.System.formatUrl(loginBgUrl, {bg: systemBgColor, dot: systemBgColor});
-            loginAnimUrl = FastExt.System.formatUrl(loginAnimUrl, {bg: systemBgColor});
+            loginLottieJsonUrl = FastExt.System.formatUrl(loginLottieJsonUrl, {bg: systemBgColor});
 
             let panel = Ext.create('Ext.panel.Panel', {
                 layout: 'fit',
@@ -4006,7 +4131,7 @@ namespace FastExt {
             });
 
 
-            let headHtml = "<div align='center' class='headPanel' style='color:" + systemBgColor + ";'><img class='loginLogo'  width='80px' height='80px;' src='" + loginLogo + "' /><h2>" + loginTitle + "</h2></div>";
+            let headHtml = "<div align='center' class='headPanel' style='color:" + systemBgColor + ";'><img class='loginLogo'  width='80px' height='80px;' src='" + FastExt.System.formatUrlVersion(loginLogo) + "' /><h2>" + loginTitle + "</h2></div>";
 
             if (!loginLogo || loginLogo.length === 0) {
                 headHtml = "<div align='center' class='headPanel' style='color:" + systemBgColor + ";'><h2>" + loginTitle + "</h2></div>";
@@ -4054,7 +4179,7 @@ namespace FastExt {
                             labelAlign: labelAlign,
                             labelWidth: labelWidth,
                             labelSeparator: '',
-                            labelStyle: "font-size: 20px !important;color: "+systemBgColor+" !important;"
+                            labelStyle: "font-size: 20px !important;color: #888888;"
                         },
                         items: [
                             {
@@ -4096,7 +4221,7 @@ namespace FastExt {
                                         labelAlign: labelAlign,
                                         labelWidth: labelWidth,
                                         labelSeparator: '',
-                                        labelStyle: "font-size: 20px !important;color: " + systemBgColor + " !important;",
+                                        labelStyle: "font-size: 20px !important;color: #888888;",
                                         margin: '10 10 0 0',
                                         allowBlank: loginNormal,
                                         flex: 1,
@@ -4115,7 +4240,7 @@ namespace FastExt {
                             {
                                 name: 'loginMember',
                                 xtype: 'combo',
-                                fieldLabel: '<svg class="svgIcon" aria-hidden="true"><use xlink:href="#extReback"></use></svg>',
+                                fieldLabel: '<svg class="svgIcon" aria-hidden="true"><use xlink:href="#extLoginRemember2"></use></svg>',
                                 margin: '10 10 0 0',
                                 displayField: 'text',
                                 valueField: 'id',
@@ -4264,15 +4389,19 @@ namespace FastExt {
                 items: [headPanel, loginPanel, bottomPanel]
             });
 
+
             let leftContainerPanel = Ext.create('Ext.panel.Panel', {
                 region: 'west',
                 layout: 'fit',
                 width: 588,
                 border: 0,
-                listeners:{
+                bodyStyle: {
+                    background: systemBgColor
+                },
+                listeners: {
                     render: function (obj) {
-                        obj.update("<iframe name='leftTipFrame'  src='" + loginAnimUrl + "' width='100%' height='100%' style='border: 0px; overflow-x: hidden;background-color: " + systemBgColor + "'/>");
-                    }
+                        FastExt.Lottie.loadJsonAnim(obj, loginLottieJsonUrl);
+                    },
                 }
             });
 
@@ -4454,6 +4583,18 @@ namespace FastExt {
             uploadWin.show();
         }
 
+
+        /**
+         * 监听 实体类（*Entity.js）对象构建组件的过滤器。注意只能监听到实体对的函数代码所执行的组件创建
+         * @param entityCode 实体编号
+         * @param filterFunction 过滤函数，参数：info 组件信息
+         */
+        static addFilterByEntityCreate(entityCode: string, filterFunction?: (info: ComponentInvokeInfo) => void) {
+            if (Ext.isEmpty(FastExt.System.entityCreateFilter[entityCode])) {
+                FastExt.System.entityCreateFilter[entityCode] = [];
+            }
+            FastExt.System.entityCreateFilter[entityCode].push(filterFunction);
+        }
     }
 
 
@@ -4548,6 +4689,27 @@ namespace FastExt {
 
             window["server"] = FastExt.Server;
         }
+    }
+
+
+    /**
+     * 组件创建的信息
+     */
+    export class ComponentInvokeInfo {
+
+        /**
+         * 调用对象的方法名称
+         */
+        method: string;
+
+        /**
+         * 组件类型名称
+         */
+        xtype: string;
+        /**
+         * 组件创建的配置信息
+         */
+        config: any;
     }
 
     for (let subClass in FastExt) {

@@ -1,0 +1,220 @@
+li.L0, li.L1, li.L2, li.L3,
+li.L5, li.L6, li.L7, li.L8 {
+  list-style-type: decimal !important;
+}
+
+pre.prettyprint {
+    word-break: break-word;
+}
+.windowpre{
+   width: 100% !important;
+   margin: 0 !important;
+   border: 0 !important;
+   border-radius: 0 !important;
+}
+
+
+*{
+     -moz-transition: opacity 300ms ,border-color 500ms ,box-shadow 300ms ,text-shadow 300ms  !important;
+     -webkit-transition: opacity 300ms,border-color 500ms ,box-shadow 300ms,text-shadow 300ms !important;
+     -o-transition:opacity 300ms,border-color 500ms ,box-shadow 300ms,text-shadow 300ms !important;
+     transition:opacity 300ms,border-color 500ms ,box-shadow 300ms ,text-shadow 300ms !important;
+}
+
+
+
+::selection {
+    background: $[color];
+    color: #ffffff;
+}
+
+::-moz-selection {
+    background: $[color];
+    color: #ffffff;
+}
+
+::-webkit-selection {
+    background: $[color];
+    color: #ffffff;
+}
+
+
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background-color: transparent;
+    /*border:1px solid #e8e8e8;*/
+}
+::-webkit-scrollbar-thumb {
+    border-radius: 5px;
+    background: #dddddd;
+}
+
+::-webkit-scrollbar-thumb:hover{
+    background: #aaaaaa;
+}
+
+::-webkit-scrollbar-button{
+    background-color: transparent !important;
+    border:0;
+    display: none;
+}
+
+
+/* 修改默认字体的大小*/
+.x-btn-default-small .x-btn-inner, .x-btn-default-medium .x-btn-inner,
+	.x-btn-default-large .x-btn-inner, .x-btn-default-toolbar-small .x-btn-inner,
+	.x-btn-default-toolbar-medium .x-btn-inner,
+	.x-btn-default-toolbar-large .x-btn-inner, .x-menu-item-text,
+	.x-html-editor-tb .x-font-select, .x-panel-header-default,
+	.x-panel-header-text-default, .x-panel-header-default-framed,
+	.x-tip-header, .x-tip-body, .x-form-invalid-tip-body,
+	.x-tip-header-text, .x-progress-text, .x-toolbar, .x-toolbar .x-form-item-label,
+	.x-toolbar .x-toolbar-text, .x-window-header-text-default, .x-tab-bar,
+	.x-tab button, .x-grid-rowbody, .x-grid-row .x-grid-cell,
+	.x-grid-group-title, .x-grid-row-editor .x-form-field,
+	.x-grid-row-editor .x-form-display-field, .x-form-invalid-under,
+	.x-fieldset-header, .x-column-header, .x-mask-msg div,
+	.x-btn-group-header-text-default-framed, table.x-datepicker-inner a,
+	.x-monthpicker-item, .x-dd-drag-ghost , .x-form-item-label ,
+	.x-window-body-default ,.x-tab-inner-default{
+	font-size: $[fontSize] !important;
+}
+
+.x-title-text {
+    font-size: $[fontSize2] !important;
+}
+
+.tdVTop{
+	vertical-align: baseline;
+}
+
+.x-tab-default .x-tab-close-btn{
+    height:15px !important;
+}
+
+.x-btn-icon-el-default-toolbar-small, .x-btn-icon-el-default-small {
+	width: 20px !important;
+	height: 20px !important;
+}
+
+.x-title-icon-default {
+	width: 20px !important;
+	height: 20px !important;
+}
+
+/* 去除tab的边框 */
+#tabs-body {
+	border-width: 0 !important;
+}
+
+.x-message-box {
+	z-index: 99999999 !important;
+}
+
+.x-splitter-focus:after{
+	border: 0px !important;
+}
+
+
+.no-show-power{
+   filter:alpha(opacity=30) !important;
+   -moz-opacity:0.3 !important;
+   -khtml-opacity: 0.3 !important;
+   opacity: 0.3 !important;
+}
+
+.no-edit-power{
+   background-color: #fff20799 !important;
+}
+
+
+
+.text-clear{
+   color:#c2c2c2
+}
+.text-clear:before {
+   content: "\f00d"
+}
+
+.text-search{
+    color:#c2c2c2
+}
+.text-search:before {
+    content: "\f002";
+}
+
+.text-help{
+    color:#c2c2c2;
+}
+.text-help:before {
+    content: "\f128";
+}
+
+body>.x-mask {
+    background-image: none;
+    background-color: rgba(0, 0, 0, 0.55);
+}
+
+.x-item-disabled-normal {
+    cursor: default;
+    pointer-events: none;
+}
+
+
+.redAlert .x-window-header-default{
+   background: red !important
+}
+
+.redAlert .x-btn-default-small{
+   background: red !important;
+   border-color:#DD5044 !important;
+}
+
+.redAlert .x-btn-default-small-focus{
+     background: red !important;
+     border-color:#DD5044 !important;
+}
+
+
+.bgImage{
+     background-image: linear-gradient(45deg, #ffffff 50%, #f6f6f6 0);
+     background-size: 30px 30px;
+}
+
+.bgNull{
+     background:transparent !important;
+}
+
+.iframe-disabled-panel{
+    cursor: default !important;
+    pointer-events: none !important;
+}
+.iframe-disabled-panel .x-mask{
+    background-color:#00000000 !important;
+}
+
+.edit-menu{
+     border-radius: 4px !important;
+}
+
+.edit-details-menu{
+    border-bottom-right-radius: 8px !important;
+    border-top-right-radius: 8px !important;
+}
+
+.header-search-menu{
+   border-top-left-radius: 0 !important;
+   border-top-right-radius: 0 !important;
+}
+
+/**颜色组件的样式**/
+.pcr-app {
+    box-shadow: none !important;
+    padding: 10px !important;
+    width: 100% !important;
+    height: 100% !important;
+}

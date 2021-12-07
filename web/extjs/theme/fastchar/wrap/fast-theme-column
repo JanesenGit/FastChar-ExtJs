@@ -1,0 +1,43 @@
+.x-column-header {
+	font-weight: 600;
+	color:#000000;
+}
+
+.x-column-header-text {
+	min-Width: 30px !important;
+}
+
+
+.x-column-header-checkbox .x-column-header-inner {
+    padding: 7px 4px 7px 4px !important;
+}
+
+.x-column-header{
+    background:linear-gradient(0deg, $[color2], #fefefe);
+}
+
+.x-column-header-over{
+    background: linear-gradient(0deg, #fefefe, $[color2]) !important;
+}
+
+.x-column-header-open{
+     background: linear-gradient(0deg, #fefefe, $[color6]) !important;
+}
+
+.x-column-header-open .x-column-header-trigger {
+    background: linear-gradient(0deg, #fefefe, $[color6]) !important;
+}
+
+.x-column-header-over .x-column-header-trigger {
+     background: linear-gradient(0deg, #fefefe, $[color6]) !important;
+}
+.x-column-header-default-focus{
+     background: linear-gradient(0deg, #fefefe, $[color6]) !important;
+ }
+.x-column-header-over .x-column-header-trigger, .x-column-header-open .x-column-header-trigger {
+    color: $[color] !important;
+}
+
+.x-column-header.x-column-header-focus .x-column-header-inner:after {
+	border-color: $[color];
+}

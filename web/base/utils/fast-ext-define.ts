@@ -77,10 +77,10 @@ namespace FastDefine {
                 listeners: {
                     change: function (obj, newValue, oldValue, eOpts) {
                         if (Ext.isEmpty(newValue)) {
-                            obj.getTrigger('help').hide();
+                            obj.getTrigger('open').hide();
                             obj.getTrigger('close').hide();
                         } else {
-                            obj.getTrigger('help').show();
+                            obj.getTrigger('open').show();
                             obj.getTrigger('close').show();
                         }
                     },
@@ -105,7 +105,7 @@ namespace FastDefine {
                     this.callParent(arguments);
                 },
                 triggers: {
-                    help: {
+                    open: {
                         cls: 'extIcon extEye',
                         hidden: true,
                         handler: function () {
@@ -132,20 +132,19 @@ namespace FastDefine {
 
                             if (me.fileObj) {
                                 let name = me.fileObj.name;
-                                if (FastExt.FileModule.image().reg.test(name)) {
+                                if (FastExt.FileModule.image().match(name)) {
                                     FastExt.Dialog.showImage(me, me.getValue(), null, true);
                                     return;
                                 }
-                                if (FastExt.FileModule.mp4().reg.test(name)) {
+                                if (FastExt.FileModule.mp4().match(name)) {
                                     FastExt.Dialog.showVideo(this, me.getValue());
                                     return;
                                 }
-                                if (FastExt.FileModule.pdf().reg.test(name) ||
-                                    FastExt.FileModule.word().reg.test(name) ||
-                                    FastExt.FileModule.excel().reg.test(name) ||
-                                    FastExt.FileModule.ppt().reg.test(name)) {
-                                    let viewerUrl = "https://view.officeapps.live.com/op/view.aspx?src=" + me.getValue();
-                                    FastExt.Base.openUrl(viewerUrl);
+                                if (FastExt.FileModule.pdf().match(name) ||
+                                    FastExt.FileModule.word().match(name) ||
+                                    FastExt.FileModule.excel().match(name) ||
+                                    FastExt.FileModule.ppt().match(name)) {
+                                    FastExt.File.officeViewer(me.getValue());
                                     return;
                                 }
                             }
@@ -2068,9 +2067,10 @@ namespace FastDefine {
                 ],
                 setValue: function (val) {
                     let me = this;
+                    if (me.swatchEl) {
+                        me.swatchEl.setStyle('background', val);
+                    }
                     me.callParent(arguments);
-                    val = FastExt.Color.toColor(val);
-                    Ext.ux.colorpick.ColorUtils.setBackground(me.swatchEl, Ext.ux.colorpick.ColorUtils.parseColor(val));
                     return me;
                 },
                 triggers: {
@@ -2087,7 +2087,7 @@ namespace FastDefine {
                         me.getMenu().holdShow = true;
                     }
                     FastExt.Dialog.showFastColorPicker(me.inputEl, me.getValue(), function (color) {
-                        me.setValue(color.toHEXA().toString());
+                        me.setValue(color.toRGBA().toString(0));
                     }).then(function (dateValue) {
                         if (me.getMenu() != null) {
                             me.getMenu().holdShow = false;

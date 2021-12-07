@@ -1,0 +1,59 @@
+{
+  "title": {
+    "show": false
+  },
+  "tooltip": {
+    "trigger": "axis",
+    "axisPointer": {
+      "type": "shadow"
+    }
+  },
+  "grid": {
+    "left": "3%",
+    "right": "3%",
+    "containLabel": true
+  },
+  "toolbox": {
+    "feature": {
+      "magicType": {
+        "show": true,
+        "type": [
+          "line",
+          "bar",
+          "stack"
+        ]
+      },
+      "saveAsImage": {
+        "show": false
+      }
+    },
+    "show": false,
+    "orient": "vertical",
+    "top": "center",
+    "right": 10
+  },
+  "legend": {
+    "data": []
+  },
+  "xAxis": [
+    {
+      "type": "category",
+      "data": []
+    }
+  ],
+  "dataZoom": [
+    {
+      "type": "inside",
+      "start": 0,
+      "end": 100
+    }, {
+      "start": 0,
+      "end": 100
+    }],
+  "yAxis": [
+    {
+      "type": "value"
+    }
+  ],
+  "series": []
+}

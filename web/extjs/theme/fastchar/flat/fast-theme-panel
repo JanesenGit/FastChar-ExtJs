@@ -1,0 +1,8 @@
+.x-panel-header-default {
+	border-color: transparent !important;
+	background-color: $[color];
+}
+
+.x-panel-header-title-default>.x-title-icon-wrap-default>.x-title-icon-default{
+    line-height: 20px;
+}

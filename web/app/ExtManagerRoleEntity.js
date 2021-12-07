@@ -2,10 +2,11 @@
  * ExtManagerRoleEntity实体类
  */
 function ExtManagerRoleEntity() {
+    this.actionDeleteAll = false;
     this.getList = function (where) {
         let me = this;
         let parentIdValue = system.manager.roleId;
-        if (system.manager.role.roleType == 0) {
+        if (system.manager.role.roleType === 0) {
             parentIdValue = -1;
         }
         let dataStore = getEntityDataStore(me, where, {

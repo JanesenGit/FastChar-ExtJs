@@ -1,0 +1,20 @@
+.x-tab-focus.x-tab-default {
+	 outline: transparent !important;
+}
+
+
+.x-tab-bar-default{
+	background-color:$[color];
+}
+
+.x-tab-bar-plain .x-tab.x-tab-active.x-tab-default .x-tab-icon-el{
+    color:$[color];
+    font-size:$[fontSize2];
+    transition: color 0.5s
+}
+.x-tab-bar-plain .x-tab.x-tab-active.x-tab-default .x-tab-inner-default{
+	color:$[color];
+	font-weight: bold;
+	font-size:$[fontSize];
+	transition: color 0.5s
+}

@@ -544,5 +544,22 @@ namespace FastExt {
             });
         }
 
+        /**
+         * 获取图表echarts的配置json数据
+         * @param params 接口参数
+         * @param callBack 回调函数 callBack(result.success, result.message);
+         */
+        static showEcharts(params, callBack) {
+            if (FastExt.Power.isPower()) {
+                callBack(false, "当前正在进行界面权限配置，不可下载数据！");
+                return;
+            }
+            $.post("entity/echarts", params, function (result) {
+                if (Ext.isFunction(callBack)) {
+                    callBack(result.success, result.message, result.data);
+                }
+            });
+        }
+
     }
 }

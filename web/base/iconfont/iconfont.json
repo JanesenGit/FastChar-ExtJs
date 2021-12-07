@@ -6,6 +6,90 @@
   "description": "",
   "glyphs": [
     {
+      "icon_id": "2325952",
+      "name": "ios",
+      "font_class": "FileIOS",
+      "unicode": "e64f",
+      "unicode_decimal": 58959
+    },
+    {
+      "icon_id": "25654837",
+      "name": "apk",
+      "font_class": "FileAPK",
+      "unicode": "e810",
+      "unicode_decimal": 59408
+    },
+    {
+      "icon_id": "4628492",
+      "name": "CSV",
+      "font_class": "FileCSV",
+      "unicode": "e642",
+      "unicode_decimal": 58946
+    },
+    {
+      "icon_id": "4628497",
+      "name": "WORD",
+      "font_class": "FileWord",
+      "unicode": "e648",
+      "unicode_decimal": 58952
+    },
+    {
+      "icon_id": "4628501",
+      "name": "ECEL",
+      "font_class": "FileExcel",
+      "unicode": "e649",
+      "unicode_decimal": 58953
+    },
+    {
+      "icon_id": "4628502",
+      "name": "OUTLOOK",
+      "font_class": "FileOUTLOOK",
+      "unicode": "e64b",
+      "unicode_decimal": 58955
+    },
+    {
+      "icon_id": "4628503",
+      "name": "PPT",
+      "font_class": "FilePPT",
+      "unicode": "e64c",
+      "unicode_decimal": 58956
+    },
+    {
+      "icon_id": "4628512",
+      "name": "PDF",
+      "font_class": "FilePDF",
+      "unicode": "e64e",
+      "unicode_decimal": 58958
+    },
+    {
+      "icon_id": "5809231",
+      "name": "隐藏",
+      "font_class": "NoSee",
+      "unicode": "e6a3",
+      "unicode_decimal": 59043
+    },
+    {
+      "icon_id": "7670607",
+      "name": "左旋转",
+      "font_class": "LeftAround",
+      "unicode": "e668",
+      "unicode_decimal": 58984
+    },
+    {
+      "icon_id": "4104348",
+      "name": "报表",
+      "font_class": "Report",
+      "unicode": "e742",
+      "unicode_decimal": 59202
+    },
+    {
+      "icon_id": "21185023",
+      "name": "记住账号",
+      "font_class": "LoginRemember2",
+      "unicode": "e62d",
+      "unicode_decimal": 58925
+    },
+    {
       "icon_id": "4312651",
       "name": "登录密码",
       "font_class": "LogPwd",
@@ -153,13 +237,6 @@
       "unicode_decimal": 58944
     },
     {
-      "icon_id": "13725585",
-      "name": "apk",
-      "font_class": "FileAPK",
-      "unicode": "e61d",
-      "unicode_decimal": 58909
-    },
-    {
       "icon_id": "13725586",
       "name": "zip",
       "font_class": "FileZIP",
@@ -172,20 +249,6 @@
       "font_class": "FileGIF",
       "unicode": "e624",
       "unicode_decimal": 58916
-    },
-    {
-      "icon_id": "13725589",
-      "name": "xls",
-      "font_class": "FileExcel",
-      "unicode": "e625",
-      "unicode_decimal": 58917
-    },
-    {
-      "icon_id": "13725590",
-      "name": "ppt",
-      "font_class": "FilePPT",
-      "unicode": "e627",
-      "unicode_decimal": 58919
     },
     {
       "icon_id": "13725591",
@@ -256,13 +319,6 @@
       "font_class": "FileHTMl",
       "unicode": "e637",
       "unicode_decimal": 58935
-    },
-    {
-      "icon_id": "13725603",
-      "name": "doc",
-      "font_class": "FileWord",
-      "unicode": "e638",
-      "unicode_decimal": 58936
     },
     {
       "icon_id": "13727017",

@@ -159,11 +159,18 @@ public class FastExtEntities {
                         info.put("layerColumn", extTableInfo.getLayerColumn().getName());
                     }
                 }
+                List<FastColumnInfo<?>> columns = tableInfo.getColumns();
+                for (FastColumnInfo<?> column : columns) {
+                    if (column.getString("echarts", "none").equalsIgnoreCase("date")) {
+                        info.put("echartsDate", column.getName());
+                    }
+                }
+
                 if (FastExtConfig.getInstance().getLayerType() == FastExtLayerType.None) {
                     info.put("layer", false);
                 }
                 infos.add(info);
-            } else {
+            } else if (fastExtEntity.logNotFoundTable()) {
                 FastChar.getLog().error(FastChar.getLocal().getInfo("ExtEntity_Error5", aClass));
             }
         }

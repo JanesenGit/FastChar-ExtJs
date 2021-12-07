@@ -1,0 +1,53 @@
+.x-tab-default .x-tab-close-btn{
+    height:15px !important;
+}
+
+.x-tab-focus.x-tab-default {
+	 outline: transparent !important;
+}
+
+.x-tab-bar-default{
+	background-color:$[color];
+}
+
+
+.x-tab-bar-plain .x-tab.x-tab-active.x-tab-default .x-tab-icon-el{
+    color:$[color];
+    font-size:$[fontSize4];
+    transition: color 0.5s
+}
+.x-tab-bar-plain .x-tab.x-tab-active.x-tab-default .x-tab-inner-default{
+	color:$[color];
+	font-weight: bold;
+	font-size:$[fontSize];
+	transition: color 0.5s
+}
+
+.x-tab {
+    transition:box-shadow 300ms !important;
+}
+
+
+.x-tab-default-top{
+    background: linear-gradient(0deg,  $[color2], #ffffff);
+    border-radius: 8px 8px 0 0;
+}
+.x-tab.x-tab-active.x-tab-default{
+     background: linear-gradient(0deg, #ffffff,#ffffff,$[frontColor1],$[frontColor]);
+     box-shadow:0 0 8px 4px $[frontColor] !important;
+}
+.x-tab-over.x-tab-default{
+    background: linear-gradient(0deg, #ffffff, #ffffff,$[color3]);
+}
+.x-tab-over.x-tab-active.x-tab-default{
+    background: linear-gradient(0deg, #ffffff,#ffffff,$[frontColor1],$[frontColor]);
+}
+.x-tab-focus.x-tab-default{
+    background: linear-gradient(0deg, #ffffff,$[color2]);
+}
+.x-tab-focus.x-tab-over.x-tab-default{
+    background: linear-gradient(0deg, #ffffff,$[color2]);
+}
+.x-tab-over.x-tab-focus.x-tab-active.x-tab-default{
+    background: linear-gradient(0deg, #ffffff,#ffffff,$[frontColor1],$[frontColor]);
+}

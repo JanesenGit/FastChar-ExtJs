@@ -1,6 +1,7 @@
 package com.fastchar.extjs.core.heads;
 
 import com.fastchar.core.FastChar;
+import com.fastchar.extjs.utils.ColorUtils;
 import com.fastchar.utils.FastStringUtils;
 
 import java.io.File;
@@ -47,6 +48,9 @@ public class FastHeadExtInfo extends FastHeadInfo {
     }
 
     public String getColorValue() {
+        if (ColorUtils.isRgbColor(getValue())) {
+            return getValue();
+        }
         return "#" + FastStringUtils.stripStart(getValue(), "#");
     }
 

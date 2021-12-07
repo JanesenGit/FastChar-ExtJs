@@ -1,4 +1,4 @@
-namespace FastExt{
+namespace FastExt {
 
     /**
      * 按钮相关功能
@@ -54,11 +54,20 @@ namespace FastExt{
                 button.setDisabled(true);
                 grid.updateButtons.push(button);
             }
+
+            if (button.bindDetail && Ext.isFunction(button.handler)) {
+                if (!grid.bindDetailButtons) {
+                    grid.bindDetailButtons = [];
+                }
+                grid.bindDetailButtons.push(button);
+            }
+
             if (button.getMenu() != null) {
                 button.getMenu().items.each(function (item, index) {
                     FastExt.Button.buttonToBind(grid, item);
                 });
             }
+
         }
 
     }

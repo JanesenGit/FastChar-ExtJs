@@ -1,0 +1,28 @@
+.x-window-default {
+    border-radius: 5px !important;
+    overflow: inherit !important;
+}
+
+.x-window-header-default {
+	border-color: transparent !important;
+	width:100% !important;
+}
+
+.x-window-header-default {
+	background-color: $[color] !important;
+}
+
+.x-window-default {
+	border-width:0 !important;
+    background-color: $[color] !important;
+}
+
+.x-window-body-default {
+	border-width:0 !important;
+}
+
+
+.x-window-header-title-default>.x-title-icon-wrap-default>.x-title-icon-default {
+    color: white;
+    line-height: 20px;
+}

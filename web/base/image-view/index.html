@@ -31,7 +31,7 @@
         var imageElement = document.getElementById('image');
         imageElement.src = src;
         if (!lastViewer) {
-            lastViewer = new Viewer(image, {
+            lastViewer = new Viewer(imageElement, {
                 backdrop: false,
                 keyboard: false,
                 button: false,
@@ -47,6 +47,10 @@
         }else{
             lastViewer.update();
         }
+    }
+
+    function reset() {
+        lastViewer.reset();
     }
 
     function zoomOut() {

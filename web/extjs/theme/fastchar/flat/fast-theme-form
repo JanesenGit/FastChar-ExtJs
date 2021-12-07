@@ -1,0 +1,38 @@
+.x-form-checkbox-default{
+     -moz-transition: color 450ms !important;
+     -webkit-transition: color 450ms !important;
+     -o-transition:color 450ms !important;
+     transition:color 450ms !important;
+}
+.x-form-trigger-wrap-focus {
+	border-color: $[color] !important;
+}
+
+.x-form-cb-checked .x-form-checkbox-default {
+    color: $[color] !important;
+}
+
+.x-form-rd-checked .x-form-radio-default {
+    color: $[color] !important;
+}
+
+.x-form-checkbox-focus.x-form-radio-default {
+    color: #919191
+}
+
+.x-form-checkbox-focus.x-form-checkbox-default {
+    color: #919191
+}
+
+.x-form-item-label-default{
+     color:#000000;
+}
+
+.x-field-focus .x-form-item-label {
+    color: $[color] !important;
+    font-weight:bold !important;
+}
+
+.x-fieldset-header-default>.x-fieldset-header-text {
+    position: unset;
+}

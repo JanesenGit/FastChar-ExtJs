@@ -1,0 +1,4 @@
+.x-css-shadow {
+    box-shadow:0 -2px 8px $[color] !important;
+    border-radius: 5px;
+}

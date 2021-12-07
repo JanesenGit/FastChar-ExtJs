@@ -1,7 +1,9 @@
 package com.fastchar.extjs.compress;
 
 import com.fastchar.core.FastChar;
+import com.fastchar.core.FastFile;
 import com.fastchar.utils.FastFileUtils;
+import com.yahoo.platform.yui.compressor.CssCompressor;
 import com.yahoo.platform.yui.compressor.JavaScriptCompressor;
 import org.mozilla.javascript.ErrorReporter;
 import org.mozilla.javascript.EvaluatorException;
@@ -79,6 +81,28 @@ public class YuiCompress {
             FastFileUtils.closeQuietly(writer);
         }
     }
+
+
+    public static String compressCss(String source) {
+        StringWriter writer = new StringWriter();
+
+        try (Reader in = new StringReader(source)) {
+            if (in.ready()) {
+                CssCompressor compressor = new CssCompressor(in);
+                compressor.compress(writer, -1);
+            }
+        } catch (Exception e) {
+            try {
+                writer.write(source);
+            } catch (Exception ignored) {
+            }
+        } finally {
+            FastFileUtils.closeQuietly(writer);
+        }
+        return writer.toString();
+    }
+
+
 
 
     /**

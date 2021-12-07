@@ -1,0 +1,16 @@
+.x-menu-item {
+    -moz-transition: background 150ms !important;
+    -webkit-transition: background 150ms !important;
+    -o-transition:background 150ms !important;
+    transition:background 150ms !important;
+}
+
+.x-menu{
+    border-radius: 8px;
+    overflow:hidden;
+}
+
+
+.x-menu-item-active {
+	background-color:$[color] !important;
+}

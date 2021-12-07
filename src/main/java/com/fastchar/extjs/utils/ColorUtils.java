@@ -4,14 +4,24 @@ package com.fastchar.extjs.utils;
 
 //import javafx.scene.paint.Color;
 
+import com.fastchar.utils.FastNumberUtils;
+
 import java.awt.*;
 import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class ColorUtils {
 
     public static String getLightColor(String sourceCode, double level) {
+        if (isRgbColor(sourceCode)) {
+            Color color = RgbToColor(sourceCode);
+            if (color != null) {
+                sourceCode = ColorToHex(color);
+            }
+        }
         sourceCode = sourceCode.replace("#", "");
         StringBuilder stringBuffer = new StringBuilder();
         stringBuffer.append("#");
@@ -39,6 +49,38 @@ public class ColorUtils {
     public static String getDarkColor(String hexColor, double level) {
         Color darkColor = getDarkColor(HexToColor(hexColor), level);
         return ColorToHex(darkColor);
+    }
+
+
+    public static boolean isRgbColor(String color) {
+        return color.toLowerCase().startsWith("rgb");
+    }
+    public static boolean isHexColor(String color) {
+        return color.toLowerCase().startsWith("#");
+    }
+
+    public static Color RgbToColor(String rgbColor) {
+        if (isRgbColor(rgbColor)) {
+            String regStr = "rgb[a]?\\((.*)\\)";
+            Matcher matcher = Pattern.compile(regStr).matcher(rgbColor);
+            if (matcher.find()) {
+                String group = matcher.group(1);
+                String[] values = group.replace(" ", "").split(",");
+                List<Integer> colorValue = new ArrayList<>();
+                for (String value : values) {
+                    colorValue.add(FastNumberUtils.formatToInt(value));
+                }
+                for (int i = colorValue.size(); i < 4; i++) {
+                    if (i == 3) {
+                        colorValue.add(1);
+                    } else {
+                        colorValue.add(255);
+                    }
+                }
+                return new Color(colorValue.get(0), colorValue.get(1), colorValue.get(2), colorValue.get(3));
+            }
+        }
+        return null;
     }
 
 
@@ -86,6 +128,9 @@ public class ColorUtils {
     }
 
     public static Color HexToColor(String str) {
+        if (isRgbColor(str)) {
+            return RgbToColor(str);
+        }
         return new Color(Integer.parseInt(str.substring(1), 16));
     }
 
@@ -98,5 +143,4 @@ public class ColorUtils {
         G = G.length() < 2 ? ('0' + G) : G;
         return '#' + R + G + B;
     }
-
 }

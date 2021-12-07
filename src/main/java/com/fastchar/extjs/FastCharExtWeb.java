@@ -8,6 +8,7 @@ import com.fastchar.database.info.FastDatabaseInfo;
 import com.fastchar.extjs.accepter.FastExtEntityAccepter;
 import com.fastchar.extjs.accepter.FastExtEnumAccepter;
 import com.fastchar.extjs.accepter.FastExtAppJsAccepter;
+import com.fastchar.extjs.action.ExtDefaultAction;
 import com.fastchar.extjs.compress.YuiCompress;
 import com.fastchar.extjs.core.FastExtLayerHelper;
 import com.fastchar.extjs.core.FastExtLayerType;
@@ -22,6 +23,7 @@ import com.fastchar.extjs.observer.FastMenuXmlObserver;
 import com.fastchar.extjs.out.FastExtParamError;
 import com.fastchar.extjs.provider.FastExtEnum;
 import com.fastchar.extjs.validators.FastEnumValidator;
+import com.fastchar.interfaces.IFastCache;
 import com.fastchar.interfaces.IFastWebRun;
 import com.fastchar.out.FastOutJson;
 
@@ -94,5 +96,12 @@ public final class FastCharExtWeb implements IFastWebRun {
             layerMaps.addAll(FastExtLayerHelper.buildLayerMap(databaseInfo));
         }
         FastExtConfig.getInstance().setLayerMaps(layerMaps);
+
+
+        //清空ExtDefaultAction产生的缓存
+        IFastCache iFastCache = FastChar.safeGetCache();
+        if (iFastCache != null) {
+            iFastCache.delete(ExtDefaultAction.class.getName());
+        }
     }
 }

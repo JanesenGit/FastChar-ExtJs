@@ -1,0 +1,76 @@
+.x-form-checkbox-default{
+     -moz-transition: color 450ms !important;
+     -webkit-transition: color 450ms !important;
+     -o-transition:color 450ms !important;
+     transition:color 450ms !important;
+}
+
+.x-form-trigger-wrap-focus {
+	border-color: $[color] !important;
+	-webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px $[color3] !important;
+    box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px $[color3] !important;
+}
+
+
+.x-field-focus .x-form-item-label {
+    color: $[color] !important;
+    font-weight:bold !important;
+    text-shadow: 0px 0px 8px $[color3] !important;
+}
+.x-form-cb-checked .x-form-checkbox-default {
+    color: $[color] !important;
+}
+
+.x-form-rd-checked .x-form-radio-default {
+    color: $[color] !important;
+}
+
+.x-form-checkbox-focus.x-form-radio-default {
+    color: #919191
+}
+
+.x-form-checkbox-focus.x-form-checkbox-default {
+    color: #919191
+}
+
+
+.x-form-trigger-wrap-default {
+    -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.075);
+    box-shadow: inset 0 1px 1px rgba(0,0,0,.075);
+    -webkit-transition: border-color ease-in-out .15s,-webkit-box-shadow ease-in-out .15s;
+    -o-transition: border-color ease-in-out .15s,box-shadow ease-in-out .15s;
+    transition: border-color ease-in-out .15s,box-shadow ease-in-out .15s;
+    background:#ffffff;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.x-form-text {
+    -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.075);
+    box-shadow: inset 0 1px 1px rgba(0,0,0,.075);
+    -webkit-transition: border-color ease-in-out .15s,-webkit-box-shadow ease-in-out .15s;
+    -o-transition: border-color ease-in-out .15s,box-shadow ease-in-out .15s;
+    transition: border-color ease-in-out .15s,box-shadow ease-in-out .15s;
+}
+
+.x-form-trigger-default{
+   background:transparent !important;
+}
+
+.x-form-item-label-default{
+   color:#000000;
+}
+
+.x-form-spinner-default{
+   background:transparent !important;
+}
+
+.x-fieldset-default{
+    border-radius: 8px;
+    -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.075);
+    box-shadow: inset 0 1px 1px rgba(0,0,0,.075);
+}
+
+.x-fieldset-header-default>.x-fieldset-header-text {
+    position: unset;
+}

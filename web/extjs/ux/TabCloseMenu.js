@@ -297,6 +297,9 @@ Ext.define('Ext.ux.TabCloseMenu', {
 
         Ext.suspendLayouts();
         Ext.Array.forEach(items, function(item){
+            item.setDisabled(true);
+        }, this);
+        Ext.Array.forEach(items, function(item){
             this.tabPanel.remove(item);
         }, this);
         Ext.resumeLayouts(true);

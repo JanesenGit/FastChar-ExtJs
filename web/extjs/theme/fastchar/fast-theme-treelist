@@ -1,0 +1,59 @@
+.x-tree-icon {
+	width: 20px !important;
+}
+
+.x-treelist-row .x-treelist-item-wrap .x-treelist-item-text {
+	height: 50px !important;
+	font-size: $[fontSize] !important;
+	line-height: 50px !important;
+}
+
+.x-treelist-nav .x-treelist-item-icon {
+	line-height: 54px !important;
+}
+
+@media all and (-ms-high-contrast: none), (-ms-high-contrast: active) {
+    .x-treelist-nav .x-treelist-item-icon {
+    	top: 4px !important;
+    }
+}
+
+.x-treelist-nav .x-treelist-item-expander{
+	line-height: 50px !important;
+}
+
+.x-treelist-nav .x-treelist-item-text{
+	color:#ffffff;
+}
+
+.x-treelist-nav .x-treelist-item-selected>.x-treelist-row:before{
+	background-color:$[color];
+}
+.x-treelist-nav .x-treelist-item-selected.x-treelist-item-tool{
+	background-color:$[color];
+}
+
+.x-treelist-nav .x-treelist-item-tool-floated:after{
+	background-color:$[color];
+}
+
+.x-treelist-nav .x-treelist-row:hover:before{
+	background-color:$[color];
+}
+.x-treelist-nav .x-treelist-item-selected>.x-treelist-row:before{
+	background-color:$[color];
+}
+.x-treelist-nav .x-treelist-row:hover:before{
+	background-color:$[color];
+}
+.x-treelist-nav .x-treelist-item-selected>.x-treelist-row:hover:before{
+	background-color:$[color];
+}
+.x-treelist-nav .x-treelist-item-selected>.x-treelist-row:before {
+    background-color:$[color];
+}
+
+.x-tree-elbow-img {
+    height: 33px !important;
+    line-height: 33px !important;
+}

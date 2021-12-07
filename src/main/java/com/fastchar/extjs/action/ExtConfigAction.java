@@ -46,6 +46,7 @@ public class ExtConfigAction extends FastAction {
 
         ExtSystemConfigEntity extConfigEntity = new ExtSystemConfigEntity();
         extConfigEntity.set("managerId", managerEntity.getId());
+        extConfigEntity.set("projectName", FastChar.getConstant().getProjectName());
         extConfigEntity.set("configKey", configKey);
         extConfigEntity.set("configType", configType);
         extConfigEntity.set("configValue", configValue);
@@ -79,7 +80,8 @@ public class ExtConfigAction extends FastAction {
         String configKey = getParam("configKey", true);
         String configType = getParam("configType", true);
 
-        ExtSystemConfigEntity extConfig = ExtSystemConfigEntity.getInstance().set("log", false).getExtConfig(managerEntity.getId(), configKey, configType);
+        ExtSystemConfigEntity extConfig = ExtSystemConfigEntity.getInstance().set("log", false)
+                .getExtConfig(managerEntity.getId(), FastChar.getConstant().getProjectName(),configKey, configType);
         if (extConfig != null) {
             responseJson(0, "获取成功！", extConfig);
         }else{
@@ -102,7 +104,7 @@ public class ExtConfigAction extends FastAction {
         }
         String configKey = getParam("configKey", true);
         String configType = getParam("configType", true);
-        ExtSystemConfigEntity.getInstance().set("log", false).deleteConfig(managerEntity.getId(), configKey, configType);
+        ExtSystemConfigEntity.getInstance().set("log", false).deleteConfig(managerEntity.getId(), FastChar.getConstant().getProjectName(), configKey, configType);
         responseJson(0, "删除成功！");
     }
 
@@ -113,9 +115,6 @@ public class ExtConfigAction extends FastAction {
      * entityCode 实体编号
      */
     public void showEntityColumn() {
-        //开始gzip支持
-        getResponse().setHeader("Content-Encoding", "gzip");
-
 
         ExtManagerEntity managerEntity = getSession("manager");
         if (managerEntity == null) {
@@ -145,6 +144,7 @@ public class ExtConfigAction extends FastAction {
             ExtSystemConfigEntity extConfigEntity = new ExtSystemConfigEntity();
             extConfigEntity.set("managerId", -1);
             extConfigEntity.set("configKey", s);
+            extConfigEntity.set("projectName", FastChar.getConstant().getProjectName());
             extConfigEntity.set("configType", "System");
             extConfigEntity.set("configValue", paramToMap.get(s));
             extConfigEntity.put("log", false);

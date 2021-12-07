@@ -119,23 +119,26 @@ namespace FastExt {
          * loadFunction("function(val){return val+1;}");
          */
         static loadFunction(functionStr: string): any {
-            // @ts-ignore
-            if (functionStr.toString().trim().startsWith("function")) {
-                let functionKey = "do" + $.md5(functionStr);
+            try {
+                // @ts-ignore
+                if (functionStr.toString().trim().startsWith("function")) {
+                    let functionKey = "do" + $.md5(functionStr);
 
-                if (Ext.isEmpty(FastExt.Cache.memory[functionKey])) {
-                    let myScript = document.createElement("script");
-                    myScript.type = "text/javascript";
-                    let code = "let " + functionKey + "=" + functionStr;
-                    try {
-                        myScript.appendChild(document.createTextNode(code));
-                    } catch (ex) {
-                        myScript.text = code;
+                    if (Ext.isEmpty(FastExt.Cache.memory[functionKey])) {
+                        let myScript = document.createElement("script");
+                        myScript.type = "text/javascript";
+                        let code = "let " + functionKey + "=" + functionStr;
+                        try {
+                            myScript.appendChild(document.createTextNode(code));
+                        } catch (ex) {
+                            myScript.text = code;
+                        }
+                        document.body.appendChild(myScript);
+                        FastExt.Cache.memory[functionKey] = true;
                     }
-                    document.body.appendChild(myScript);
-                    FastExt.Cache.memory[functionKey] = true;
+                    return eval(functionKey);
                 }
-                return eval(functionKey);
+            } catch (e) {
             }
             return null;
         }
@@ -231,7 +234,7 @@ namespace FastExt {
          * @param className
          */
         static getSVGIcon(className): string {
-            return '<svg class="svgIcon" aria-hidden="true"><use xlink:href="#' + className + '"></use></svg>';
+            return '<svg class="svgIcon fileIcon" aria-hidden="true"><use xlink:href="#' + className + '"></use></svg>';
         }
 
 
@@ -242,31 +245,30 @@ namespace FastExt {
         static getSVGClassName(type): string {
             type = type.toString().toLowerCase();
             let fileClassName = "extFile";
-            if (type.endWith(".doc") || type.endWith(".docx") ||
-                type === "application/msword" ||
-                type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+            if (FastExt.File.isSuffixFile(type, "doc", "docx")) {
                 fileClassName = "extFileWord";
-            } else if (type.endWith(".xls") || type.endWith(".xlsx") ||
-                type === "application/vnd.ms-excel" ||
-                type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") {
+            } else if (FastExt.File.isSuffixFile(type, "xls", "xlsx")) {
                 fileClassName = "extFileExcel";
-            } else if (type.endWith(".zip") || type.endWith(".rar") ||
-                type === "application/zip" ||
-                type === "application/rar") {
+            } else if (FastExt.File.isSuffixFile(type, "pdf")) {
+                fileClassName = "extFilePDF";
+            } else if (FastExt.File.isSuffixFile(type, "ppt")) {
+                fileClassName = "extFilePPT";
+            } else if (FastExt.File.isSuffixFile(type, "zip", "rar", "gzip")) {
                 fileClassName = "extFileZIP";
-            } else if (type.endWith(".apk") ||
-                type === "application/vnd.android.package-archive") {
+            } else if (FastExt.File.isSuffixFile(type, "apk", "aar")) {
                 fileClassName = "extFileAPK";
-            } else if (type.endWith(".jpg") || type.endWith(".jpeg") || type === "image/jpeg") {
+            } else if (FastExt.File.isSuffixFile(type, "jpg", "jpeg")) {
                 fileClassName = "extFileJPG";
-            } else if (type.endWith(".png") || type === "image/png") {
+            } else if (FastExt.File.isSuffixFile(type, "png")) {
                 fileClassName = "extFilePNG";
-            } else if (type.endWith(".psd") || type === "image/vnd.adobe.photoshop") {
+            } else if (FastExt.File.isSuffixFile(type, "psd")) {
                 fileClassName = "extFilePSD";
-            } else if (type.endWith(".html") || type.endWith(".shtml") || type.endWith(".htm") || type === "text/html") {
+            } else if (FastExt.File.isSuffixFile(type, "html", "shtml")) {
                 fileClassName = "extFileHTMl";
-            } else if (type.endWith(".txt") || type === "text/plain") {
+            } else if (FastExt.File.isSuffixFile(type, "txt")) {
                 fileClassName = "extFileTXT";
+            }else if (FastExt.File.isSuffixFile(type, "ipa")) {
+                fileClassName = "extFileIOS";
             }
             return fileClassName;
         }
@@ -363,12 +365,26 @@ namespace FastExt {
                     return target;
                 }
                 if (!Ext.isEmpty(target.xtype)) {
-                    return target.getEl().dom;
+                    if (target.getEl()) {
+                        return target.getEl().dom;
+                    }
                 }
             }
             return null;
         }
 
+        /**
+         * 获取目标控件的body html节点对象
+         * @param target
+         */
+        static getTargetBodyElement(target: any): Element {
+            if (target) {
+                if (!Ext.isEmpty(target.xtype) && target.body) {
+                    return target.body.dom;
+                }
+            }
+            return this.getTargetElement(target);
+        }
 
         /**
          * 判断节点元素是否在可视区域
@@ -377,6 +393,9 @@ namespace FastExt {
         static isElementInViewport(element: Element): boolean {
             try {
                 let rect = element.getBoundingClientRect();
+                if (rect.width <= 0 && rect.height <= 0) {
+                    return false;
+                }
                 return (
                     rect.top >= 0 &&
                     rect.left >= 0 &&
@@ -482,6 +501,33 @@ namespace FastExt {
                 return defaultValue;
             }
             return value.toString();
+        }
+
+        /**
+         * 将参数数组转成字符串拼接格式
+         * @param params
+         */
+        static toPlanParams(params: any[]): string {
+            let paramArray = [];
+            for (let i = 0; i < params.length; i++) {
+                let value = params[i];
+                if (Ext.isString(value)) {
+                    paramArray.push("\"" + value + "\"");
+                } else {
+                    paramArray.push(value);
+                }
+            }
+            return paramArray.join(",");
+        }
+
+
+        /**
+         * 获取空的Promise
+         */
+        static getEmptyPromise() {
+            return new Ext.Promise(function (resolve, reject) {
+                resolve();
+            });
         }
     }
 }

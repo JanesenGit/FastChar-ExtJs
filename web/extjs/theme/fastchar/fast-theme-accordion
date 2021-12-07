@@ -1,0 +1,14 @@
+
+.x-accordion-item .x-accordion-hd {
+	border-color: transparent !important;
+	border-left: 5px solid $[color] !important;
+}
+
+.x-accordion-hd .x-tool-img {
+    color: $[color];
+
+}
+
+.x-accordion-item .x-accordion-hd {
+    background: #ececec !important;
+}
