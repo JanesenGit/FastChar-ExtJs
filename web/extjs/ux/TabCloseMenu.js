@@ -13,43 +13,43 @@ Ext.define('Ext.ux.TabCloseMenu', {
     },
 
     /**
-     * @cfg {String} closeTabText
+     *  {String} closeTabText
      * The text for closing the current tab.
      */
     closeTabText: '关闭当前',
 
     /**
-     * @cfg {Boolean} showCloseOthers
+     *  {Boolean} showCloseOthers
      * Indicates whether to show the 'Close Others' option.
      */
     showCloseOthers: true,
 
     /**
-     * @cfg {String} closeOthersTabsText
+     *  {String} closeOthersTabsText
      * The text for closing all tabs except the current one.
      */
     closeOthersTabsText: '关闭其他',
 
     /**
-     * @cfg {Boolean} showCloseAll
+     *  {Boolean} showCloseAll
      * Indicates whether to show the 'Close All' option.
      */
     showCloseAll: true,
 
     /**
-     * @cfg {String} closeAllTabsText
+     *  {String} closeAllTabsText
      * The text for closing all tabs.
      */
     closeAllTabsText: '关闭所有',
 
     /**
-     * @cfg {Array} extraItemsHead
+     *  {Array} extraItemsHead
      * An array of additional context menu items to add to the front of the context menu.
      */
     extraItemsHead: null,
 
     /**
-     * @cfg {Array} extraItemsTail
+     *  {Array} extraItemsTail
      * An array of additional context menu items to add to the end of the context menu.
      */
     extraItemsTail: null,
@@ -178,7 +178,7 @@ Ext.define('Ext.ux.TabCloseMenu', {
             });
             items.push({
                 itemId: 'copyTab',
-                text: '复制标签',
+                text: '复制标签页',
                 scope: me,
                 iconCls: 'extIcon extCopy',
                 handler: function(){

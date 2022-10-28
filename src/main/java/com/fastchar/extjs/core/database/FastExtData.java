@@ -10,6 +10,7 @@ import com.fastchar.database.info.FastSqlInfo;
 import com.fastchar.database.sql.FastSql;
 import com.fastchar.exception.FastSqlException;
 import com.fastchar.extjs.core.FastExtEntity;
+import com.fastchar.extjs.core.database.mysql.FastExtMySql;
 
 
 /**
@@ -22,7 +23,6 @@ public class FastExtData<T extends FastEntity<?>> extends FastData<T> {
     public FastExtData(T target) {
         super(target);
     }
-
 
     public String selectLayerValue(String... checks) {
         try {
@@ -41,7 +41,13 @@ public class FastExtData<T extends FastEntity<?>> extends FastData<T> {
                     if (sqlInfo == null) {
                         return null;
                     }
-                    FastEntity<?> fastEntity = FastChar.getDb().selectFirst(sqlInfo.getSql(), sqlInfo.toParams());
+                    FastEntity<?> fastEntity = FastChar.getDB()
+                            .setDatabase(target.getDatabase())
+                            .setIgnoreCase(target.isIgnoreCase())
+                            .setListener(target.getBoolean("sqlListener"))
+                            .setLog(target.getBoolean("log", true))
+                            .selectFirst(sqlInfo.getSql(), sqlInfo.toParams());
+
                     if (fastEntity != null) {
                         return fastEntity.getString("layer");
                     }
@@ -54,7 +60,6 @@ public class FastExtData<T extends FastEntity<?>> extends FastData<T> {
         }
         throw new FastSqlException("暂未支持" + getDatabaseType() + "层级权限配置！");
     }
-
 
     public T selectFirstValue(String[] columns, String... checks) {
         try {
@@ -74,21 +79,20 @@ public class FastExtData<T extends FastEntity<?>> extends FastData<T> {
         throw new FastSqlException("暂未支持" + getDatabaseType() + "层级权限配置！");
     }
 
-
-
-
-    public boolean copyRecycle(String... checks) {
+    public boolean copyToRecycle(String... checks) {
         try {
             FastSql instance = FastSql.getInstance(getDatabaseType());
             if (instance instanceof FastExtMySql) {
                 FastExtMySql extMySql = (FastExtMySql) instance;
-                FastSqlInfo sqlInfo = extMySql.buildCopyRecycleSql(target, checks);
+                FastSqlInfo sqlInfo = extMySql.buildCopyToRecycleSql(target, checks);
                 if (sqlInfo == null) {
                     return false;
                 }
-                int insert = FastChar.getDb()
+                int insert = FastChar.getDB()
                         .setDatabase(target.getDatabase())
-                        .setLog(sqlInfo.isLog())
+                        .setIgnoreCase(target.isIgnoreCase())
+                        .setListener(target.getBoolean("sqlListener"))
+                        .setLog(target.getBoolean("log", true))
                         .insert(sqlInfo.getSql(), sqlInfo.toParams());
                 return insert > 0;
             }
@@ -109,9 +113,11 @@ public class FastExtData<T extends FastEntity<?>> extends FastData<T> {
                 if (sqlInfo == null) {
                     return false;
                 }
-                int insert = FastChar.getDb()
+                int insert = FastChar.getDB()
                         .setDatabase(target.getDatabase())
-                        .setLog(sqlInfo.isLog())
+                        .setIgnoreCase(target.isIgnoreCase())
+                        .setListener(target.getBoolean("sqlListener"))
+                        .setLog(target.getBoolean("log", true))
                         .insert(sqlInfo.getSql(), sqlInfo.toParams());
                 return insert > 0;
             }
@@ -131,9 +137,11 @@ public class FastExtData<T extends FastEntity<?>> extends FastData<T> {
                 if (sqlInfo == null) {
                     return false;
                 }
-                int insert = FastChar.getDb()
+                int insert = FastChar.getDB()
                         .setDatabase(target.getDatabase())
-                        .setLog(sqlInfo.isLog())
+                        .setIgnoreCase(target.isIgnoreCase())
+                        .setListener(target.getBoolean("sqlListener"))
+                        .setLog(target.getBoolean("log", true))
                         .insert(sqlInfo.getSql(), sqlInfo.toParams());
                 return insert > 0;
             }
@@ -143,4 +151,29 @@ public class FastExtData<T extends FastEntity<?>> extends FastData<T> {
             throw new FastSqlException(e);
         }
     }
+
+
+    public int updateSameValue(String... checks) {
+        try {
+            FastSql fastSql = FastSql.getInstance(getDatabaseType());
+            if (fastSql instanceof FastExtMySql) {
+                if (target instanceof FastExtEntity) {
+                    FastSqlInfo sqlInfo = ((FastExtMySql) fastSql).buildUpdateSameSql(target, checks);
+                    if (sqlInfo == null) {
+                        return 0;
+                    }
+                    return FastChar.getDB()
+                            .setDatabase(target.getDatabase())
+                            .setIgnoreCase(target.isIgnoreCase())
+                            .setListener(target.getBoolean("sqlListener"))
+                            .setLog(target.getBoolean("log", true))
+                            .update(sqlInfo.getSql(), sqlInfo.toParams());
+                }
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        return 0;
+    }
+    
 }

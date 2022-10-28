@@ -3,10 +3,12 @@ package com.fastchar.extjs.entity;
 import com.fastchar.core.FastChar;
 import com.fastchar.database.FastPage;
 import com.fastchar.database.info.FastSqlInfo;
+import com.fastchar.extjs.FastExtConfig;
 import com.fastchar.extjs.core.FastExtEntity;
+import com.fastchar.extjs.core.FastExtLayerType;
+import com.fastchar.servlet.http.FastHttpServletRequest;
 import com.fastchar.utils.FastDateUtils;
 
-import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -54,7 +56,18 @@ public class ExtSystemLogEntity extends FastExtEntity<ExtSystemLogEntity> {
         set("systemLogDateTime", FastDateUtils.getDateString());
     }
 
-
+    @Override
+    public void pullLayer(ExtManagerEntity managerEntity) {
+        //管理员操作日志必须按照权限筛选
+        if (managerEntity.getManagerRole().getRoleType() != ExtManagerRoleEntity.RoleTypeEnum.超级角色) {
+            if (FastChar.getConfig(FastExtConfig.class).getLayerType() == FastExtLayerType.Layer_Role) {
+                put(getLayerColumn().getName() + "?%", managerEntity.getLayerValue(1));
+            }else {
+                put(getLayerColumn().getName() + "?%", managerEntity.getLayerValue());
+            }
+        }
+    }
+    
     public List<String> getKeys(String content) {
         List<String> keys = new ArrayList<>();
         String regStr = "\\$\\{([^${}]*)}";
@@ -66,7 +79,7 @@ public class ExtSystemLogEntity extends FastExtEntity<ExtSystemLogEntity> {
         return keys;
     }
 
-    public String replaceHolder(String content, HttpServletRequest request) {
+    public String replaceHolder(String content, FastHttpServletRequest request) {
         List<String> keys = getKeys(content);
         for (String key : keys) {
             String value = "";

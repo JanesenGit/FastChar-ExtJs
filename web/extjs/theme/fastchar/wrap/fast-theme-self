@@ -13,6 +13,9 @@
     -webkit-transition: box-shadow 500ms ease; /* Safari 和 Chrome */
     -o-transition:  box-shadow 500ms ease; /* Opera */
     background:#ffffff;
+    -webkit-user-drag: none;
+    user-select: none;
+    pointer-events: none;
 }
 .loginLogo:hover {
     -moz-box-shadow: 0 0 20px ${color};
@@ -26,27 +29,22 @@
 }
 
 .headButton{
-    //box-shadow:0 0 4px #fefefe !important;
-    //background: linear-gradient(0deg, $[color7], $[color]) !important;
-    //border-color:  $[color];
-    -webkit-box-shadow: 0 1px 2px #bbbbbb, inset 0 -1px 0 $[color];
-    -moz-box-shadow: 0 1px 2px #bbbbbb, inset 0 -1px 0 $[color];
-    box-shadow: 0 1px 2px #bbbbbb, inset 0 -1px 0 $[color];
+    border-radius:88px !important;
+    box-shadow:0 0 4px #fefefe !important;
 }
 
-
 .headButton:hover{
-    //box-shadow:0 0 18px #fefefe !important;
-    -webkit-box-shadow: 0 1px 2px #bbbbbb, inset 0 1px 0 $[color];
-    -moz-box-shadow: 0 1px 2px #bbbbbb, inset 0 1px 0 $[color];
-    box-shadow: 0 1px 2px #bbbbbb, inset 0 1px 0 $[color];
+    box-shadow:0 0 18px #fefefe !important;
 }
 
 .headLogo {
   box-shadow:0 0 4px #fefefe !important;
   -moz-box-shadow: 0 0 4px #fefefe;
   -webkit-box-shadow: 0 0 4px #fefefe;
-    background:#ffffff;
+  background:#ffffff;
+  -webkit-user-drag: none;
+  user-select: none;
+  pointer-events: none;
 }
 
 .headLogo:hover{
@@ -62,6 +60,9 @@
    font-size: $[fontSize6] !important;
    line-height: $[fontSize6] !important;
    font-weight: 700;
+   -webkit-user-drag: none;
+   user-select: none;
+   pointer-events: none;
 }
 .headTitle:hover{
     text-shadow:0 0 18px #fefefe !important;

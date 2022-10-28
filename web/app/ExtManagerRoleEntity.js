@@ -9,11 +9,15 @@ function ExtManagerRoleEntity() {
         if (system.manager.role.roleType === 0) {
             parentIdValue = -1;
         }
-        let dataStore = getEntityDataStore(me, where, {
+
+        let treeConfig = {
             idName: 'roleId',
             parentIdName: 'parentRoleId',
             parentIdValue: parentIdValue
-        });
+        };
+
+        //不允许修改所属上级，牵扯到上级权限的分配问题！
+        let dataStore = getEntityDataStore(me, where, treeConfig);
         let grid = Ext.create('Ext.tree.Panel', {
             entityList: true,
             selModel: getGridSelModel(),
@@ -29,9 +33,9 @@ function ExtManagerRoleEntity() {
                 alertDelete: true,
                 alertUpdate: true,
                 autoUpdate: false,
-                autoDetails: true,
+                autoDetails: false,
                 hoverTip: false,
-                excelOut:false,
+                excelOut: false,
                 excelIn: false
             },
             bufferedRenderer: false,
@@ -39,63 +43,14 @@ function ExtManagerRoleEntity() {
             useArrows: true,
             rowLines: true,
             rootVisible: false,
-            columns: [{
-                text: "角色名称",
-                dataIndex: "roleName",
-                xtype: "treecolumn",
-                width: 220,
-                renderer: renders.normal(),
-                field: "textfield"
-            },
+            columns: [
                 {
-                    text: "角色菜单权限",
-                    dataIndex: "roleMenuPower",
-                    align: "center",
+                    text: "角色名称",
+                    dataIndex: "roleName",
+                    xtype: "treecolumn",
                     width: 220,
-                    search: false,
-                    renderer: function (val, m, record) {
-                        if (record.get("roleType") == 0) {
-                            return "<span style='color: #ccc;'>已拥有最大权限</span>";
-                        }
-                        return "<span style='color:blue;'>双击查看</span>";
-                    },
-                    listeners: {
-                        dblclick: function (grid, obj, celNo, obj1, obj2, rowNo, e) {
-                            let currRecord = grid.getStore().getAt(celNo);
-                            if (currRecord.get("roleType") == 0) {
-                                return;
-                            }
-                            system.showPowerMenus(obj, currRecord.get("roleMenuPower"), currRecord.get("a__roleMenuPower")).then(function (result) {
-                                currRecord.set("roleMenuPower", result);
-                                commitStoreUpdate(grid.getStore());
-                            });
-                        }
-                    }
-                },
-                {
-                    text: "角色界面权限",
-                    dataIndex: "roleExtPower",
-                    align: "center",
-                    width: 220,
-                    search: false,
-                    renderer: function (val, m, record) {
-                        if (record.get("roleType") == 0) {
-                            return "<span style='color: #ccc;'>已拥有最大权限</span>";
-                        }
-                        return "<span style='color:blue;'>双击查看</span>";
-                    },
-                    listeners: {
-                        dblclick: function (grid, obj, celNo, obj1, obj2, rowNo, e) {
-                            let currRecord = grid.getStore().getAt(celNo);
-                            if (currRecord.get("roleType") == 0) {
-                                return;
-                            }
-                            system.showPowerExt(obj, currRecord.get("roleMenuPower"), currRecord.get("roleExtPower"), currRecord.get("a__roleExtPower")).then(function (result) {
-                                currRecord.set("roleExtPower", result);
-                                commitStoreUpdate(grid.getStore());
-                            });
-                        }
-                    }
+                    renderer: renders.normal(),
+                    field: "textfield"
                 },
                 {
                     text: "角色类型",
@@ -105,6 +60,7 @@ function ExtManagerRoleEntity() {
                     rendererFunction: "renders.enum('RoleTypeEnum')",
                     field: {
                         xtype: 'enumcombo',
+                        include: FastExt.System.manager.role.roleType === 0 ? [] : [1],
                         enumName: 'RoleTypeEnum'
                     }
                 },
@@ -141,10 +97,34 @@ function ExtManagerRoleEntity() {
                         }
                     }, {
                         xtype: 'button',
+                        text: '角色权限配置',
+                        checkSelect: 1,
+                        iconCls: 'extIcon extPower redColor',
+                        menu: [
+                            {
+                                text: '配置角色菜单权限',
+                                iconCls: 'extIcon extPower redColor',
+                                handler: function () {
+                                    let currRecord = grid.getSelection()[0];
+                                    new ExtManagerRoleEntity().configMenuPower(this, grid, currRecord);
+                                }
+                            },
+                            {
+                                text: '配置角色界面权限',
+                                iconCls: 'extIcon extPower redColor',
+                                handler: function () {
+                                    let currRecord = grid.getSelection()[0];
+                                    new ExtManagerRoleEntity().configViewPower(this, grid, currRecord);
+                                }
+                            }
+                        ]
+                    },{
+                        xtype: 'button',
                         text: '删除管理员角色',
                         iconCls: 'extIcon extDelete',
                         tipText: '删除管理员角色！',
                         checkSelect: 2,
+                        entityDeleteButton: true,
                         handler: function () {
                             deleteGridData(grid);
                         }
@@ -153,6 +133,7 @@ function ExtManagerRoleEntity() {
                         xtype: 'button',
                         text: '添加管理员角色',
                         iconCls: 'extIcon extAdd',
+                        entityAddButton: true,
                         handler: function () {
                             me.showAdd(this).then(function (result) {
                                 if (result.success) {
@@ -165,6 +146,7 @@ function ExtManagerRoleEntity() {
                         xtype: 'button',
                         text: '提交修改',
                         checkUpdate: true,
+                        entityUpdateButton: true,
                         iconCls: 'extIcon extSave',
                         handler: function () {
                             updateGridData(grid);
@@ -188,7 +170,7 @@ function ExtManagerRoleEntity() {
         return panel;
     };
 
-    this.showAdd = function (obj, callBack) {
+    this.showAdd = function (obj) {
         let me = this;
         return new Ext.Promise(function (resolve, reject) {
             let formPanel = Ext.create('Ext.form.FormPanel', {
@@ -224,6 +206,7 @@ function ExtManagerRoleEntity() {
                         columnWidth: 1,
                         value: 1,
                         allowBlank: false,
+                        include: FastExt.System.manager.role.roleType === 0 ? [] : [1],
                         enumName: "RoleTypeEnum"
                     },
                     {
@@ -240,9 +223,10 @@ function ExtManagerRoleEntity() {
                         xtype: "linkfield",
                         fieldLabel: "父级角色",
                         columnWidth: 1,
-                        emptyText: '请选择【可选】',
+                        emptyText: '请选择',
                         entityCode: "ExtManagerRoleEntity",
                         entityId: "roleId",
+                        allowBlank: FastExt.System.manager.role.roleType === 0 ? true : false,
                         entityText: "roleName"
                     }]
             });
@@ -327,7 +311,7 @@ function ExtManagerRoleEntity() {
         win.show();
     };
 
-    this.showSelect = function (obj, title, callBack, where) {
+    this.showSelect = function (obj, title, where, multi) {
         let me = this;
         me.menu = {
             id: $.md5(title),
@@ -335,13 +319,17 @@ function ExtManagerRoleEntity() {
         };
         return new Ext.Promise(function (resolve, reject) {
             let parentIdValue = system.manager.roleId;
-            if (system.manager.role.roleType == 0) {
+            if (system.manager.role.roleType === 0) {
                 parentIdValue = -1;
             }
             if (!where) {
                 where = {};
             }
-            where={"t.roleState": 0};
+            where = {"t.roleState": 0};
+            let selModel = null;
+            if (multi) {
+                selModel = FastExt.Grid.getGridSelModel();
+            }
             let dataStore = getEntityDataStore(me, where, {
                 idName: 'roleId',
                 parentIdName: 'parentRoleId',
@@ -350,7 +338,7 @@ function ExtManagerRoleEntity() {
             let grid = Ext.create('Ext.tree.Panel', {
                 entity: me,
                 code: $.md5(title),
-                selModel: getGridSelModel(),
+                selModel: selModel,
                 region: 'center',
                 multiColumnSort: true,
                 border: 0,
@@ -459,4 +447,47 @@ function ExtManagerRoleEntity() {
             showDetailsWindow(obj, "管理员角色详情", me, record);
         });
     };
+
+
+    this.configMenuPower = function (obj, grid, currRecord) {
+        if (currRecord.get("roleType") === 0) {
+            FastExt.Dialog.toast("已拥有最大权限！");
+            return;
+        }
+        if (currRecord.get("roleId") === FastExt.System.manager.roleId) {
+            FastExt.Dialog.toast("不可对自己进行权限操作！");
+            return;
+        }
+        FastExt.System.showPowerMenus(obj, currRecord.get("roleMenuPower"), currRecord.get("a__roleMenuPower")).then(function (result) {
+            grid.getStore().holdUpdate = true;
+            grid.setLoading("更新权限中……");
+            currRecord.set("roleMenuPower", result);
+            FastExt.Store.commitStoreUpdate(grid.getStore()).then(function () {
+                grid.setLoading(false);
+                grid.getStore().holdUpdate = false;
+            });
+        });
+    };
+
+    this.configViewPower = function (obj, grid, currRecord) {
+        if (currRecord.get("roleType") === 0) {
+            FastExt.Dialog.toast("已拥有最大权限！");
+            return;
+        }
+        if (currRecord.get("roleId") === FastExt.System.manager.roleId) {
+            FastExt.Dialog.toast("不可对自己进行权限操作！");
+            return;
+        }
+        FastExt.System.showPowerExt(obj, currRecord.get("roleMenuPower"), currRecord.get("roleExtPower"), currRecord.get("a__roleExtPower")).then(function (result) {
+            grid.getStore().holdUpdate = true;
+            grid.setLoading("更新权限中……");
+            currRecord.set("roleExtPower", result);
+            FastExt.Store.commitStoreUpdate(grid.getStore()).then(function () {
+                grid.setLoading(false);
+                grid.getStore().holdUpdate = false;
+            });
+        });
+    };
+
+
 }

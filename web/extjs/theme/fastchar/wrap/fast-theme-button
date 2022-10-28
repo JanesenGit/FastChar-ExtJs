@@ -2,6 +2,7 @@
 .x-btn-icon-el-default-toolbar-small, .x-btn-icon-el-default-small {
 	width: 20px !important;
 	height: 20px !important;
+	line-height: 20px;
 }
 
 .x-btn-focus.x-btn-default-toolbar-small-focus {
@@ -12,20 +13,17 @@
     color: $[color] !important;
 }
 
-
-
 .x-btn{
-    border-radius: 8px;
+    border-radius: $[buttonRadius];
 }
 
 .x-btn-default-small {
 	background: linear-gradient(0deg, $[color], $[color7]) !important;
-	//border-color: #dddddd;
     border: 1px solid $[color7];
-    //box-shadow: 0 1px 2px $[color7] inset, 0 -1px 0 #f0f0f0 inset, 0 -2px 3px $[color7] inset;
     -webkit-box-shadow: 0 1px 2px #bbbbbb, inset 0 -1px 0 #eeeeee;
     -moz-box-shadow: 0 1px 2px #bbbbbb, inset 0 -1px 0 #eeeeee;
     box-shadow: 0 1px 2px #bbbbbb, inset 0 -1px 0 #eeeeee;
+    text-shadow: 1px 1px 1px black;
 }
 
 .x-btn-over.x-btn-default-small {
@@ -50,7 +48,9 @@
 	background: linear-gradient(0deg, $[color7], $[color]) !important;
 	border-color:  $[color];
 }
-
+.x-btn-inner-default-small{
+    color:white;
+}
 
 .x-btn-focus {
 	border-color: $[color] !important;

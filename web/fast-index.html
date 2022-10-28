@@ -1,26 +1,29 @@
 <!DOCTYPE html>
 <!--suppress ALL -->
-<html lang="zh">
+<html lang="zh" class="fastchar-extjs">
 <head>
     <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <meta name="renderer" content="webkit" />
     <meta name="viewport"
           content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
     <meta name="google" content="notranslate"/>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
     <base href="${http}">
-    <script src="js/jquery.js"></script>
-    <script src="base/lottie/lottie.min.js"></script>
+    <script src="js/jquery.js?v=${version.value}"></script>
+    <script src="base/lottie/lottie.min.js?v=${version.value}"></script>
     ${head}
 
     <style type="text/css">
         html {
             overflow: hidden !important;
         }
+
         body {
             margin: 0px;
             padding: 0px;
         }
+
         .progress {
             height: 3px;
             position: fixed;
@@ -49,6 +52,14 @@
             height: 30%;
             overflow: hidden;
         }
+
+        .tox .tox-dialog-wrap__backdrop{
+            background-color: rgba(0,0,0,.35) !important;
+        }
+
+        .tox .tox-menu {
+            max-height: 460px !important;
+        }
     </style>
 </head>
 
@@ -62,21 +73,23 @@
     console.log("%cFastChar-ExtJs框架提供技术支持！http://www.fastchar.com", "color: #8d9294;");
 </script>
 <script>
-    let data = null, powerValue = "${power}", loadIndex = [], fontSize = "${fontSize}";
+    var data = null, powerValue = "${power}", loadIndex = [], fontSize = "${fontSize}", systemErrorMessage = undefined,
+        extendParams = eval(${params}), indexLottie;
     $(function () {
-        let lottie = bodymovin.loadAnimation({
+        indexLottie= bodymovin.loadAnimation({
             container: document.getElementById("loading-center"),
             renderer: 'svg',
             loop: true,
             autoplay: true,
-            path: "waiting_anim.json"
+            path: "base/lottie/index_loading.json",
         });
 
-        lottie.addEventListener("data_ready", function () {
+        indexLottie.addEventListener("data_ready", function () {
             if (checkBroswer()) {
-                $.post("loadApp", function (result) {
+                $.post("loadApp", {main: "${main}", role: "${role}"}, function (result) {
                     if (result.success) {
                         data = result.data;
+                        systemErrorMessage = result.data_1;
                         load(0);
                     } else {
                         alert(result.message);
@@ -127,7 +140,10 @@
 
 
     function addScript(script, callBack) {
-        if (script == null) return;
+        if (script == null) {
+            callBack();
+            return;
+        }
         let oHead = document.getElementsByTagName('head').item(0);
         let oScript = document.createElement("script");
         let isCode = false;
@@ -204,6 +220,11 @@
         oHead.appendChild(oStyle);
     }
 
+    /**
+     * 获取系统ext配置信息
+     * @param name 配置名
+     * @returns {null|*}
+     */
     function getExt(name) {
         for (let i = 0; i < data.length; i++) {
             let head = data[i];
@@ -214,6 +235,10 @@
         return null;
     }
 
+    /**
+     * 获取系统ext所有的配置信息
+     * @returns {*[]}
+     */
     function getAllExt() {
         let exts = [];
         for (let i = 0; i < data.length; i++) {
@@ -225,6 +250,19 @@
         return exts;
     }
 
+    /**
+     * 获取地址栏携带的参数
+     * @param paramName 参数名
+     * @returns {*}
+     */
+    function getExtendParam(paramName) {
+        return extendParams[paramName];
+    }
+
+    /**
+     * 是否是权限配置模式
+     * @returns {boolean|any}
+     */
     function isPower() {
         try {
             return eval(powerValue);

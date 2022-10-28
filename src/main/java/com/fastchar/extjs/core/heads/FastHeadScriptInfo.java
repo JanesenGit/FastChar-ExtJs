@@ -7,17 +7,19 @@ public class FastHeadScriptInfo extends FastHeadInfo {
         this.setTagName("script");
     }
 
-    private String src;
-
     public String getSrc() {
-        return src;
+        return mapWrap.getString("src");
     }
 
     public void setSrc(String src) {
-        this.src = src;
+        put("src", src);
+//        if (!containsKey("_src")) {
+//            put("_src", src);
+//        }
     }
 
     public void wrapHttp(String http) {
+        String src = getSrc();
         if (FastStringUtils.isEmpty(src)) {
             return;
         }
@@ -29,8 +31,9 @@ public class FastHeadScriptInfo extends FastHeadInfo {
         }
         put("src", http + src);
     }
+
     @Override
     public boolean isWriteHtml() {
-        return false;
+        return mapWrap.getBoolean("data-write-html", false);
     }
 }

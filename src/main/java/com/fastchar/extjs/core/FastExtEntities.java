@@ -2,6 +2,7 @@ package com.fastchar.extjs.core;
 
 import com.fastchar.annotation.AFastPriority;
 import com.fastchar.core.FastChar;
+import com.fastchar.core.FastEntity;
 import com.fastchar.database.info.FastColumnInfo;
 import com.fastchar.database.info.FastTableInfo;
 import com.fastchar.extjs.FastExtConfig;
@@ -13,17 +14,14 @@ import com.fastchar.interfaces.IFastMethodRead;
 import com.fastchar.utils.FastClassUtils;
 import com.fastchar.utils.FastStringUtils;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class FastExtEntities {
     private Map<String, Class<? extends FastExtEntity<?>>> entityMap = new HashMap<>();
 
     public FastExtEntities addEntity(Class<? extends FastExtEntity<?>> targetClass) throws Exception {
         if (!FastExtEntity.class.isAssignableFrom(targetClass)) {
-            FastChar.getLog().warn(FastChar.getLocal().getInfo("ExtEntity_Error1", targetClass));
+            FastChar.getLog().warn(this.getClass(), FastChar.getLocal().getInfo("ExtEntity_Error1", targetClass));
             return this;
         }
         if (!FastClassUtils.checkNewInstance(targetClass)) {
@@ -31,8 +29,15 @@ public class FastExtEntities {
         }
         FastExtEntity<?> fastExtEntity = FastClassUtils.newInstance(targetClass);
         if (fastExtEntity != null) {
+            //跳过无效的Entity
+            if (!fastExtEntity.isValidExtEntity()) {
+                return this;
+            }
 
             String entityCode = fastExtEntity.getEntityCode();
+            if (FastStringUtils.isEmpty(entityCode)) {
+                return this;
+            }
             if (entityMap.containsKey(entityCode)) {
                 if (FastClassUtils.isSameClass(targetClass, entityMap.get(entityCode))) {
                     entityMap.put(entityCode, targetClass);
@@ -48,7 +53,7 @@ public class FastExtEntities {
                 Class<? extends FastExtEntity<?>> existClass = entityMap.get(entityCode);
 
                 if (existClass.equals(targetClass)) {
-                    FastChar.getLog().warn(FastChar.getLocal().getInfo("ExtEntity_Error4", targetClass));
+                    FastChar.getLog().warn(this.getClass(), FastChar.getLocal().getInfo("ExtEntity_Error4", targetClass));
                     return this;
                 }
 
@@ -71,6 +76,7 @@ public class FastExtEntities {
                     AFastPriority aFastPriority = targetClass.getAnnotation(AFastPriority.class);
                     currPriority = aFastPriority.value();
                 }
+
                 if (currPriority == existPriority) {
                     throw new FastExtEntityException("the entity code '" + entityCode + "' already exists！" +
                             "\n\tat " + existStack +
@@ -90,14 +96,15 @@ public class FastExtEntities {
     }
 
     public List<Map<String, Object>> getEntityInfo() {
-        return getEntityInfo(null);
+        FastExtMenuXmlParser menuXmlParser = FastExtMenuXmlParser.newInstance();
+        return getEntityInfo(menuXmlParser, null);
     }
 
-    public List<Map<String, Object>> getEntityInfo(String linkTableName) {
+    public List<Map<String, Object>> getEntityInfo(FastExtMenuXmlParser menuXmlParser, String linkTableName) {
         List<Map<String, Object>> infos = new ArrayList<>();
 
-        for (String entityCode : entityMap.keySet()) {
-            Class<? extends FastExtEntity<?>> aClass = entityMap.get(entityCode);
+        for (Map.Entry<String, Class<? extends FastExtEntity<?>>> stringClassEntry : entityMap.entrySet()) {
+            Class<? extends FastExtEntity<?>> aClass = stringClassEntry.getValue();
             FastExtEntity<?> fastExtEntity = FastChar.getOverrides().newInstance(aClass);
             if (fastExtEntity == null) {
                 continue;
@@ -105,21 +112,35 @@ public class FastExtEntities {
             FastTableInfo<?> tableInfo = FastChar.getDatabases().get(fastExtEntity.getDatabase()).getTableInfo(fastExtEntity.getTableName());
 
             Map<String, Object> info = new HashMap<>();
+            info.put("tableName", fastExtEntity.getTableName());
+            info.put("databaseName", fastExtEntity.getDatabase());
+            info.put("entityCode", stringClassEntry.getKey());
+
             if (tableInfo != null) {
+                info.put("recycle", tableInfo.getMapWrap().getBoolean("recycle", false));
+                info.put("comment", tableInfo.getComment());
+                info.put("shortName", tableInfo.getComment());
+
+
+                Collection<FastColumnInfo<?>> columns = tableInfo.getColumns();
 
                 List<FastColumnInfo<?>> linkColumns = new ArrayList<>();
+                List<FastColumnInfo<?>> fulltextColumns = new ArrayList<>();
+
                 if (FastStringUtils.isNotEmpty(linkTableName)) {
-                    List<FastColumnInfo<?>> columns = tableInfo.getColumns();
-                    for (FastColumnInfo<?> column : columns) {
-                        if (column instanceof FastExtColumnInfo) {
-                            FastExtColumnInfo extColumnInfo = (FastExtColumnInfo) column;
-                            if (extColumnInfo.getLinkInfo() != null
-                                    && extColumnInfo.getLinkInfo().getTableName().equals(linkTableName)) {
-                                FastColumnInfo<?> fastColumnInfo = FastColumnInfo.newInstance();
-                                fastColumnInfo.putAll(column);
-                                fastColumnInfo.put("linkKey", extColumnInfo.getLinkInfo().getKeyColumnName());
-                                fastColumnInfo.put("linkText", extColumnInfo.getLinkInfo().getTextColumnNames());
-                                linkColumns.add(fastColumnInfo);
+                    if (!linkTableName.equalsIgnoreCase(tableInfo.getName())) {
+                        for (FastColumnInfo<?> column : columns) {
+                            if (column instanceof FastExtColumnInfo) {
+                                FastExtColumnInfo extColumnInfo = (FastExtColumnInfo) column;
+                                if (extColumnInfo.getLinkInfo() != null
+                                        && extColumnInfo.getLinkInfo().getTableName().equalsIgnoreCase(linkTableName)) {
+                                    FastColumnInfo<?> fastColumnInfo = FastColumnInfo.newInstance();
+                                    fastColumnInfo.putAll(column);
+                                    fastColumnInfo.put("linkKey", extColumnInfo.getLinkInfo().getKeyColumnName());
+                                    fastColumnInfo.put("linkText", extColumnInfo.getLinkInfo().getTextColumnNames());
+                                    linkColumns.add(fastColumnInfo);
+
+                                }
                             }
                         }
                     }
@@ -128,13 +149,25 @@ public class FastExtEntities {
                     }
                 }
 
-                info.put("tableName", tableInfo.getName());
-                info.put("databaseName", tableInfo.getDatabaseName());
-                info.put("entityCode", entityCode);
-                info.put("recycle", tableInfo.getBoolean("recycle", false));
-                info.put("comment", tableInfo.getComment());
-                info.put("shortName", tableInfo.getComment());
-                info.put("menu", getTableMenu(entityCode));
+
+                for (FastColumnInfo<?> column : columns) {
+                    if (column.getMapWrap().getString("echarts", "none").equalsIgnoreCase("date")) {
+                        info.put("echartsDate", column.getName());
+                    }
+                    if (column.containsKey("index_array")) {
+                        @SuppressWarnings("unchecked")
+                        List<FastEntity<?>> indexArray = (List<FastEntity<?>>) column.get("index_array");
+                        for (FastEntity<?> fastEntity : indexArray) {
+                            if (fastEntity.getString("index_type", "none").equalsIgnoreCase("fulltext")) {
+                                fulltextColumns.add(column);
+                            }
+                        }
+                    }
+
+                }
+
+
+                info.put("menu", FastExtEntities.getTableMenu(menuXmlParser, stringClassEntry.getKey()));
 
 
                 if (tableInfo instanceof FastExtTableInfo) {
@@ -145,12 +178,16 @@ public class FastExtEntities {
                 for (FastColumnInfo<?> primary : tableInfo.getPrimaries()) {
                     idProperty.add(primary.getName());
                 }
+                if (idProperty.isEmpty()) {
+                    FastChar.getLog().error("表格 " + tableInfo.toSimpleInfo() + " 未配置唯一标识列（primary），可能会照成对应的EntityJS的部分功能无法使用！");
+                }
                 info.put("idProperty", idProperty);
                 if (linkColumns.isEmpty()) {
-                    info.put("linkTables", getEntityInfo(tableInfo.getName()));
+                    info.put("linkTables", getEntityInfo(menuXmlParser, tableInfo.getName()));
                 } else {
                     info.put("linkColumns", linkColumns);
                 }
+                info.put("fulltextColumns", fulltextColumns);
 
                 if (tableInfo instanceof FastExtTableInfo) {
                     FastExtTableInfo extTableInfo = (FastExtTableInfo) tableInfo;
@@ -159,30 +196,27 @@ public class FastExtEntities {
                         info.put("layerColumn", extTableInfo.getLayerColumn().getName());
                     }
                 }
-                List<FastColumnInfo<?>> columns = tableInfo.getColumns();
-                for (FastColumnInfo<?> column : columns) {
-                    if (column.getString("echarts", "none").equalsIgnoreCase("date")) {
-                        info.put("echartsDate", column.getName());
-                    }
-                }
 
                 if (FastExtConfig.getInstance().getLayerType() == FastExtLayerType.None) {
                     info.put("layer", false);
                 }
-                infos.add(info);
+
+
             } else if (fastExtEntity.logNotFoundTable()) {
-                FastChar.getLog().error(FastChar.getLocal().getInfo("ExtEntity_Error5", aClass));
+                FastChar.getLog().error(this.getClass(), FastChar.getLocal().getInfo("ExtEntity_Error5", aClass));
             }
+
+            infos.add(info);
         }
         return infos;
     }
 
-    private FastMenuInfo getTableMenu(String tableEntity) {
-        FastMenuInfo menus = FastChar.getValues().get("menus");
+    public static FastMenuInfo getTableMenu(FastExtMenuXmlParser xmlObserver, String tableEntity) {
+        FastMenuInfo menus = xmlObserver.getMenus();
         return getTableMenu(menus, tableEntity);
     }
 
-    private FastMenuInfo getTableMenu(FastMenuInfo parent, String tableEntity) {
+    public static FastMenuInfo getTableMenu(FastMenuInfo parent, String tableEntity) {
         if (parent == null || FastStringUtils.isEmpty(tableEntity)) {
             return null;
         }

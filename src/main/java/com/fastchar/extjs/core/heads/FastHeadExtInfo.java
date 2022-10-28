@@ -10,41 +10,37 @@ public class FastHeadExtInfo extends FastHeadInfo {
     public FastHeadExtInfo() {
         this.setTagName("ext");
     }
-    private String name;
-    private String value;
-    private String href;
-    private String content;
 
     public String getName() {
-        return name;
+        return mapWrap.getString("name");
     }
-
+    
     public void setName(String name) {
-        this.name = name;
+        put("name", name);
     }
 
     public String getValue() {
-        return value;
+        return mapWrap.getString("value");
     }
-
+    
     public void setValue(String value) {
-        this.value = value;
+        put("value", value);
     }
 
     public String getHref() {
-        return href;
+        return mapWrap.getString("href");
     }
-
+    
     public void setHref(String href) {
-        this.href = href;
+        put("href", href);
     }
 
     public String getContent() {
-        return content;
+        return mapWrap.getString("content");
     }
-
+    
     public void setContent(String content) {
-        this.content = content;
+        put("content", content);
     }
 
     public String getColorValue() {
@@ -55,7 +51,7 @@ public class FastHeadExtInfo extends FastHeadInfo {
     }
 
     public boolean isExistFile() {
-        return new File(FastChar.getPath().getWebRootPath(), value).exists();
+        return new File(FastChar.getPath().getWebRootPath(), getValue()).exists();
     }
 
 

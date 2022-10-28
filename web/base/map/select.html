@@ -101,7 +101,9 @@
 
                 window.parent.onMapLoadDone();
 
-                addScript({src: "fast-img-layer.js"});
+                addScript({src: "fast-img-layer.min.js?v=" + new Date().getTime()});
+                addScript({src: "fast-map-level.min.js?v=" + new Date().getTime()});
+
             });
 
             map.on('click', function (ev) {
@@ -169,7 +171,7 @@
                     map.setCenter(position);
                 }
             } else if (status === 'no_data') {
-                window.parent.alert("未检索到位置信息！");
+                window.parent.showMapAlert("未检索到位置信息！");
                 window.parent.setMarkCurrPos(position, "未知地址");
             }
         });
@@ -191,7 +193,7 @@
                 map.setCenter(position);
                 window.parent.setMarkCurrPos(position, fAddress, province, city, district);
             } else if (status === 'no_data') {
-                window.parent.alert("未检索到位置信息！");
+                window.parent.showMapAlert("未检索到位置信息！");
             }
         });
     }

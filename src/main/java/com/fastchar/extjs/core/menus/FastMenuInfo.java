@@ -1,206 +1,260 @@
 package com.fastchar.extjs.core.menus;
 
-import com.fastchar.core.FastBaseInfo;
-import com.fastchar.extjs.FastExtConfig;
-import com.fastchar.extjs.core.heads.FastHeadStyleInfo;
+import com.fastchar.core.FastMapWrap;
 import com.fastchar.extjs.exception.FastMenuException;
 import com.fastchar.extjs.utils.ColorUtils;
 import com.fastchar.utils.FastBooleanUtils;
 import com.fastchar.utils.FastMD5Utils;
+import com.fastchar.utils.FastNumberUtils;
 import com.fastchar.utils.FastStringUtils;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-public class FastMenuInfo extends FastBaseInfo {
+public class FastMenuInfo extends LinkedHashMap<String, Object> {
     private static final long serialVersionUID = 2745017046582346313L;
-    private String id;
-    private String text;
-    private String method;
-    private String iconValue;
-    private String iconName;
-    private String icon;
-    private String iconCls;
-    private String color;
-    private String parentId;
-    private String index;
-    private Boolean checked;
-    private Boolean leaf;
-    private Integer depth;
-    private String baseCls;
-    private String theme;
+    protected transient FastMapWrap mapWrap;
 
-    private List<FastMenuInfo> children = new ArrayList<>();
+    public FastMenuInfo() {
+        super(16);
+        put("tagName", "menu");
+        put("treeGroup", FastStringUtils.buildOnlyCode("M"));
+        mapWrap = FastMapWrap.newInstance(this);
+    }
+
+    public FastMapWrap getMapWrap() {
+        return mapWrap;
+    }
+
+
+    public void setRoot(boolean root) {
+        put("root", root);
+    }
+
+    public boolean isRoot() {
+        return getMapWrap().getBoolean("root");
+    }
+
+
+    public void setTreeGroup(String group) {
+        put("treeGroup", group);
+    }
+
+    public String getTreeGroup() {
+        return getMapWrap().getString("treeGroup");
+    }
+
+
+    public String getTagName() {
+        return  mapWrap.getString("tagName");
+    }
+
+    public int getLineNumber() {
+        return mapWrap.getInt("lineNumber");
+    }
+
+    public void setLineNumber(int lineNumber) {
+        put("lineNumber", lineNumber);
+    }
+
+    public String getFileName() {
+        return  mapWrap.getString("fileName");
+    }
+
+    public void setFileName(String fileName) {
+        put("fileName", fileName);
+    }
+
 
     public String getId() {
-        return id;
+        return mapWrap.getString("id");
     }
 
     public void setId(String id) {
-        this.id = id;
+        put("id", id);
     }
-
     public String getText() {
-        return text;
+        return mapWrap.getString("text");
     }
 
     public void setText(String text) {
-        this.text = text;
+        put("text", text);
     }
-
     public String getMethod() {
-        return method;
+        return mapWrap.getString("method");
     }
 
     public void setMethod(String method) {
-        this.method = method;
+        put("method", method);
     }
 
     public String getIcon() {
-        return icon;
+        return mapWrap.getString("icon");
     }
 
     public void setIcon(String icon) {
-        this.icon = icon;
+        put("icon", icon);
     }
 
     public String getColor() {
-        return color;
+        return mapWrap.getString("color");
     }
 
     public void setColor(String color) {
-        this.color = color;
+        put("color", color);
     }
 
     public String getParentId() {
-        return parentId;
+        return mapWrap.getString("parentId");
     }
 
     public void setParentId(String parentId) {
-        this.parentId = parentId;
+        put("parentId", parentId);
     }
 
     public Boolean getChecked() {
-        return checked;
+        return mapWrap.getObject("checked");
     }
 
     public void setChecked(Boolean checked) {
-        this.checked = checked;
+        put("checked", checked);
     }
 
     public Integer getDepth() {
-        return depth;
+        return mapWrap.getObject("depth");
     }
 
     public void setDepth(Integer depth) {
-        this.depth = depth;
+        put("depth", depth);
     }
 
     public List<FastMenuInfo> getChildren() {
+        List<FastMenuInfo> children = mapWrap.getObject("children");
+        if (children == null) {
+            children = new ArrayList<>();
+            setChildren(children);
+        }
         return children;
     }
 
     public void setChildren(List<FastMenuInfo> children) {
-        this.children = children;
+        put("children", children);
     }
 
     public Boolean getLeaf() {
-        return leaf;
+        return mapWrap.getObject("leaf");
     }
 
     public void setLeaf(Boolean leaf) {
-        this.leaf = leaf;
+        put("leaf", leaf);
     }
 
     public String getIconCls() {
-        return iconCls;
+        return mapWrap.getString("iconCls");
     }
 
     public FastMenuInfo setIconCls(String iconCls) {
-        this.iconCls = iconCls;
+        put("iconCls", iconCls);
         return this;
     }
 
     public String getIconValue() {
-        return iconValue;
+        return mapWrap.getString("iconValue");
     }
 
     public FastMenuInfo setIconValue(String iconValue) {
-        this.iconValue = iconValue;
+        put("iconValue", iconValue);
         return this;
     }
 
     public String getIconName() {
-        return iconName;
+        return mapWrap.getString("iconName");
     }
 
     public FastMenuInfo setIconName(String iconName) {
-        this.iconName = iconName;
+        put("iconName", iconName);
         return this;
     }
 
     public String getIndex() {
-        return index;
+        return mapWrap.getString("index");
     }
 
     public FastMenuInfo setIndex(String index) {
-        this.index = index;
+        put("index", index);
         return this;
     }
 
     public String getBaseCls() {
-        return baseCls;
+        return mapWrap.getString("baseCls");
     }
 
     public FastMenuInfo setBaseCls(String baseCls) {
-        this.baseCls = baseCls;
+        put("baseCls", baseCls);
         return this;
     }
 
     public String getTheme() {
-        return theme;
+        return mapWrap.getString("theme");
     }
 
     public FastMenuInfo setTheme(String theme) {
-        this.theme = theme;
+        put("theme", theme);
         return this;
     }
 
     public void resetIcon() {
-        if (FastStringUtils.isNotEmpty(getIconValue())) {
-            String path = "icon?path=" + getIconValue();
+        String iconValue = getIconValue();
+        if (FastStringUtils.isNotEmpty(iconValue)) {
+            String path = "icon?path=" + iconValue;
             if (FastStringUtils.isNotEmpty(getColor())) {
                 path = path + "&color=" + getColor().replace("#", "");
             }
             setIcon(path);
-            iconName = iconValue.substring(iconValue.lastIndexOf("/") + 1);
+            setIconName(iconValue.substring(iconValue.lastIndexOf("/") + 1));
         }
         if (FastStringUtils.isNotEmpty(getColor())) {
             setBaseCls("baseTab" + FastMD5Utils.MD5To16(getColor()) + "Cls");
-        }
-    }
 
-    @Override
-    public void set(String attr, Object value) {
-        super.set(attr, value);
+            for (int i = 1; i < 9; i++) {
+                put("color" + i, ColorUtils.getLightColor(getColorValue(), 1 - FastNumberUtils.formatToDouble("0." + i)));
+            }
+
+        }
+
+
+
     }
 
     /**
      * 校验必须属性值配置
      */
     public void validate() throws FastMenuException {
-        if (FastStringUtils.isEmpty(text)) {
-            throw new FastMenuException("menu name must be not empty! "
-                    + "\n\tin " + toString()
+        if (FastStringUtils.isEmpty(getText())) {
+            throw new FastMenuException("menu text must be not empty! "
+                    + "\n\tin " + this
                     + "\n\tat " + getStackTrace("text"));
         }
-        if (FastStringUtils.isEmpty(method) && FastBooleanUtils.formatToBoolean(getLeaf(), false)) {
+        if (FastStringUtils.isEmpty(getMethod()) && FastBooleanUtils.formatToBoolean(getLeaf(), false)) {
             throw new FastMenuException("menu method must be not empty! "
-                    + "\n\tin " + toString()
+                    + "\n\tin " + this
                     + "\n\tat " + getStackTrace("method"));
         }
     }
+
+    protected StackTraceElement getStackTrace(String attrName) {
+        if (FastStringUtils.isEmpty(getFileName())) {
+            return null;
+        }
+        return new StackTraceElement(
+                getFileName() + "." + getTagName(),
+                attrName,
+                getFileName(),
+                getLineNumber());
+    }
+
 
     public FastMenuInfo getMenuInfo(String text) {
         if (this.getChildren() == null) {
@@ -215,11 +269,11 @@ public class FastMenuInfo extends FastBaseInfo {
     }
 
     public void merge(FastMenuInfo menuInfo) {
-        for (String key : menuInfo.keySet()) {
-            if (String.valueOf(key).equals("children")) {
+        for (Map.Entry<String, Object> stringObjectEntry : menuInfo.entrySet()) {
+            if (String.valueOf(stringObjectEntry.getKey()).equals("children")) {
                 continue;
             }
-            this.set(key, menuInfo.get(key));
+            put(stringObjectEntry.getKey(), stringObjectEntry.getValue());
         }
         if (menuInfo.getChildren() != null) {
             for (FastMenuInfo child : menuInfo.getChildren()) {
@@ -231,20 +285,6 @@ public class FastMenuInfo extends FastBaseInfo {
                 }
             }
         }
-    }
-
-    public FastMenuInfo copy() {
-        FastMenuInfo newMenu = new FastMenuInfo();
-        newMenu.setAll(this);
-
-        List<FastMenuInfo> children = new ArrayList<>();
-        for (FastMenuInfo child : this.getChildren()) {
-            children.add(child.copy());
-        }
-        newMenu.toProperty();
-        newMenu.setChildren(children);
-        newMenu.fromProperty();
-        return newMenu;
     }
 
     public String getColorValue() {

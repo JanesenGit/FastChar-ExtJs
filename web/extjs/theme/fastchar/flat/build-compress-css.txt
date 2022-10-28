@@ -10,10 +10,12 @@ fast-theme-grid
 fast-theme-menu
 fast-theme-message
 fast-theme-panel
-fast-theme-picker
 fast-theme-progress
 fast-theme-self
 fast-theme-shadow
 fast-theme-tab
 fast-theme-tool
 fast-theme-window
+fast-theme-picker
+fast-theme-desktop
+../fast-theme-tab-system

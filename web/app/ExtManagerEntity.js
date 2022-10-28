@@ -4,6 +4,9 @@
 function ExtManagerEntity() {
     this.actionDeleteAll = false;
     this.actionTimer = false;
+    this.actionCopy = false;
+
+
     this.getList = function (where) {
         let me = this;
         let dataStore = getEntityDataStore(me, where);
@@ -23,7 +26,13 @@ function ExtManagerEntity() {
                 alertUpdate: true,
                 autoUpdate: false,
                 autoDetails: true,
-                hoverTip: false
+                hoverTip: false,
+                excelIn: false,
+            },
+            filter: {
+                enable: true,
+                key: me.entityCode,
+                method: "getList"
             },
             columns: [
                 {
@@ -55,75 +64,6 @@ function ExtManagerEntity() {
                     field: "textfield"
                 },
                 {
-                    text: "管理员菜单权限",
-                    dataIndex: "managerMenuPower",
-                    align: "center",
-                    width: 220,
-                    search: false,
-                    renderer: function (val, m, record) {
-                        if (record.get("roleType") == 0) {
-                            return "<span style='color: #ccc;'>已拥有最大权限</span>";
-                        }
-                        return "<span style='color:blue;'>双击查看</span>";
-                    },
-                    listeners: {
-                        dblclick: function (grid, obj, celNo, obj1, obj2, rowNo, e) {
-                            let currRecord = grid.getStore().getAt(celNo);
-                            if (currRecord.get("roleType") == 0) {
-                                return;
-                            }
-                            if (currRecord.get("managerId") == system.manager.managerId
-                                || currRecord.get("roleId") == system.manager.roleId) {
-                                toast("不可对自己或相同角色的用户进行权限操作！");
-                                return;
-                            }
-                            system.showPowerMenus(obj, currRecord.get("managerMenuPower"), currRecord.get("roleMenuPower")).then(function (result) {
-                                currRecord.set("managerMenuPower", result);
-                                commitStoreUpdate(grid.getStore());
-                            });
-                        }
-                    }
-                },
-                {
-                    text: "管理员界面权限",
-                    dataIndex: "managerExtPower",
-                    align: "center",
-                    search: false,
-                    width: 220,
-                    renderer: function (val, m, record) {
-                        if (record.get("roleType") == 0) {
-                            return "<span style='color: #ccc;'>已拥有最大权限</span>";
-                        }
-                        return "<span style='color:blue;'>双击查看</span>";
-                    },
-                    listeners: {
-                        dblclick: function (grid, obj, celNo, obj1, obj2, rowNo, e) {
-                            let currRecord = grid.getStore().getAt(celNo);
-                            if (currRecord.get("roleType") == 0) {
-                                return;
-                            }
-                            if (currRecord.get("managerId") == system.manager.managerId
-                                || currRecord.get("roleId") == system.manager.roleId) {
-                                toast("不可对自己或相同角色的用户进行权限操作！");
-                                return;
-                            }
-                            system.showPowerExt(obj, currRecord.get("managerMenuPower"), currRecord.get("managerExtPower"), currRecord.get("roleExtPower")).then(function (result) {
-                                currRecord.set("managerExtPower", result);
-                                commitStoreUpdate(grid.getStore());
-                            });
-
-                        }
-                    }
-                },
-                {
-                    text: "管理员处理事项",
-                    dataIndex: "managerNoticeTitle",
-                    align: "center",
-                    width: 220,
-                    renderer: renders.normal(),
-                    field: "contentfield"
-                },
-                {
                     text: "管理员角色",
                     dataIndex: "a__roleName",
                     align: "center",
@@ -131,8 +71,8 @@ function ExtManagerEntity() {
                     rendererFunction: "renders.link('roleId','ExtManagerRoleEntity', 'roleId')",
                     listeners: {
                         beforeedit: function (context) {
-                            if (context.record.get("managerId") == system.manager.managerId
-                                || context.record.get("roleId") == system.manager.roleId) {
+                            if (context.record.get("managerId") === system.manager.managerId
+                                || context.record.get("roleId") === system.manager.roleId) {
                                 toast("不可编辑自己或相同角色的用户的角色！");
                                 return false;
                             }
@@ -159,6 +99,24 @@ function ExtManagerEntity() {
                     }
                 },
                 {
+                    text: "允许登录",
+                    dataIndex: "onlineType",
+                    align: "center",
+                    width: 220,
+                    rendererFunction: "renders.enum('OnlineTypeEnum')",
+                    field: {
+                        xtype: 'enumcombo',
+                        enumName: 'OnlineTypeEnum'
+                    }
+                },
+                {
+                    text: "最后一次登录",
+                    dataIndex: "lastLoginTime",
+                    align: "center",
+                    width: 220,
+                    renderer: renders.normal()
+                },
+                {
                     text: "录入时间",
                     dataIndex: "managerDateTime",
                     align: "center",
@@ -170,20 +128,76 @@ function ExtManagerEntity() {
             tbar: {
                 xtype: 'toolbar',
                 overflowHandler: 'menu',
-                items: [{
-                    xtype: 'button',
-                    text: '删除系统管理员',
-                    iconCls: 'extIcon extDelete',
-                    tipText: '删除系统管理员！',
-                    checkSelect: 2,
-                    handler: function () {
-                        deleteGridData(grid);
-                    }
-                },
+                items: [
+                    {
+                        xtype: 'button',
+                        text: '管理员权限配置',
+                        checkSelect: 1,
+                        iconCls: 'extIcon extPower redColor',
+                        menu: [
+                            {
+                                text: '与所属角色权限同步',
+                                subtext: '系统管理员',
+                                checkSelect: 2,
+                                iconCls: 'extIcon extPower redColor',
+                                handler: function () {
+
+                                    Ext.Msg.confirm("系统提醒", "将与角色权限同步，确定后将修改已选中管理员的权限与所属角色的权限一致！您确定操作吗？", function (button, text) {
+                                        if (button === "yes") {
+                                            FastExt.Dialog.showWait("正在同步中，请稍后……");
+                                            let selectLength = grid.getSelection().length;
+                                            let params = {};
+                                            for (let i = 0; i < selectLength; i++) {
+                                                params["managerId[" + i + "]"] = grid.getSelection()[i].get("managerId");
+                                            }
+                                            $.post("manager/updatePower", params, function (result) {
+                                                FastExt.Dialog.hideWait();
+                                                if (result.success) {
+                                                    FastExt.Dialog.toast(result.message);
+                                                    grid.getStore().reload();
+                                                } else {
+                                                    FastExt.Dialog.showAlert("系统提醒", result.message);
+                                                }
+                                            });
+                                        }
+                                    });
+                                }
+                            },
+                            {
+                                text: '配置管理员菜单权限',
+                                iconCls: 'extIcon extPower redColor',
+                                handler: function () {
+                                    let currRecord = grid.getSelection()[0];
+                                    new ExtManagerEntity().configMenuPower(this, grid, currRecord);
+                                }
+                            },
+                            {
+                                text: '配置管理员界面权限',
+                                iconCls: 'extIcon extPower redColor',
+                                handler: function () {
+                                    let currRecord = grid.getSelection()[0];
+                                    new ExtManagerEntity().configViewPower(this, grid, currRecord);
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        xtype: 'button',
+                        text: '删除系统管理员',
+                        iconCls: 'extIcon extDelete',
+                        tipText: '删除系统管理员！',
+                        checkSelect: 2,
+                        entityDeleteButton: true,
+                        handler: function () {
+                            deleteGridData(grid);
+                        }
+                    },
                     {
                         xtype: 'button',
                         text: '添加系统管理员',
                         iconCls: 'extIcon extAdd',
+                        entityAddButton: true,
+
                         handler: function () {
                             me.showAdd(this).then(function (result) {
                                 if (result.success) {
@@ -197,31 +211,53 @@ function ExtManagerEntity() {
                         text: '提交修改',
                         subtext: '系统管理员',
                         checkUpdate: true,
+                        entityUpdateButton: true,
                         iconCls: 'extIcon extSave',
                         handler: function () {
                             updateGridData(grid);
                         }
-                    }, {
+                    },
+                    {
                         xtype: 'button',
-                        text: '与角色权限同步',
+                        text: '清除登录限次',
+                        subtext: '系统管理员',
+                        checkSelect: 1,
+                        iconCls: 'extIcon extSessionOut yellowColor',
+                        handler: function () {
+                            Ext.Msg.confirm("系统提醒", "将清除账户的登录异常限制！您确定操作吗？", function (button, text) {
+                                if (button === "yes") {
+                                    FastExt.Dialog.showWait("正在清除中，请稍后……");
+                                    let params = {"loginName": grid.getSelection()[0].get("managerLoginName")};
+                                    $.post("manager/clearLoginError", params, function (result) {
+                                        FastExt.Dialog.hideWait();
+                                        if (result.success) {
+                                            FastExt.Dialog.toast(result.message);
+                                        } else {
+                                            FastExt.Dialog.showAlert("系统提醒", result.message);
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                    },
+                    {
+                        xtype: 'button',
+                        text: '通知升级系统配置',
                         subtext: '系统管理员',
                         checkSelect: 2,
-                        iconCls: 'extIcon extPower redColor',
+                        iconCls: 'extIcon extVersion greenColor',
                         handler: function () {
-                            Ext.Msg.confirm("系统提醒", "将与角色权限同步，确定后将修改已选中管理员的权限与所属角色的权限一致！您确定操作吗？", function (button, text) {
+                            Ext.Msg.confirm("系统提醒", "将通知账户进行系统配置升级！您确定操作吗？", function (button, text) {
                                 if (button === "yes") {
-                                    showWait("正在同步中，请稍后……");
-                                    let selectLength = grid.getSelection().length;
-                                    let params = {};
-                                    for (let i = 0; i < selectLength; i++) {
-                                        params["managerId[" + i + "]"] = grid.getSelection()[i].get("managerId");
+                                    grid.getStore().holdUpdate = true;
+                                    grid.setLoading("通知账户升级系统配置中……");
+                                    let data = grid.getSelection();
+                                    for (let i = 0; i < data.length; i++) {
+                                        data[i].set("initCode", 0);
                                     }
-                                    $.post("manager/updatePower", params, function (result) {
-                                        hideWait();
-                                        showAlert("系统提醒", result.message);
-                                        if (result.success) {
-                                            grid.getStore().reload();
-                                        }
+                                    FastExt.Store.commitStoreUpdate(grid.getStore(), "通知成功！").then(function () {
+                                        grid.setLoading(false);
+                                        grid.getStore().holdUpdate = false;
                                     });
                                 }
                             });
@@ -257,7 +293,7 @@ function ExtManagerEntity() {
                 fileUpload: true,
                 autoScroll: true,
                 defaults: {
-                    labelWidth: 60,
+                    labelWidth: 88,
                     margin: '5 5 5 5',
                     labelAlign: 'right',
                     emptyText: '请填写',
@@ -286,6 +322,7 @@ function ExtManagerEntity() {
                         xtype: "textfield",
                         fieldLabel: "登录密码",
                         columnWidth: 1,
+                        inputType: "password",
                         allowBlank: false
                     },
                     {
@@ -293,6 +330,7 @@ function ExtManagerEntity() {
                         xtype: "linkfield",
                         fieldLabel: "管理员角色",
                         columnWidth: 1,
+                        multiSelect: false,
                         entityCode: "ExtManagerRoleEntity",
                         entityId: "roleId",
                         entityText: "roleName",
@@ -306,6 +344,14 @@ function ExtManagerEntity() {
                         value: 0,
                         allowBlank: false,
                         enumName: "ManagerStateEnum"
+                    }, {
+                        name: "data.onlineType",
+                        xtype: "enumcombo",
+                        fieldLabel: "允许登录",
+                        columnWidth: 1,
+                        value: 0,
+                        allowBlank: false,
+                        enumName: "OnlineTypeEnum"
                     }]
             });
 
@@ -390,18 +436,22 @@ function ExtManagerEntity() {
         win.show();
     };
 
-    this.showSelect = function (obj, title, callBack, where) {
+    this.showSelect = function (obj, title, where, multi) {
         let me = this;
         return new Ext.Promise(function (resolve, reject) {
             me.menu = {
                 id: $.md5(title),
                 text: title
             };
+            let selModel = null;
+            if (multi) {
+                selModel = FastExt.Grid.getGridSelModel();
+            }
             let dataStore = getEntityDataStore(me, where);
             let grid = Ext.create('Ext.grid.Panel', {
                 entityList: true,
                 code: $.md5(title),
-                selModel: getGridSelModel(),
+                selModel: selModel,
                 region: 'center',
                 multiColumnSort: true,
                 border: 0,
@@ -605,6 +655,60 @@ function ExtManagerEntity() {
             modal: true
         });
         win.show();
+    };
+
+
+    this.configMenuPower = function (obj, grid, currRecord) {
+        if (currRecord.get("roleType") === 0) {
+            FastExt.Dialog.toast("已拥有最大权限！");
+            return;
+        }
+        if (currRecord.get("managerId") === FastExt.System.manager.managerId) {
+            FastExt.Dialog.toast("不可对自己进行权限操作！");
+            return;
+        }
+
+        if (FastExt.System.managerPowerCheckSameRole && currRecord.get("roleId") === FastExt.System.manager.roleId) {
+            FastExt.Dialog.toast("不可对与自己角色相同的管理员进行权限操作！");
+            return;
+        }
+
+        FastExt.System.showPowerMenus(obj, currRecord.get("managerMenuPower"), currRecord.get("roleMenuPower")).then(function (result) {
+            grid.getStore().holdUpdate = true;
+            grid.setLoading("更新权限中……");
+            currRecord.set("managerMenuPower", result);
+            FastExt.Store.commitStoreUpdate(grid.getStore(), "更新成功！").then(function () {
+                grid.setLoading(false);
+                grid.getStore().holdUpdate = false;
+            });
+        });
+    };
+
+
+    this.configViewPower = function (obj, grid,currRecord) {
+        if (currRecord.get("roleType") === 0) {
+            FastExt.Dialog.toast("已拥有最大权限！");
+            return;
+        }
+        if (currRecord.get("managerId") === FastExt.System.manager.managerId) {
+            FastExt.Dialog.toast("不可对自己进行权限操作！");
+            return;
+        }
+
+        if (FastExt.System.managerPowerCheckSameRole && currRecord.get("roleId") === FastExt.System.manager.roleId) {
+            FastExt.Dialog.toast("不可对与自己角色相同的管理员进行权限操作！");
+            return;
+        }
+       FastExt.System.showPowerExt(obj, currRecord.get("managerMenuPower"), currRecord.get("managerExtPower"), currRecord.get("roleExtPower")).then(function (result) {
+            grid.getStore().holdUpdate = true;
+            grid.setLoading("更新权限中……");
+            currRecord.set("managerExtPower", result);
+            FastExt.Store.commitStoreUpdate(grid.getStore(), "更新成功！").then(function () {
+                grid.setLoading(false);
+                grid.getStore().holdUpdate = false;
+            });
+        });
+
     };
 
 }

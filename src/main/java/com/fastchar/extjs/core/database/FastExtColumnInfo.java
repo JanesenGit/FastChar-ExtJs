@@ -3,6 +3,7 @@ package com.fastchar.extjs.core.database;
 import com.fastchar.annotation.AFastOverride;
 import com.fastchar.annotation.AFastPriority;
 import com.fastchar.core.FastChar;
+import com.fastchar.database.FastType;
 import com.fastchar.database.info.FastColumnInfo;
 import com.fastchar.database.info.FastTableInfo;
 import com.fastchar.exception.FastDatabaseException;
@@ -22,22 +23,26 @@ import java.util.List;
 public class FastExtColumnInfo extends FastColumnInfo<FastExtColumnInfo> {
     private static final long serialVersionUID = -7287875560648608769L;
     //绑定关联表格的：layer 层级编号 same 相同字段
-    private static String[] BIND_VALUES = new String[]{"layer", "same"};
+    private static final String[] BIND_VALUES = new String[]{"layer", "same"};
 
-    private String layer;
-    private String bind;
-    private String link;
-    private transient FastExtLinkInfo linkInfo;
-
+    /**
+     * 是否是层级字段
+     * @return  布尔值
+     */
     public boolean isLayer() {
-        return FastBooleanUtils.formatToBoolean(layer);
+        return mapWrap.getBoolean("layer");
     }
 
+    /**
+     * 是否是关联字段 
+     * @return 布尔值
+     */
     public boolean isLink() {
-        return linkInfo != null;
+        return getLinkInfo() != null;
     }
 
     public boolean isBindLayer() {
+        String bind = mapWrap.getString("bind");
         if (FastStringUtils.isNotEmpty(bind)) {
             String[] bindArray = bind.split(",");
             return FastArrayUtils.contains(bindArray, "layer");
@@ -46,6 +51,7 @@ public class FastExtColumnInfo extends FastColumnInfo<FastExtColumnInfo> {
     }
 
     public boolean isBindSame() {
+        String bind = mapWrap.getString("bind");
         if (FastStringUtils.isNotEmpty(bind)) {
             String[] bindArray = bind.split(",");
             return FastArrayUtils.contains(bindArray, "same");
@@ -53,41 +59,91 @@ public class FastExtColumnInfo extends FastColumnInfo<FastExtColumnInfo> {
         return false;
     }
 
-
-    public String getLayer() {
-        return layer;
+    public boolean isRenderEnum() {
+        return mapWrap.getString("render", "").toLowerCase().startsWith("enum");
     }
 
+    public String getEnumName() {
+        String render = mapWrap.getString("render", "");
+        String[] renderInfos = render.split("@");
+        if (renderInfos.length == 1) {
+            return FastStringUtils.firstCharToUpper(getName() + "Enum");
+        }
+        return renderInfos[1];
+    }
+
+    public String getLayer() {
+        return mapWrap.getString("layer");
+    }
+    
     public FastExtColumnInfo setLayer(String layer) {
-        this.layer = layer;
+        put("layer", layer);
         return this;
     }
 
     public String getBind() {
-        return bind;
+        return mapWrap.getString("bind");
     }
-
+    
     public FastExtColumnInfo setBind(String bind) {
-        this.bind = bind;
+        put("bind", bind);
         return this;
     }
 
     public String getLink() {
-        return link;
+        return mapWrap.getString("link");
     }
-
+    
     public FastExtColumnInfo setLink(String link) {
-        this.link = link;
+        put("link", link);
         return this;
     }
 
     public FastExtLinkInfo getLinkInfo() {
-        return linkInfo;
+        return mapWrap.getObject("linkInfo");
+    }
+    
+    public FastExtColumnInfo setLinkInfo(FastExtLinkInfo linkInfo) {
+        put("linkInfo", linkInfo);
+        return this;
     }
 
-    public FastExtColumnInfo setLinkInfo(FastExtLinkInfo linkInfo) {
-        this.linkInfo = linkInfo;
+    public String getSearch() {
+        return mapWrap.getString("search");
+    }
+
+    public FastExtColumnInfo setSearch(String search) {
+        put("search", search);
         return this;
+    }
+
+
+    public boolean isSearch() {
+        if (FastType.isByteArrayType(getType())) {
+            return false;
+        }
+        String search = getSearch();
+        if (FastStringUtils.isEmpty(search)) {  //处理默认配置
+            if (isLayer()) {
+                return false;
+            }
+            if (isLink()) {
+                return false;
+            }
+            if (isEncrypt()) {
+                return false;
+            }
+            if (isPassword()) {
+                return false;
+            }
+            if (FastType.isBigStringType(getType())) {
+                return false;
+            }
+            if (FastType.isStringType(getType())) {
+                return true;
+            }
+        }
+        return FastBooleanUtils.formatToBoolean(search, false);
     }
 
     private List<String> splitInfo(String info) {
@@ -109,6 +165,9 @@ public class FastExtColumnInfo extends FastColumnInfo<FastExtColumnInfo> {
     @Override
     public void validate() throws FastDatabaseException {
         super.validate();
+        String bind = getBind();
+        String link = getLink();
+        
         if (FastStringUtils.isNotEmpty(bind)) {
             String[] bindArray = bind.split(",");
             for (String bindValue : bindArray) {
@@ -117,7 +176,7 @@ public class FastExtColumnInfo extends FastColumnInfo<FastExtColumnInfo> {
                             + "\n\tat " + getStackTrace("bind"));
                 }
                 if (bindValue.equalsIgnoreCase("layer")) {
-                    if (FastStringUtils.isEmpty(link)) {
+                    if (FastStringUtils.isEmpty(link) && !isRenderEnum()) {
                         throw new FastDatabaseException(FastChar.getLocal().getInfo("Db_Column_Error3", "上级层级字段'" + getName() + "'")
                                 + "\n\tat " + getStackTrace("link"));
                     }
@@ -135,16 +194,16 @@ public class FastExtColumnInfo extends FastColumnInfo<FastExtColumnInfo> {
             List<String> split = splitInfo(link);
             FastExtLinkInfo linkInfo = new FastExtLinkInfo();
             linkInfo.setTableName(split.get(0));
+            linkInfo.setDatabase(getDatabase());
 
-            FastTableInfo<?> tableInfo = FastChar.getDatabases().get(getDatabaseName()).getTableInfo(linkInfo.getTableName());
+            FastTableInfo<?> tableInfo = FastChar.getDatabases().get(getDatabase()).getTableInfo(linkInfo.getTableName());
             if (tableInfo == null) {
                 throw new FastDatabaseException(FastChar.getLocal().getInfo("Db_Column_Error4", "'" + linkInfo.getTableName() + "'")
                         + "\n\tat " + getStackTrace("link"));
             }
-            linkInfo.setTableInfo(tableInfo);
 
             if (tableInfo.getPrimaries().size() > 0) {
-                linkInfo.setKeyColumnName(tableInfo.getPrimaries().get(0).getName());
+                linkInfo.setKeyColumnName(tableInfo.getPrimaries().iterator().next().getName());
             }
 
             if (split.size() > 1) {
@@ -159,8 +218,6 @@ public class FastExtColumnInfo extends FastColumnInfo<FastExtColumnInfo> {
             if (linkColumnInfo == null) {
                 throw new FastDatabaseException(FastChar.getLocal().getInfo("Db_Column_Error5", "'" + linkInfo.getTableName() + "'", "'" + linkInfo.getKeyColumnName() + "'")
                         + "\n\tat " + getStackTrace("link"));
-            } else {
-                linkInfo.setKeyColumn(linkColumnInfo);
             }
 
             if (linkInfo.getTextColumnNames().size() == 0) {
@@ -172,16 +229,12 @@ public class FastExtColumnInfo extends FastColumnInfo<FastExtColumnInfo> {
                 if (textColumnInfo == null) {
                     throw new FastDatabaseException(FastChar.getLocal().getInfo("Db_Column_Error7", "'" + linkInfo.getTableName() + "'", "'" + textColumnName + "'")
                             + "\n\tat " + getStackTrace("link"));
-                } else {
-                    linkInfo.putTextColumnInfo(textColumnName, textColumnInfo);
                 }
             }
 
-            linkInfo.fromProperty();
             setLinkInfo(linkInfo);
             if (FastStringUtils.isEmpty(getIndex())) {
                 setIndex("true");
-                fromProperty();
             }
         }
     }

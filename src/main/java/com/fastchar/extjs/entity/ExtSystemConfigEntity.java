@@ -56,6 +56,8 @@ public class ExtSystemConfigEntity extends AbstractExtSystemConfigEntity {
         return selectFirstBySql(sqlStr, configKey, managerId, configType);
     }
 
+
+
     public ExtSystemConfigEntity getExtConfig(int managerId, String menuId) {
         String sqlStr = "select * from ext_system_config where menuId = ? and managerId = ? and configType = ? ";
         return selectFirstBySql(sqlStr, menuId, managerId, "GridColumn");

@@ -12,17 +12,27 @@
 	background-color: $[color] !important;
 }
 
+.x-window-header-title-default{
+    color:#ffffff;
+    text-shadow: 1px 1px 1px black;
+}
+
 .x-window-default {
 	border-width:0 !important;
-    background-color: $[color] !important;
 }
 
 .x-window-body-default {
 	border-width:0 !important;
 }
 
-
 .x-window-header-title-default>.x-title-icon-wrap-default>.x-title-icon-default {
     color: white;
     line-height: 20px;
+    font-size: $[fontSize4];
 }
+
+.x-window-header-default-top{
+    padding: 12px 14px 12px 14px;
+}
+
+

@@ -8,6 +8,32 @@
 	border-color: $[color] !important;
 }
 
+.x-form-trigger-wrap-default{
+    border-radius: $[inputRadius];
+    overflow: hidden;
+}
+
+
+.x-form-trigger-default{
+   background: #f6f6f6;
+   padding-top: 1px;
+   color: #000;
+}
+
+.x-form-spinner-default{
+   color: #000;
+}
+
+.x-form-trigger-default:hover{
+     background: #ececec;
+}
+
+.fast-combo  .x-form-trigger-focus,.fast-combobox .x-form-trigger-focus,.fast-enumcombo .x-form-trigger-focus{
+    background: #ececec;
+}
+
+
+
 .x-form-cb-checked .x-form-checkbox-default {
     color: $[color] !important;
 }

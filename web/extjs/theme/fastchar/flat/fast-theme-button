@@ -1,4 +1,10 @@
 
+.x-btn-icon-el-default-toolbar-small, .x-btn-icon-el-default-small {
+	width: 20px !important;
+	height: 20px !important;
+	line-height: 20px;
+}
+
 .x-btn-focus.x-btn-default-toolbar-small-focus {
 	box-shadow: transparent 0 0 0 0 !important;
 }
@@ -8,12 +14,17 @@
 }
 
 .x-btn{
-    border-radius: 5px !important;
+    border-radius: $[buttonRadius];
 }
 
 .x-btn-default-small {
 	background-color: $[color];
 	border-color: $[color];
+	text-shadow: 1px 1px 1px black;
+}
+
+.x-btn-inner-default-small{
+    color:white;
 }
 
 .x-btn-over.x-btn-default-small {
@@ -72,5 +83,7 @@
     border-color:$[color];
 }
 .x-btn.x-btn-menu-active.x-btn-default-small, .x-btn.x-btn-pressed.x-btn-default-small{
- border-color:$[color];
+    border-color:$[color];
+    background-image: none;
+    background-color: $[color];
 }

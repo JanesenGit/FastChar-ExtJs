@@ -6,3 +6,16 @@
 .x-panel-header-title-default>.x-title-icon-wrap-default>.x-title-icon-default{
     line-height: 20px;
 }
+
+.x-border-region-slide-in {
+    box-shadow:-3px 0 5px 0px $[color8] !important;
+}
+
+.x-panel-header-title-default{
+    color:#ffffff;
+    text-shadow: 1px 1px 1px black;
+}
+
+.x-panel-header-default-horizontal {
+    padding: 12px 14px 12px 14px;
+}

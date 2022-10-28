@@ -1,75 +1,77 @@
 package com.fastchar.extjs.core.database;
 
-import com.fastchar.core.FastBaseInfo;
+import com.fastchar.core.FastChar;
+import com.fastchar.core.FastMapWrap;
 import com.fastchar.database.info.FastColumnInfo;
+import com.fastchar.database.info.FastDatabaseInfo;
 import com.fastchar.database.info.FastTableInfo;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
-import java.util.Map;
 
-public class FastExtLinkInfo extends FastBaseInfo {
+public class FastExtLinkInfo extends LinkedHashMap<String, Object> {
 
-    private static final long serialVersionUID = -2930962312837008230L;
-    private String tableName;//被关联的表名
-    private String keyColumnName;//被关联的key列名
-    private final LinkedHashSet<String> textColumnNames = new LinkedHashSet<>();//被关联的text列名
-    private final Map<String, FastColumnInfo<?>> textColumnInfo = new HashMap<>();
-    private FastTableInfo<?> tableInfo;
+    protected transient FastMapWrap mapWrap;
 
-    private FastColumnInfo<?> keyColumn;
+    public FastExtLinkInfo() {
+        super(16);
+        mapWrap = FastMapWrap.newInstance(this);
+    }
+
+    public FastMapWrap getMapWrap() {
+        return mapWrap;
+    }
+
+    public FastExtLinkInfo setDatabase(String database) {
+        put("database", database);
+        return this;
+    }
+    public String getDatabase() {
+        return mapWrap.getString("database");
+    }
 
     public String getTableName() {
-        return tableName;
+        return mapWrap.getString("tableName");
     }
 
     public FastExtLinkInfo setTableName(String tableName) {
-        this.tableName = tableName;
+        put("tableName", tableName);
         return this;
     }
 
     public String getKeyColumnName() {
-        return keyColumnName;
+        return mapWrap.getString("keyColumnName");
     }
 
     public FastExtLinkInfo setKeyColumnName(String keyColumnName) {
-        this.keyColumnName = keyColumnName;
+        put("keyColumnName", keyColumnName);
         return this;
     }
 
     public FastColumnInfo<?> getKeyColumn() {
-        return keyColumn;
-    }
-
-    public FastExtLinkInfo setKeyColumn(FastColumnInfo<?> keyColumn) {
-        this.keyColumn = keyColumn;
-        return this;
+        return getTableInfo().getColumnInfo(getKeyColumnName());
     }
 
     public FastExtLinkInfo addTextColumnName(String textColumnName) {
-        this.textColumnNames.add(textColumnName);
+        getTextColumnNames().add(textColumnName);
         return this;
     }
 
     public LinkedHashSet<String> getTextColumnNames() {
+        LinkedHashSet<String> textColumnNames = mapWrap.getObject("textColumnNames");
+        if (textColumnNames == null) {
+            textColumnNames = new LinkedHashSet<>(16);
+            put("textColumnNames", textColumnNames);
+        }
         return textColumnNames;
     }
 
-    public FastExtLinkInfo putTextColumnInfo(String textColumnName, FastColumnInfo<?> columnInfo) {
-        this.textColumnInfo.put(textColumnName, columnInfo);
-        return this;
-    }
-
     public FastColumnInfo<?> getTextColumnInfo(String textColumnName) {
-        return this.textColumnInfo.get(textColumnName);
+        return getTableInfo().getColumnInfo(textColumnName);
     }
 
     public FastTableInfo<?> getTableInfo() {
-        return tableInfo;
-    }
-
-    public FastExtLinkInfo setTableInfo(FastTableInfo<?> tableInfo) {
-        this.tableInfo = tableInfo;
-        return this;
+        FastDatabaseInfo databaseInfo = FastChar.getDatabases().get(getDatabase());
+        return databaseInfo.getTableInfo(getTableName());
     }
 }

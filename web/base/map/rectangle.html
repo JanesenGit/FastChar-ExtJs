@@ -102,6 +102,8 @@
                 });
 
                 window.parent.onMapLoadDone();
+
+                addScript({src: "fast-map-level.min.js?v=" + new Date().getTime()});
             });
         } catch (e) {
             console.error(e);

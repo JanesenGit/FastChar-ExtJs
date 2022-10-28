@@ -3,8 +3,6 @@ package com.fastchar.extjs.provider;
 import com.fastchar.extjs.core.enums.FastEnumInfo;
 import com.fastchar.extjs.interfaces.IFastExtEnum;
 import com.fastchar.utils.FastEnumUtils;
-import com.fastchar.utils.FastNumberUtils;
-import com.fastchar.utils.FastStringUtils;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -17,6 +15,7 @@ public abstract class FastExtBaseEnum implements IFastExtEnum {
 
 
     private List<FastEnumInfo> enumInfos;
+
     @Override
     public final List<FastEnumInfo> getEnums() throws Exception {
         if (enumInfos == null) {
@@ -25,6 +24,11 @@ public abstract class FastExtBaseEnum implements IFastExtEnum {
             Enum<?>[] enumValues = FastEnumUtils.getEnumValues(getEnumClass());
 
             for (Enum<?> enumValue : enumValues) {
+                Field field = getEnumClass().getField(enumValue.name());
+                if (field.isAnnotationPresent(Deprecated.class)) {
+                    continue;
+                }
+
                 FastEnumInfo info = new FastEnumInfo();
                 info.setId(enumValue.ordinal());
                 info.setText(enumValue.name());
@@ -39,10 +43,9 @@ public abstract class FastExtBaseEnum implements IFastExtEnum {
                     }
                     if (Modifier.isPublic(declaredField.getModifiers())) {
                         String value = String.valueOf(declaredField.get(enumValue));
-                        info.set(declaredField.getName(), value);
+                        info.put(declaredField.getName(), value);
                     }
                 }
-                info.fromProperty();
                 enumInfos.add(info);
             }
         }
@@ -56,10 +59,11 @@ public abstract class FastExtBaseEnum implements IFastExtEnum {
         }
         FastEnumInfo enumInfo = new FastEnumInfo();
         enumInfo.setId(id);
-        Enum<?> anEnum = FastEnumUtils.formatToEnum(getEnumClass(), FastNumberUtils.formatToInt(id));
+        Enum<?> anEnum = FastEnumUtils.formatToEnum(getEnumClass(), String.valueOf(id));
         if (anEnum == null) {
             return null;
         }
+        enumInfo.setId(anEnum.ordinal());
         enumInfo.setText(anEnum.name());
         return enumInfo;
     }

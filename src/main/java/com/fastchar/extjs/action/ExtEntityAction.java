@@ -5,45 +5,59 @@ import com.fastchar.database.FastPage;
 import com.fastchar.database.FastType;
 import com.fastchar.database.info.FastColumnInfo;
 import com.fastchar.database.info.FastSqlInfo;
-import com.fastchar.database.sql.FastSql;
 import com.fastchar.extjs.FastExtConfig;
-import com.fastchar.extjs.accepter.FastExtEnumAccepter;
 import com.fastchar.extjs.annotation.AFastLog;
 import com.fastchar.extjs.annotation.AFastSession;
+import com.fastchar.extjs.core.FastExtEntity;
+import com.fastchar.extjs.core.FastExtEnumHelper;
 import com.fastchar.extjs.core.FastExtLayerHelper;
+import com.fastchar.extjs.core.FastExtSameHelper;
 import com.fastchar.extjs.core.database.FastExtColumnInfo;
 import com.fastchar.extjs.core.database.FastExtData;
 import com.fastchar.extjs.core.database.FastExtTableInfo;
+import com.fastchar.extjs.core.database.FastSqlTool;
 import com.fastchar.extjs.core.enums.FastEnumInfo;
 import com.fastchar.extjs.core.heads.FastHeadExtInfo;
 import com.fastchar.extjs.echarts.FastEChartsBean;
 import com.fastchar.extjs.entity.ExtManagerEntity;
-import com.fastchar.extjs.core.FastExtEntity;
 import com.fastchar.extjs.entity.ExtSystemConfigEntity;
-import com.fastchar.extjs.interfaces.IFastExtEnum;
+import com.fastchar.extjs.info.ExtExcelModelInfo;
 import com.fastchar.extjs.interfaces.IFastImportDataListener;
-import com.fastchar.interfaces.IFastJson;
+import com.fastchar.extjs.utils.ExtFileUtils;
+import com.fastchar.extjs.utils.POIHelper;
+import com.fastchar.extjs.utils.POIUtils;
 import com.fastchar.utils.*;
 import com.google.gson.reflect.TypeToken;
-import org.apache.poi.hssf.usermodel.*;
 import org.apache.poi.hssf.util.HSSFColor;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
-import org.apache.poi.ss.util.CellRangeAddressList;
+import org.apache.poi.xssf.streaming.SXSSFWorkbook;
+import org.apache.poi.xssf.usermodel.XSSFRichTextString;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.lang.reflect.Array;
 import java.util.*;
 
 @SuppressWarnings({"ResultOfMethodCallIgnored", "SuspiciousMethodCalls"})
 @AFastSession
 public class ExtEntityAction extends FastAction {
+    private static final Map<String, FastSqlInfo> LIST_SQL_MAP = new HashMap<>();
 
     @Override
     protected String getRoute() {
         return "/entity";
     }
 
+
+    public void destroyList() {
+        String storeId = getParam("storeId", "");
+        LIST_SQL_MAP.remove(storeId);
+        responseJson(0, "销毁成功！");
+    }
 
     /**
      * 获取实体的列表数据
@@ -56,12 +70,14 @@ public class ExtEntityAction extends FastAction {
      * power 是否需要权限层级筛选，默认：true
      */
     public FastPage<?> list() {
-        //开始gzip支持
-        getResponse().setHeader("Content-Encoding", "gzip");
+        setLog(getParamToBoolean("log", Boolean.TRUE));
 
         String entityCode = getParam("entityCode", true);
         int page = getParamToInt("page", 1);
         int pageSize = getParamToInt("limit", 10);
+
+        String storeId = getParam("storeId");
+
         Class<? extends FastExtEntity<?>> extEntityClass = FastExtConfig.getInstance().getExtEntities().getExtEntity(entityCode);
         if (extEntityClass == null) {
             responseJson(-1, "EntityCode不存在！" + entityCode);
@@ -73,12 +89,12 @@ public class ExtEntityAction extends FastAction {
             return null;
         }
 
-        ExtManagerEntity managerEntity = getSession("manager");
+        ExtManagerEntity managerEntity = ExtManagerEntity.getSession(this);
 
-        Map<String, Object> where = getParamToMap("where");
-        entity.putAll(where);
+        entity.putAll(getParamToMap("where"));
+        entity.putAll(getParamToMap("colWhere"));
 
-        Map<String, Object> index = getParamToMap("indexSort");
+        Map<String, Object> indexSort = getParamToMap("indexSort");
 
         String sort = getParam("sort");
         if (FastStringUtils.isNotEmpty(sort)) {
@@ -89,16 +105,17 @@ public class ExtEntityAction extends FastAction {
                 if (map.get("property").startsWith("@")) {
                     continue;
                 }
-                entity.put(FastNumberUtils.formatToInt(index.get(map.get("property"))) + map.get("property") + ":sort", map.get("direction"));
+                entity.put(FastNumberUtils.formatToInt(indexSort.get(map.get("property"))) + map.get("property") + ":sort", map.get("direction"));
             }
         }
 
-        if (getParamToBoolean("power", Boolean.TRUE) && !getParamToBoolean("fromTree", false)) {
+//         && !getParamToBoolean("fromTree", false) 未说明作用，暂时取消
+        if (getParamToBoolean("power", Boolean.TRUE)) {
             entity.pullLayer(managerEntity);
         }
         FastPage<?> fastPage = entity.showList(page, pageSize);
-        if (fastPage.getSqlInfo() != null) {
-            managerEntity.put("Sql" + entityCode + "_" + entity.getBoolean("^fromRecycle"), fastPage.getSqlInfo().getSql());
+        if (fastPage.getSqlInfo() != null && FastStringUtils.isNotEmpty(storeId)) {
+            LIST_SQL_MAP.put(storeId, fastPage.getSqlInfo());
         }
         return fastPage;
     }
@@ -122,7 +139,7 @@ public class ExtEntityAction extends FastAction {
             responseJson(-1, "EntityCode不存在！" + entityCode);
             return;
         }
-        ExtManagerEntity managerEntity = getSession("manager");
+        ExtManagerEntity managerEntity = ExtManagerEntity.getSession(this);
 
         FastEntity<?> entity = getParamToEntity("data", extEntityClass);
         if (FastStringUtils.isEmpty(menu)) {
@@ -145,18 +162,19 @@ public class ExtEntityAction extends FastAction {
 
             saveEntity.put("fromWeb", true);
             saveEntity.put("session", managerEntity);
+            saveEntity.clearEmpty();
 
             String[] checks = getParamToArray("check");
             String method = getParam("method", "save");
             if (checks.length == 0) {
                 if (saveEntity.save()) {
-                    saveResult.add(new FastHandler().setCode(0).setError("添加成功！"));
+                    saveResult.add(new FastHandler().setCode(0).setError("添加成功！").put("dataId", saveEntity.getId()));
                     continue;
                 }
             } else {
                 if (method.equalsIgnoreCase("save")) {
                     if (saveEntity.save(checks)) {
-                        saveResult.add(new FastHandler().setCode(0).setError("添加成功！"));
+                        saveResult.add(new FastHandler().setCode(0).setError("添加成功！").put("dataId", saveEntity.getId()));
                         continue;
                     } else if (FastStringUtils.isEmpty(saveEntity.getError())) {
                         saveResult.add(new FastHandler().setCode(-1).setError("添加失败！数据或已存在！"));
@@ -166,18 +184,24 @@ public class ExtEntityAction extends FastAction {
                     FastHandler handler = new FastHandler();
                     if (saveEntity.push(handler, checks)) {
                         if (handler.getCode() == 0) {
-                            saveResult.add(new FastHandler().setCode(0).setError("添加成功！"));
+                            saveResult.add(new FastHandler().setCode(0).setError("添加成功！").put("dataId", saveEntity.getId()));
                             continue;
                         }
-                        saveResult.add(new FastHandler().setCode(0).setError("更新成功！"));
+                        saveResult.add(new FastHandler().setCode(0).setError("更新成功！").put("dataId", saveEntity.getId()));
                         continue;
                     }
                 }
             }
             saveResult.add(new FastHandler().setCode(-1).setError("添加失败！" + saveEntity.getError()));
         }
+
+        List<Object> dataIds = new ArrayList<>();
+        for (FastHandler fastHandler : saveResult) {
+            dataIds.add(fastHandler.getInt("dataId", -1));
+        }
+
         if (saveResult.size() == 1) {
-            responseJson(saveResult.get(0).getCode(), saveResult.get(0).getError());
+            responseJson(saveResult.get(0).getCode(), saveResult.get(0).getError(), dataIds);
         } else {
             StringBuilder stringBuilder = new StringBuilder();
             int errorCount = 0;
@@ -191,16 +215,16 @@ public class ExtEntityAction extends FastAction {
             if (errorCount == saveResult.size()) {
                 responseJson(-1, stringBuilder.toString());
             } else {
-                responseJson(0, stringBuilder.toString());
+                responseJson(0, stringBuilder.toString(), dataIds);
             }
         }
 
     }
 
     private void pluckArrayValue(FastEntity<?> entity, List<FastEntity<?>> entities) {
-        List<FastExtColumnInfo> columns = entity.getTable().getColumns();
+        Collection<FastColumnInfo<?>> columns = entity.getTable().getColumns();
         boolean hasArray = false;
-        for (FastExtColumnInfo column : columns) {
+        for (FastColumnInfo<?> column : columns) {
             Object values = entity.get(column.getName());
             if (values == null || FastStringUtils.isEmpty(values.toString())) {
                 continue;
@@ -258,38 +282,38 @@ public class ExtEntityAction extends FastAction {
                     menu = extEntity.getTableDetails();
                 }
                 setRequestAttr("menu", menu);
-                ExtManagerEntity managerEntity = getSession("manager");
 
-                Map<String, Object> where = getParamToMap("where");
-                extEntity.putAll(where);
-                extEntity.pullLayer(managerEntity);
-
-
-                boolean fromRecycle = extEntity.getBoolean("^fromRecycle");
-                String showListSql = managerEntity.getString("Sql" + entityCode + "_" + fromRecycle);
-                if (FastStringUtils.isEmpty(showListSql)) {
-                    responseJson(-1, "清除失败！请稍后重试！");
+                String storeId = getParam("storeId", entityCode);
+                if (!LIST_SQL_MAP.containsKey(storeId)) {
+                    responseJson(-1, "清空失败！数据安全异常！");
                 }
 
-                List<FastColumnInfo<?>> primaries = extEntity.getPrimaries();
-                String keyName = primaries.get(0).getName();
+                boolean fromRecycle = extEntity.getBoolean("^fromRecycle");
+
+                Collection<FastColumnInfo<?>> primaries = extEntity.getPrimaries();
+                String keyName = primaries.iterator().next().getName();
                 for (FastColumnInfo<?> primary : primaries) {
                     if (primary.isAutoincrement()) {
                         keyName = primary.getName();
                     }
                 }
-                int fromIndex = showListSql.indexOf("from");
-                int whereIndex = showListSql.lastIndexOf("where");
+
+                FastSqlInfo fastSqlInfo = LIST_SQL_MAP.get(storeId);
+                String listSql = FastSqlTool.removeOrderBy(fastSqlInfo.getSql());
+
+
+                int fromIndex = listSql.indexOf("from");
                 String tableName = extEntity.getTableName();
                 if (fromRecycle) {
                     tableName = tableName + "_recycle";
                 }
 
-                String sqlStr = "select t." + keyName + " " + showListSql.substring(fromIndex, whereIndex);
-                FastSqlInfo sqlInfo = extEntity.getSql().appendWhere(sqlStr, extEntity);
+                String fromSqlStr = listSql.substring(fromIndex);
+                String sqlStr = "select t." + keyName + " " + fromSqlStr;
+
                 String deleteSql = "delete from " + tableName + " where " +
-                        keyName + " in ( select * from ( " + sqlInfo.getSql() + ") as tmp ) ";
-                int update = FastChar.getDb().update(deleteSql, sqlInfo.toParams());
+                        keyName + " in ( select * from ( " + sqlStr + ") as tmp ) ";
+                int update = FastChar.getDB().update(deleteSql, fastSqlInfo.toParams());
                 if (update > 0) {
                     responseJson(0, "删除成功！共删除了" + update + "条数据！");
                 }
@@ -353,6 +377,60 @@ public class ExtEntityAction extends FastAction {
 
 
     /**
+     * 批量更新数据
+     * 参数：
+     * entityCode 实体编号 {String}
+     * menu 操作的菜单名称，用作记录日志 {String}
+     * where 用作sql的where判断语句 ,例如：where['t.userId'] = 1
+     */
+    @AFastLog(value = "页面【${menu}】进行批量修改数据！", type = "批量修改数据")
+    public void batchUpdate() throws Exception {
+        String entityCode = getParam("entityCode", true);
+        String menu = getParam("menu");
+        setRequestAttr("menu", menu);
+
+        Class<? extends FastExtEntity<?>> extEntityClass = FastExtConfig.getInstance().getExtEntities().getExtEntity(entityCode);
+        if (extEntityClass == null) {
+            responseJson(-1, "EntityCode不存在！" + entityCode);
+            return;
+        }
+        FastExtEntity<?> entity = FastClassUtils.newInstance(extEntityClass);
+        if (entity == null) {
+            responseJson(-1, "EntityCode不存在！" + entityCode);
+            return;
+        }
+
+        String field = getParam("field", true);
+        String fieldValue = getParam("fieldValue", true);
+
+        String storeId = getParam("storeId", entityCode);
+        if (!LIST_SQL_MAP.containsKey(storeId)) {
+            responseJson(-1, "更新失败！数据安全异常！");
+        }
+        FastSqlInfo fastSqlInfo = LIST_SQL_MAP.get(storeId);
+        String listSql = FastSqlTool.removeOrderBy(fastSqlInfo.getSql());
+
+        int fromIndex = listSql.indexOf("from");
+
+        Collection<FastColumnInfo<?>> primaries = entity.getPrimaries();
+        if (primaries.size() > 0) {
+            FastColumnInfo<?> fastColumnInfo = primaries.iterator().next();
+            String inSqlStr = " select " + fastColumnInfo.getName() + " " + listSql.substring(fromIndex);
+
+
+            String sqlStr = " update " + entity.getTableName() + "  set " + field + " = '" + fieldValue + "' " +
+                    " where " + fastColumnInfo.getName() + " in ( select * from ( " + inSqlStr + " ) as temp ) ";
+
+            int updateCount = FastChar.getDB().update(sqlStr, fastSqlInfo.toParams());
+            responseJson(0, "更新成功！共更新" + updateCount + "条数据！");
+        }
+
+        responseJson(-1, "更新失败！无效列表数据！");
+
+    }
+
+
+    /**
      * 复制实体数据
      * 参数：
      * entityCode 实体编号 {String}
@@ -376,7 +454,10 @@ public class ExtEntityAction extends FastAction {
             }
             setRequestAttr("menu", menu);
             fastEntity.put("fromWeb", true);
-            fastEntity.copySave();
+            FastEntity<?> copySave = fastEntity.copySave();
+            if (copySave == null) {
+                responseJson(-1, "复制失败！" + fastEntity.getError());
+            }
         }
         responseJson(0, "数据复制成功！");
     }
@@ -414,44 +495,117 @@ public class ExtEntityAction extends FastAction {
             responseJson(-1, "清除失败！此列表不允许此功能！");
         }
 
-        Map<String, Object> where = getParamToMap("where");
-        entity.putAll(where);
 
-        ExtManagerEntity managerEntity = getSession("manager");
-        entity.pullLayer(managerEntity);
-
-        String showListSql = managerEntity.getString("Sql" + entityCode + "_" + entity.getBoolean("^fromRecycle"));
-        if (FastStringUtils.isEmpty(showListSql)) {
-            responseJson(-1, "清除失败！请稍后重试！");
+        String storeId = getParam("storeId", entityCode);
+        if (!LIST_SQL_MAP.containsKey(storeId)) {
+            responseJson(-1, "清理失败！数据安全异常！");
         }
+        FastSqlInfo fastSqlInfo = LIST_SQL_MAP.get(storeId);
+        String listSql = FastSqlTool.removeOrderBy(fastSqlInfo.getSql());
 
-        int fromIndex = showListSql.indexOf("from");
-        int whereIndex = showListSql.lastIndexOf("where");
+        int fromIndex = listSql.indexOf("from");
 
-        List<FastColumnInfo<?>> primaries = entity.getPrimaries();
-        String keyName = primaries.get(0).getName();
-        for (FastColumnInfo<?> primary : primaries) {
-            if (primary.isAutoincrement()) {
-                keyName = primary.getName();
-            }
-        }
+        Collection<FastColumnInfo<?>> primaries = entity.getPrimaries();
+        String keyName = primaries.iterator().next().getName();
 
-        String sqlStr = "select t." + keyName + " " + showListSql.substring(fromIndex, whereIndex);
+        String sqlStr = "select t." + keyName + " " + listSql.substring(fromIndex);
 
         String field = getParam("field", true);
-        field = FastSql.formatAlias(field, "t");
+        field = FastSqlTool.formatAlias(field, "t");
 
 
-        FastSqlInfo fastSqlInfo = entity.toSelectSql(sqlStr);
-        sqlStr = fastSqlInfo.getSql() + " and  " + field + " is null ";
+        sqlStr += " and  " + field + " is null ";
 
 
         String deleteSql = "delete from " + entity.getTableName() + " where " +
                 keyName + " in ( select * from ( " + sqlStr + ") as tmp ) ";
 
-        int update = FastChar.getDb().update(deleteSql, fastSqlInfo.toParams());
+        int update = FastChar.getDB().update(deleteSql, fastSqlInfo.toParams());
 
         responseJson(0, "清理成功！共清理" + update + "条数据！");
+    }
+
+
+    /**
+     * 清除某个属性重复的数据，保留一条
+     * 参数：
+     * entityCode 实体编号 {String}
+     * menu 操作的菜单名称，用作记录日志 {String}
+     * where 用作sql的where判断语句 ,例如：where['t.userId'] = 1
+     * type 0：只保留最早的一条 1：只保留最新的一条
+     */
+    @AFastLog(value = "页面【${menu}】进行清理重复数据！", type = "清理重复数据")
+    public void repeat() throws Exception {
+
+        String entityCode = getParam("entityCode", true);
+        String menu = getParam("menu");
+        setRequestAttr("menu", menu);
+        Class<? extends FastExtEntity<?>> extEntityClass = FastExtConfig.getInstance().getExtEntities().getExtEntity(entityCode);
+        if (extEntityClass == null) {
+            responseJson(-1, "EntityCode不存在！" + entityCode);
+            return;
+        }
+        FastExtEntity<?> entity = FastClassUtils.newInstance(extEntityClass);
+        if (entity == null) {
+            responseJson(-1, "EntityCode不存在！" + entityCode);
+            return;
+        }
+
+        if (FastStringUtils.isEmpty(menu)) {
+            menu = entity.getTableDetails();
+        }
+        setRequestAttr("menu", menu);
+
+        if (entity.getPrimaries().size() == 0) {
+            responseJson(-1, "清除失败！此列表不允许此功能！");
+        }
+
+
+        String storeId = getParam("storeId", entityCode);
+        if (!LIST_SQL_MAP.containsKey(storeId)) {
+            responseJson(-1, "清理失败！数据安全异常！");
+        }
+        FastSqlInfo fastSqlInfo = LIST_SQL_MAP.get(storeId);
+        String listSql = FastSqlTool.removeOrderBy(fastSqlInfo.getSql());
+
+
+        int fromIndex = listSql.indexOf("from");
+
+        Collection<FastColumnInfo<?>> primaries = entity.getPrimaries();
+        String keyName = primaries.iterator().next().getName();
+
+        int type = getParamToInt("type");
+        String selectItem = "min(" + keyName + ")";
+        String sqlStr = "select {{selectItem}} " +  listSql.substring(fromIndex);
+        if (type == 1) {
+            selectItem = "max(" + keyName + ")";
+            sqlStr = "select {{selectItem}}  " +  listSql.substring(fromIndex);
+        }
+
+        String field = getParam("field", true);
+        field = FastSqlTool.formatAlias(field, "t");
+
+
+        Object[] params = fastSqlInfo.toParams();
+
+        List<Object> paramsList = new ArrayList<>(Arrays.asList(params));
+        if (paramsList.size() == 0) {
+            String deleteSql = "delete from " + entity.getTableName() + "  where " +
+                    keyName + " not in ( select * from ( " + sqlStr.replace("{{selectItem}}", selectItem) + "  group by " + field + " ) as tmp ) ";
+
+            int update = FastChar.getDB().update(deleteSql, paramsList.toArray());
+            responseJson(0, "清理成功！共清理" + update + "条重复数据！");
+        } else {
+            String deleteSql = "delete from " + entity.getTableName() + "  where " +
+                    keyName + " not in ( select * from ( " + sqlStr.replace("{{selectItem}}", selectItem) + " group by " + field + " ) as tmp )" +
+                    "  and " +
+                    keyName + " in (select * from (" + sqlStr.replace("{{selectItem}}", keyName) + ") as tmp2 ) ";
+
+            paramsList.addAll(Arrays.asList(FastArrayUtils.clone(params)));
+            int update = FastChar.getDB().update(deleteSql, paramsList.toArray());
+
+            responseJson(0, "清理成功！共清理" + update + "条重复数据！");
+        }
     }
 
 
@@ -507,27 +661,22 @@ public class ExtEntityAction extends FastAction {
             responseJson(-1, "EntityCode不存在！" + entityCode);
             return;
         }
-        Map<String, Object> where = getParamToMap("where");
-        entity.putAll(where);
 
-        ExtManagerEntity managerEntity = getSession("manager");
-        entity.pullLayer(managerEntity);
+
+        String storeId = getParam("storeId", entityCode);
+        if (!LIST_SQL_MAP.containsKey(storeId)) {
+            responseJson(-1, "计算失败！数据安全异常！");
+        }
+        FastSqlInfo fastSqlInfo = LIST_SQL_MAP.get(storeId);
+        String listSql = FastSqlTool.removeOrderBy(fastSqlInfo.getSql());
 
         String type = getParam("type", true);
         String field = getParam("field", true);
-        field = FastSql.formatAlias(field, "t");
-        String sqlStr;
-        String showListSql = managerEntity.getString("Sql" + entityCode + "_" + entity.getBoolean("^fromRecycle"));
-        if (FastStringUtils.isNotEmpty(showListSql)) {
-            int fromIndex = showListSql.indexOf("from");
-            int whereIndex = showListSql.lastIndexOf("where");
-            sqlStr = "select " + type + "(" + field + ") as result " + showListSql.substring(fromIndex, whereIndex);
-        } else {
-            sqlStr = "select " + type + "(" + field + ") as result from " + entity.getTableName();
-        }
+        field = FastSqlTool.formatAlias(field, "t");
+        int fromIndex = listSql.indexOf("from");
+        String  sqlStr = "select " + type + "(" + field + ") as result " + listSql.substring(fromIndex);
 
-        FastSqlInfo sqlInfo = entity.toSelectSql(sqlStr);
-        FastEntity<?> fastEntity = FastChar.getDb().selectFirst(sqlInfo.getSql(), sqlInfo.toParams());
+        FastEntity<?> fastEntity = FastChar.getDB().selectFirst(sqlStr, fastSqlInfo.toParams());
         if (fastEntity != null) {
             responseJson(0, "计算成功！", fastEntity.getFloat("result", 4));
         } else {
@@ -559,18 +708,17 @@ public class ExtEntityAction extends FastAction {
         }
         setRequestAttr("entityDetails", entity.getTableDetails());
 
-        IFastJson iFastJsonProvider = FastChar.getOverrides().newInstance(IFastJson.class);
-        Map<String, Object> where = getParamToMap("where");
-        entity.putAll(where);
+        entity.putAll(getParamToMap("where"));
+        entity.putAll(getParamToMap("colWhere"));
 
-        ExtManagerEntity managerEntity = getSession("manager");
+        ExtManagerEntity managerEntity = ExtManagerEntity.getSession(this);
         entity.pullLayer(managerEntity);
 
         Map<String, Object> index = getParamToMap("indexSort");
 
         String sort = getParam("sort");
         if (FastStringUtils.isNotEmpty(sort)) {
-            List<Map<String, String>> sortList = iFastJsonProvider.fromJson(sort,
+            List<Map<String, String>> sortList = FastChar.getJson().fromJson(sort,
                     new TypeToken<List<Map<String, String>>>() {
                     }.getType());
             for (Map<String, String> map : sortList) {
@@ -582,14 +730,13 @@ public class ExtEntityAction extends FastAction {
         }
 
         List<Map<String, Object>> columns = getParamToMapList("column");
-        String onlyCode = FastMD5Utils.MD5(entityCode + FastChar.getJson().toJson(columns));
 
-        ExtSystemConfigEntity entityExcelModule = new ExtSystemConfigEntity();
-        entityExcelModule.setManagerId(-1);
-        entityExcelModule.setConfigKey(onlyCode);
-        entityExcelModule.setConfigType("EntityExcelModule");
-        entityExcelModule.setConfigValue(iFastJsonProvider.toJson(columns));
-        entityExcelModule.save();
+        if (getParamToBoolean("exportIndex", false)) {
+            Map<String, Object> indexColumn = new HashMap<>();
+            indexColumn.put("text", "序号");
+            indexColumn.put("valueIndex", "__index");
+            columns.add(0, indexColumn);
+        }
 
 
         String title = getParam("title", true);
@@ -600,61 +747,88 @@ public class ExtEntityAction extends FastAction {
             responseJson(-1, "暂无数据！");
         }
 
+
         //创建一个新的Excel
-        HSSFWorkbook workBook = new HSSFWorkbook();
+        Workbook workBook = new SXSSFWorkbook();
+        POIHelper poiHelper = new POIHelper(workBook);
+
         //创建sheet页
-        HSSFSheet sheet = workBook.createSheet();
+        Sheet sheet = workBook.createSheet();
         //sheet页名称
-        workBook.setSheetName(0, title + "@" + "标识码禁止删除@" + entityExcelModule.getId());
+        workBook.setSheetName(0, title.replace("/", "_"));
 
+        //设置默认的行高
+        sheet.setDefaultRowHeight((short) (30 * 20));
+        sheet.setDefaultRowHeightInPoints((short) 30);
 
-        HSSFCellStyle cellStyle = workBook.createCellStyle();
-        cellStyle.setAlignment(HorizontalAlignment.CENTER);
+        DataFormat dataFormat = workBook.createDataFormat();
 
-        HSSFFont font = workBook.createFont();
-        font.setBold(true);
-        font.setFontHeightInPoints((short) 18);
+        CellStyle titleCellStyle = poiHelper.getCellStyle("title");
+        titleCellStyle.setAlignment(HorizontalAlignment.CENTER);
+        titleCellStyle.setVerticalAlignment(VerticalAlignment.CENTER);
 
-        cellStyle.setFont(font);
-        //设置第一行为Header
-        HSSFRow row0 = sheet.createRow(0);
-        HSSFCell cell00 = row0.createCell(0);
-        cell00.setCellStyle(cellStyle);
-        cell00.setCellValue(title);
-        sheet.addMergedRegion(new CellRangeAddress(0, 0, 0, columns.size()));//合并第一行的单元格
+        Font titleFont = poiHelper.getFont("title");
+        titleFont.setBold(true);
+        titleFont.setFontHeightInPoints((short) 14);
+        titleCellStyle.setFont(titleFont);
 
-        //设置第一行为Header
-        HSSFRow titleRow = sheet.createRow(1);
+        int[] rowIndex = new int[]{0};
+        Row tableNameRow = sheet.createRow(rowIndex[0]++);
+        Cell tableNameCell = tableNameRow.createCell(0);
+        tableNameCell.setCellStyle(titleCellStyle);
+        tableNameCell.setCellValue(title);
+        sheet.addMergedRegion(new CellRangeAddress(0, 0, 0, columns.size() - 1));//合并第一行的单元格
+
+        createTitleRow(titleCellStyle, rowIndex, sheet, columns);
+
+        sheet.createFreezePane(0, sheet.getPhysicalNumberOfRows(), 0, sheet.getPhysicalNumberOfRows());
+
+        int titleRow = sheet.getLastRowNum();
+        Map<Integer, Integer> columnValueMap = new HashMap<>();
+
+        CellStyle defaultCellStyle = poiHelper.getCellStyle("default");
+        defaultCellStyle.cloneStyleFrom(titleCellStyle);
+        Font valueFont = poiHelper.getFont("cell");
+        valueFont.setBold(false);
+        valueFont.setFontHeightInPoints((short) 14);
+        defaultCellStyle.setFont(valueFont);
+        defaultCellStyle.setDataFormat(dataFormat.getFormat("text"));
+
         for (int i = 0; i < columns.size(); i++) {
-            Map<String, Object> column = columns.get(i);
-            HSSFCell cell = titleRow.createCell(i);
-            cell.setCellStyle(cellStyle);
-            cell.setCellValue(String.valueOf(column.get("text")));
-            if (column.containsKey("groupHeaderText") && FastStringUtils.isNotEmpty(column.get("groupHeaderText").toString())) {
-                cell.setCellValue("【" + column.get("groupHeaderText") + "】" + column.get("text"));
+            if (!columnValueMap.containsKey(i)) {
+                columnValueMap.put(i, 0);
             }
-//            sheet.autoSizeColumn(i, true); 列宽自动计算有误
-            sheet.setColumnWidth(i, Math.max(FastNumberUtils.formatToInt(column.get("width"), 150), 150) * 50);
+
+            Map<String, Object> column = columns.get(i);
+            CellStyle columnStyle = POIUtils.getColumnStyle(sheet, column, defaultCellStyle, poiHelper, titleRow, i);
+
+            sheet.setDefaultColumnStyle(i, columnStyle);
+
+            Row row = sheet.getRow(sheet.getLastRowNum());
+            if (row == null) {
+                continue;
+            }
+            if (column.containsKey("comment")) {
+                POIUtils.setCellComment(sheet, row.getCell(i), String.valueOf(column.get("comment")));
+            }
+            columnValueMap.put(i, Math.max(columnValueMap.get(i), row.getCell(i).getStringCellValue().getBytes().length));
         }
 
-        HSSFCellStyle cellStyle_child = workBook.createCellStyle();
-        HSSFFont font_child = workBook.createFont();
-        font_child.setFontHeightInPoints((short) 14);
-        font_child.setBold(false);
-        cellStyle_child.setFont(font_child);
-//        cellStyle_child.setWrapText(true);
-        cellStyle_child.setAlignment(HorizontalAlignment.CENTER);
 
         for (int i = 0; i < list.size(); i++) {
             FastEntity<?> data = (FastEntity<?>) list.get(i);
+            data.put("__index", i + 1);
 
-            HSSFRow row = sheet.createRow(i + 2);
+            Row row = sheet.createRow(i + rowIndex[0]);
             for (int j = 0; j < columns.size(); j++) {
                 Map<String, Object> column = columns.get(j);
-                HSSFCell cell = row.createCell(j);
-                cell.setCellStyle(cellStyle);
+                Object entityData = data.get(FastStringUtils.defaultValue(column.get("valueIndex"), "none"));
+                if (entityData == null) {
+                    continue;
+                }
 
-                Object entityData = data.get(column.get("dataIndex"));
+                Cell cell = row.createCell(j);
+                cell.setCellStyle(defaultCellStyle);
                 String value = FastStringUtils.defaultValue(entityData, "");
 
                 boolean isCollection = false;
@@ -674,14 +848,14 @@ public class ExtEntityAction extends FastAction {
                 }
 
                 if (column.get("enum") != null && FastStringUtils.isNotEmpty(column.get("enum").toString())) {
-                    IFastExtEnum enumClass = FastChar.getOverrides().singleInstance(IFastExtEnum.class, column.get("enum").toString());
-                    if (enumClass != null && FastStringUtils.isNotEmpty(value)) {
-                        FastEnumInfo anEnum = enumClass.getEnum(value);
+                    if (FastStringUtils.isNotEmpty(value)) {
+                        FastEnumInfo anEnum = FastExtEnumHelper.getEnum(String.valueOf(column.get("enum")), value);
                         if (anEnum != null) {
-                            value = anEnum.getText();
+                            value = FastStringUtils.defaultValue(anEnum.getText(), value);
                         }
                     }
                 }
+
                 if (FastBooleanUtils.formatToBoolean(column.get("file"), false)
                         && FastStringUtils.isNotEmpty(value)) {
                     if (!value.startsWith("http://") && !value.startsWith("https://")) {
@@ -690,26 +864,47 @@ public class ExtEntityAction extends FastAction {
                 }
 
 
-                cell.setCellStyle(cellStyle_child);
                 if (value.length() < 32767) {
                     if ((value.startsWith("http://") || value.startsWith("https://")) && !isCollection) {
                         cell.setCellFormula("HYPERLINK(\"" + value + "\",\"" + value + "\")");
-                        HSSFCellStyle linkStyle = workBook.createCellStyle();
-                        HSSFFont cellFont = workBook.createFont();
-                        cellFont.setUnderline((byte) 1);
-                        cellFont.setColor(HSSFColor.HSSFColorPredefined.BLUE.getIndex());
-                        linkStyle.setFont(cellFont);
-                        cell.setCellStyle(linkStyle);
+                        Font linkFont = poiHelper.getFont("link");
+                        linkFont.setFontHeightInPoints((short) 14);
+                        linkFont.setUnderline((byte) 1);
+                        linkFont.setColor(HSSFColor.HSSFColorPredefined.BLUE.getIndex());
+
+                        CellStyle columnCellStyle = poiHelper.getCellStyle("link");
+                        columnCellStyle.cloneStyleFrom(defaultCellStyle);
+                        columnCellStyle.setFont(linkFont);
+                        cell.setCellStyle(columnCellStyle);
                     } else {
-                        cell.setCellValue(new HSSFRichTextString(value));
+                        //此处取消类型数据格式化，避免数据丢失
+                        cell.setCellValue(new XSSFRichTextString(value));
                     }
+                    columnValueMap.put(cell.getColumnIndex(), Math.max(columnValueMap.get(cell.getColumnIndex()), value.getBytes().length));
                 } else {
                     cell.setCellValue("内容长度过大,无法添加到Excel中");
                 }
             }
         }
 
-        String child = "excel/" + title + "_数据" + ".xls";
+        for (Map.Entry<Integer, Integer> integerIntegerEntry : columnValueMap.entrySet()) {
+            int width = Math.min((integerIntegerEntry.getValue() + 5) * 256, 155 * 256);
+            sheet.setColumnWidth(integerIntegerEntry.getKey(), width);
+        }
+
+        ExtExcelModelInfo extExcelModelInfo = new ExtExcelModelInfo();
+        extExcelModelInfo.setTitleRowNum(titleRow);
+        extExcelModelInfo.setBeginRowNum(titleRow);
+        extExcelModelInfo.setColumns(columns);
+
+        Sheet extExcelModelInfoSheet = workBook.createSheet("模板配置");
+        Cell dataCell = extExcelModelInfoSheet.createRow(0).createCell(0);
+        dataCell.setCellValue(FastChar.getJson().toJson(extExcelModelInfo));
+        extExcelModelInfoSheet.protectSheet(FastStringUtils.buildUUID());
+        workBook.setSheetHidden(workBook.getSheetIndex(extExcelModelInfoSheet), true);
+
+
+        String child = "excel/" + title + "_数据" + ".xlsx";
         File file = new File(FastChar.getConstant().getAttachDirectory(), child);
 
         if (!file.getParentFile().exists()) {
@@ -720,6 +915,22 @@ public class ExtEntityAction extends FastAction {
         fileOutputStream.close();
         workBook.close();
         responseJson(0, "导出成功，共导出" + list.size() + "条数据！", FastFile.newInstance(file).getUrl());
+    }
+
+
+    private void createTitleRow(CellStyle cellStyle, int[] rowIndex, Sheet sheet, List<Map<String, Object>> columns) {
+        java.util.List<String> title = new ArrayList<>();
+        for (Map<String, Object> column : columns) {
+            String text = String.valueOf(column.get("text"));
+            if (column.containsKey("groupHeaderText") && FastStringUtils.isNotEmpty(column.get("groupHeaderText").toString())) {
+                text = column.get("groupHeaderText").toString() + "@" + text;
+            }
+            if (column.containsKey("excelHeaderText")) {
+                text = FastStringUtils.defaultValue(column.get("excelHeaderText"), text);
+            }
+            title.add(text);
+        }
+        POIUtils.createTitleRow(cellStyle, rowIndex, sheet, title);
     }
 
 
@@ -759,91 +970,99 @@ public class ExtEntityAction extends FastAction {
             if (entity.isLink(dataIndex)) {
                 FastExtColumnInfo columnInfo = entity.getColumn(dataIndex);
                 if (FastType.isNumberType(columnInfo.getLinkInfo().getKeyColumn().getType())) {
-                    column.put("text", column.get("text") + "编号");
-                    column.put("type", "numberfield");
+                    column.put("text", column.get("text") + "ID");
+                    column.put("type", "textfield");
                 }
             }
         }
         columns.removeAll(waitRemove);
 
-        String onlyCode = FastMD5Utils.MD5To16(FastStringUtils.buildUUID());
-        IFastJson iFastJsonProvider = FastChar.getOverrides().newInstance(IFastJson.class);
+        Map<Integer, Integer> columnValueMap = new HashMap<>();
 
-        ExtSystemConfigEntity entityExcelModule = new ExtSystemConfigEntity();
-        entityExcelModule.setManagerId(-1);
-        entityExcelModule.setConfigKey(onlyCode);
-        entityExcelModule.setConfigType("EntityExcelModule");
-        entityExcelModule.setConfigValue(iFastJsonProvider.toJson(columns));
-        entityExcelModule.save();
 
         String title = getParam("title", true);
 
+        Workbook workBook = new XSSFWorkbook();
+        POIHelper poiHelper = new POIHelper(workBook);
+        Sheet sheet = workBook.createSheet();
 
-        HSSFWorkbook workBook = new HSSFWorkbook();
-        HSSFSheet sheet = workBook.createSheet();
-        workBook.setSheetName(0, title + "@" + "标识码禁止删除@" + entityExcelModule.getId());
+        //设置默认的行高
+        sheet.setDefaultRowHeight((short) (30 * 20));
+        sheet.setDefaultRowHeightInPoints((short) 30);
+
+        workBook.setSheetName(0, title);
 
 
-        HSSFCellStyle cellStyle = workBook.createCellStyle();
-        cellStyle.setAlignment(HorizontalAlignment.CENTER);
-        HSSFFont font = workBook.createFont();
-        font.setBold(true);
-        font.setFontHeightInPoints((short) 18);
-        cellStyle.setFont(font);
+        CellStyle titleCellStyle = poiHelper.getCellStyle("title");
+        titleCellStyle.setAlignment(HorizontalAlignment.CENTER);
+        titleCellStyle.setVerticalAlignment(VerticalAlignment.CENTER);
+        Font titleFont = poiHelper.getFont("title");
+        titleFont.setBold(true);
+        titleFont.setFontHeightInPoints((short) 14);
+        titleCellStyle.setFont(titleFont);
 
-//        HSSFCellStyle unLockStyle = workBook.createCellStyle();
-//        unLockStyle.setLocked(false);
-//        unLockStyle.setAlignment(HorizontalAlignment.CENTER);
+        int[] rowIndex = new int[]{0};
 
-//        HSSFCellStyle lockStyle = workBook.createCellStyle();
-//        lockStyle.setLocked(true);
-//        lockStyle.setAlignment(HorizontalAlignment.CENTER);
-//        HSSFRow row0 = sheet.createRow(0);
-//        HSSFCell cell00 = row0.createCell(0);
-//        cell00.setCellValue("标识码禁止删除@" + onlyCode);
-//        cell00.setCellStyle(lockStyle);
-//        sheet.addMergedRegion(new CellRangeAddress(0, 0, 0, columns.size() - 1));//合并第一行的单元格
-//        sheet.protectSheet("FastChar" + System.currentTimeMillis());
+        Row tableNameRow = sheet.createRow(rowIndex[0]++);
 
-        HSSFRow titleRow = sheet.createRow(0);
+        Cell tableNameCell = tableNameRow.createCell(0);
+        tableNameCell.setCellStyle(titleCellStyle);
+        tableNameCell.setCellValue(title);
+        sheet.addMergedRegion(new CellRangeAddress(0, 0, 0, columns.size() - 1));//合并第一行的单元格
+
+        createTitleRow(titleCellStyle, rowIndex, sheet, columns);
+
+        DataFormat format = workBook.createDataFormat();
+
+        CellStyle defaultCellStyle = poiHelper.getCellStyle("default");
+        defaultCellStyle.cloneStyleFrom(titleCellStyle);
+        Font valueFont = poiHelper.getFont("value");
+        valueFont.setBold(false);
+        valueFont.setFontHeightInPoints((short) 14);
+        defaultCellStyle.setFont(valueFont);
+        defaultCellStyle.setDataFormat(format.getFormat("text"));
+
+        Row titleRow = sheet.getRow(rowIndex[0] - 1);
+
+        sheet.createFreezePane(0, sheet.getPhysicalNumberOfRows(), 0, sheet.getPhysicalNumberOfRows());
+
         for (int i = 0; i < columns.size(); i++) {
             Map<String, Object> column = columns.get(i);
-            String type = String.valueOf(column.get("type"));
-            HSSFCell cell = titleRow.createCell(i);
 
-            cell.setCellStyle(cellStyle);
-            cell.setCellValue(String.valueOf(column.get("text")));
-            if (column.containsKey("groupHeaderText") && FastStringUtils.isNotEmpty(column.get("groupHeaderText").toString())) {
-                cell.setCellValue("【" + column.get("groupHeaderText") + "】" + column.get("text"));
-            }
-            cell.setCellType(CellType.STRING);
-            if (column.containsKey("enum") && FastStringUtils.isNotEmpty(String.valueOf(column.get("enum")))) {
-                IFastExtEnum enumClass = FastChar.getOverrides().singleInstance(false, IFastExtEnum.class, column.get("enum"));
-                if (enumClass != null) {
-                    List<String> values = new ArrayList<>();
-                    for (FastEnumInfo anEnum : enumClass.getEnums()) {
-                        values.add(anEnum.getText());
-                    }
-                    DVConstraint constraint = DVConstraint.createExplicitListConstraint(values.toArray(new String[]{}));
-                    CellRangeAddressList cellRegions = new CellRangeAddressList(1, Integer.MAX_VALUE, i, i);
-                    HSSFDataValidation dataValidate = new HSSFDataValidation(cellRegions, constraint);
-                    dataValidate.createErrorBox("输入不合法", "请输入有效的" + column.get("text"));
-                    sheet.addValidationData(dataValidate);
-                }
-            } else if (type.equalsIgnoreCase("numberfield")) {
-                CellRangeAddressList cellRegions = new CellRangeAddressList(1, Integer.MAX_VALUE, i, i);
-                DVConstraint constraint = DVConstraint.createNumericConstraint(
-                        DataValidationConstraint.ValidationType.DECIMAL, DataValidationConstraint.OperatorType.BETWEEN, "0", String.valueOf(Integer.MAX_VALUE));
+            CellStyle columnStyle = POIUtils.getColumnStyle(sheet, column, defaultCellStyle, poiHelper, titleRow.getRowNum(), i);
+            Cell cell = titleRow.getCell(i);
 
-                HSSFDataValidation dataValidate = new HSSFDataValidation(cellRegions, constraint);
-                dataValidate.createErrorBox("输入不合法", "请输入有效的" + column.get("text"));
-                sheet.addValidationData(dataValidate);
+            if (column.containsKey("comment")) {
+                POIUtils.setCellComment(sheet, cell, String.valueOf(column.get("comment")));
             }
-            sheet.setColumnWidth(i, FastNumberUtils.formatToInt(column.get("width"), 100) * 50);
-//            sheet.autoSizeColumn(i, true);
+            sheet.setDefaultColumnStyle(cell.getColumnIndex(), columnStyle);
+
+            if (!columnValueMap.containsKey(i)) {
+                columnValueMap.put(i, 0);
+            }
+            columnValueMap.put(i, cell.getStringCellValue().getBytes().length);
+
         }
 
-        String child = "excel/" + title + "_导入数据模板" + ".xls";
+
+        for (Map.Entry<Integer, Integer> integerIntegerEntry : columnValueMap.entrySet()) {
+            int width = Math.min((integerIntegerEntry.getValue() + 5) * 256, 155 * 256);
+            sheet.setColumnWidth(integerIntegerEntry.getKey(), width);
+        }
+
+        ExtExcelModelInfo extExcelModelInfo = new ExtExcelModelInfo();
+        extExcelModelInfo.setTitleRowNum(titleRow.getRowNum());
+        extExcelModelInfo.setBeginRowNum(sheet.getLastRowNum());
+        extExcelModelInfo.setColumns(columns);
+
+
+        Sheet extExcelModelInfoSheet = workBook.createSheet("模板配置");
+        Cell dataCell = extExcelModelInfoSheet.createRow(0).createCell(0);
+        dataCell.setCellValue(FastChar.getJson().toJson(extExcelModelInfo));
+        workBook.setSheetHidden(workBook.getSheetIndex(extExcelModelInfoSheet), true);
+
+
+        String child = "excel/" + title + "_导入数据模板" + ".xlsx";
         File file = new File(FastChar.getConstant().getAttachDirectory(), child);
 
         if (!file.getParentFile().exists()) {
@@ -884,51 +1103,60 @@ public class ExtEntityAction extends FastAction {
 
 
         FastFile<?> paramFile = getParamFile();
-        FileInputStream fis = new FileInputStream(paramFile.getFile());
-        Workbook workbook = WorkbookFactory.create(fis);
+        FileInputStream inputStream = new FileInputStream(paramFile.getFile());
+        Workbook workbook = WorkbookFactory.create(inputStream);
+
+        ExtExcelModelInfo extExcelModelInfo = null;
+        Sheet extExcelModelInfoSheet = workbook.getSheet(ExtExcelModelInfo.class.getSimpleName());
+        if (extExcelModelInfoSheet == null) {
+            extExcelModelInfoSheet = workbook.getSheet("模板配置");
+        }
+        if (extExcelModelInfoSheet != null) {
+            String configInfo = extExcelModelInfoSheet.getRow(0).getCell(0).getStringCellValue();
+            extExcelModelInfo = FastChar.getJson().fromJson(configInfo, ExtExcelModelInfo.class);
+        }
+
         int sheetCount = workbook.getNumberOfSheets();
         for (int i = 0; i < sheetCount; i++) {
-            Sheet sheet = workbook.getSheetAt(i);
-            String sheetName = sheet.getSheetName();
-            Row titleRow = null;
-            int beginRow;
-            int rowCount = sheet.getPhysicalNumberOfRows();
-            ExtSystemConfigEntity entityExcelModule;
-            if (sheetName.contains("@标识码禁止删除@")) {
-                beginRow = 1;
-                String onlyCode = sheetName.split("@标识码禁止删除@")[1];
-                entityExcelModule = ExtSystemConfigEntity.getInstance().selectById(onlyCode);
-                titleRow = sheet.getRow(0);
-            } else {
-                beginRow = 2;
-                Row row = sheet.getRow(0);
-                if (row == null) {
-                    continue;
-                }
-                Cell rowCell = row.getCell(0);
-                if (rowCell == null) {
-                    continue;
-                }
-                String stringCellValue = rowCell.getStringCellValue();
-                if (FastStringUtils.isEmpty(stringCellValue)) {
-                    continue;
-                }
-                String[] split = stringCellValue.split("@");
-                if (split.length != 2) {
-                    continue;
-                }
-                entityExcelModule = ExtSystemConfigEntity.getInstance().getExtConfig(-1, split[1], "EntityExcelModule");
-            }
-
-            if (entityExcelModule == null) {
-                responseJson(-1, "导入失败！数据模板信息不存在，请您重新下载模板！");
+            if (workbook.isSheetHidden(i)) {
                 continue;
             }
-            List<Map<String, Object>> columns = FastChar.getOverrides().newInstance(IFastJson.class).fromJson(entityExcelModule.getConfigValue(), new TypeToken<List<Map<String, Object>>>() {
-            }.getType());
+            Sheet sheet = workbook.getSheetAt(i);
+
+            String sheetName = sheet.getSheetName();
+            if (sheetName.equalsIgnoreCase(ExtExcelModelInfo.class.getSimpleName())) {
+                continue;
+            }
+
+            int titleRowNum = 0;
+            int beginRowNum = 1;
+            int rowCount = sheet.getPhysicalNumberOfRows();
+            List<Map<String, Object>> columns = new ArrayList<>();
+
+            //兼容老版本的模板
+            if (sheetName.contains("@标识码禁止删除@")) {
+                String onlyCode = sheetName.split("@标识码禁止删除@")[1];
+                ExtSystemConfigEntity entityExcelModule = ExtSystemConfigEntity.getInstance().selectById(onlyCode);
+
+                if (entityExcelModule == null) {
+                    responseJson(-1, "导入失败！数据模板信息不存在，请您重新下载模板！");
+                    continue;
+                }
+
+                columns = FastChar.getJson().fromJson(entityExcelModule.getConfigValue(), new TypeToken<List<Map<String, Object>>>() {
+                }.getType());
+            }
+
+            if (extExcelModelInfo != null) {
+                titleRowNum = extExcelModelInfo.getTitleRowNum();
+                beginRowNum = extExcelModelInfo.getBeginRowNum() + 1;
+                columns = extExcelModelInfo.getColumns();
+            }
+
+            Row titleRow = sheet.getRow(titleRowNum);
 
             //标题行
-            for (int i1 = beginRow; i1 < rowCount; i1++) {
+            for (int i1 = beginRowNum; i1 < rowCount; i1++) {
                 Row dataRow = sheet.getRow(i1);
                 if (dataRow == null) {
                     continue;
@@ -946,11 +1174,11 @@ public class ExtEntityAction extends FastAction {
                 int cellCount = dataRow.getLastCellNum();
                 for (int i2 = 0; i2 < cellCount; i2++) {
                     Cell cell = dataRow.getCell(i2);
-                    Object value = getCellValue(workbook, cell);
+                    Object value = POIUtils.getCellValue(workbook, cell);
 
                     if (i2 >= columns.size()) {
                         if (titleRow != null) {
-                            Object cellTitle = getCellValue(workbook, titleRow.getCell(i2));
+                            Object cellTitle = POIUtils.getCellValue(workbook, titleRow.getCell(i2));
                             if (cellTitle != null) {
                                 entity.put(cellTitle.toString(), value);
                             }
@@ -961,24 +1189,25 @@ public class ExtEntityAction extends FastAction {
                     }
                     Map<String, Object> column = columns.get(i2);
                     String type = String.valueOf(column.get("type"));
+
+
                     if (value != null && FastStringUtils.isNotEmpty(String.valueOf(value))) {
                         if (column.containsKey("enum") && FastStringUtils.isNotEmpty(String.valueOf(column.get("enum")))) {
-                            Class<? extends Enum<?>> anEnumClass = FastExtEnumAccepter.ENUM_MAP.get(String.valueOf(column.get("enum")));
-                            Enum<?> anEnum = FastEnumUtils.formatToEnum(anEnumClass, String.valueOf(value));
+                            FastEnumInfo anEnum = FastExtEnumHelper.getEnum(String.valueOf(column.get("enum")), String.valueOf(value));
                             if (anEnum == null) {
                                 continue;
                             }
-                            value = anEnum.ordinal();
+                            value = anEnum.getId();
                         } else if (type.equalsIgnoreCase("numberfield")) {
-                            value = FastNumberUtils.formatToNumber(value).floatValue();
+                            value = FastNumberUtils.formatToNumber(value).doubleValue();
                         }
-                        entity.set(String.valueOf(column.get("dataIndex")), value);
+                        entity.put(String.valueOf(column.get("dataIndex")), value);
                     }
                 }
                 if (entity.getTable() instanceof FastExtTableInfo) {
                     FastExtTableInfo extTableInfo = entity.getTable();
                     if (extTableInfo.isBindSessionLayer()) {
-                        ExtManagerEntity managerEntity = getSession("manager");
+                        ExtManagerEntity managerEntity = ExtManagerEntity.getSession(this);
                         entity.put(FastExtEntity.EXTRA_PARENT_LAYER_CODE, managerEntity.getLayerValue());
                     }
                 }
@@ -990,20 +1219,28 @@ public class ExtEntityAction extends FastAction {
                     entity.clearEmpty();
 
                     int pCount = 0;
-                    List<FastColumnInfo<?>> primaries = entity.getPrimaries();
+                    Collection<FastColumnInfo<?>> primaries = entity.getPrimaries();
                     for (FastColumnInfo<?> primary : primaries) {
                         if (entity.isNotEmpty(primary.getName())) {
                             pCount++;
                         }
                     }
+                    entity.put("__entityId", FastMD5Utils.MD5To16(FastStringUtils.buildUUID()));
                     if (pCount == primaries.size() && primaries.size() > 0) {
+                        entity.put("__operate", "update");
                         batchUpdate.add(entity);
                     } else {
+                        entity.put("__operate", "save");
                         batchSave.add(entity);
                     }
                 }
             }
         }
+
+
+        inputStream.close();
+        workbook.close();
+
         paramFile.delete();
 
         List<FastEntity<?>> all = new ArrayList<>();
@@ -1021,17 +1258,23 @@ public class ExtEntityAction extends FastAction {
             }
         }
 
-        if (batchSave.size() > 0) {
-            List<FastEntity<?>> removed = new ArrayList<>(batchSave);
-            removed.removeAll(all);
-            batchSave.removeAll(removed);
-            FastChar.getDb().batchSaveEntity(batchSave, 2000);
+        batchSave = new ArrayList<>();
+        batchUpdate = new ArrayList<>();
+        for (FastEntity<?> fastEntity : all) {
+            if (fastEntity.getString("__operate", "none").equalsIgnoreCase("save")) {
+                batchSave.add(fastEntity);
+            } else if (fastEntity.getString("__operate", "none").equalsIgnoreCase("update")) {
+                batchUpdate.add(fastEntity);
+            }
         }
+        all.clear();
+        
+        if (batchSave.size() > 0) {
+            FastChar.getDB().batchSaveEntity(batchSave, Math.min(batchSave.size(), 10000));
+        }
+
         if (batchUpdate.size() > 0) {
-            List<FastEntity<?>> removed = new ArrayList<>(batchUpdate);
-            removed.removeAll(all);
-            batchUpdate.removeAll(removed);
-            FastChar.getDb().batchUpdateEntity(batchUpdate, 2000);
+            FastChar.getDB().batchUpdateEntity(batchUpdate, Math.min(batchUpdate.size(), 10000));
         }
 
         if (iFastImportData != null) {
@@ -1053,36 +1296,16 @@ public class ExtEntityAction extends FastAction {
         if (msg.length() == 0) {
             msg.append("共导入0条数据！");
         }
-        responseJson(0, "导入成功！" + msg);
-    }
 
-    private Object getCellValue(Workbook workbook, Cell cell) {
-        try {
-            if (workbook == null) {
-                return null;
-            }
-            if (cell == null) {
-                return null;
-            }
-            CellType cellType = cell.getCellType();
-            if (cellType == CellType.BLANK || cellType == CellType.STRING) {
-                return cell.getStringCellValue();
-            } else if (cellType == CellType.NUMERIC) {
-                if (DateUtil.isCellDateFormatted(cell)) {
-                    return FastDateUtils.format(cell.getDateCellValue(), FastChar.getConstant().getDateFormat());
-                } else {
-                    return cell.getNumericCellValue();
-                }
-            } else if (cellType == CellType.BOOLEAN) {
-                return cell.getBooleanCellValue();
-            } else if (cellType == CellType.FORMULA) {
-//                FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
-//                return evaluator.evaluate(cell).formatAsString();
-                return cell.getStringCellValue();
-            }
-        } catch (Exception ignored) {
+        //避免导入数据过多占用内存
+        batchSave.clear();
+        batchUpdate.clear();
+
+        //上传文件强制使用text/html格式返回，避免浏览器弹出json下载，ie
+        if (!isParamExists(PARAM_ACCPET) && getParam("__browser", "none").equalsIgnoreCase("ie")) {
+            addParam(PARAM_ACCPET, "text/html");
         }
-        return null;
+        responseJson(0, "导入成功！" + msg);
     }
 
 
@@ -1105,8 +1328,9 @@ public class ExtEntityAction extends FastAction {
 
         boolean fromTree = getParamToBoolean("fromTree");
 
-        Map<String, Object> where = getParamToMap("where");
-        entity.putAll(where);
+        entity.putAll(getParamToMap("where"));
+        entity.putAll(getParamToMap("colWhere"));
+
         if (fromTree) {
             String treeParentIdName = getParam("treeParentIdName");
             if (FastStringUtils.isNotEmpty(treeParentIdName)) {
@@ -1114,7 +1338,7 @@ public class ExtEntityAction extends FastAction {
             }
         }
 
-        ExtManagerEntity managerEntity = getSession("manager");
+        ExtManagerEntity managerEntity = ExtManagerEntity.getSession(this);
         entity.pullLayer(managerEntity);
 
         FastPage<?> fastPage = entity.showList(-1, -1);
@@ -1126,7 +1350,7 @@ public class ExtEntityAction extends FastAction {
         String versionStr = "v1_0";
         FastHeadExtInfo version = FastExtConfig.getInstance().getExtInfo("version");
         if (version != null) {
-            versionStr = version.getString("desc", "v1.0").toLowerCase().replace(".", "_");
+            versionStr = version.getMapWrap().getString("desc", "v1.0").toLowerCase().replace(".", "_");
         }
         File dataFile = new File(FastChar.getConstant().getAttachDirectory(), entityCode + "_" + versionStr.toUpperCase() + ".data");
 
@@ -1146,6 +1370,11 @@ public class ExtEntityAction extends FastAction {
      */
     @SuppressWarnings("unchecked")
     public void loadData() throws Exception {
+        //上传文件强制使用text/html格式返回，避免浏览器弹出json下载，ie
+        if (!isParamExists(PARAM_ACCPET) && getParam("__browser", "none").equalsIgnoreCase("ie")) {
+            addParam(PARAM_ACCPET, "text/html");
+        }
+
         String entityCode = getParam("entityCode", true);
 
         Class<? extends FastExtEntity<?>> extEntityClass = FastExtConfig.getInstance().getExtEntities().getExtEntity(entityCode);
@@ -1160,7 +1389,7 @@ public class ExtEntityAction extends FastAction {
             return;
         }
 
-        List<FastColumnInfo<?>> primaries = entity.getPrimaries();
+        Collection<FastColumnInfo<?>> primaries = entity.getPrimaries();
         List<String> checkAttr = new ArrayList<>();
         for (FastColumnInfo<?> primary : primaries) {
             checkAttr.add(primary.getName());
@@ -1189,10 +1418,26 @@ public class ExtEntityAction extends FastAction {
                 if (entityData.isEmptyColumn()) {
                     continue;
                 }
+                for (String key : entityData.allKeys()) {
+                    Object keyValue = entityData.get(key);
+                    if (keyValue instanceof Number) {
+                        continue;
+                    }
+                    if (keyValue instanceof String) {
+                        continue;
+                    }
+                    if (keyValue instanceof byte[]) {
+                        continue;
+                    }
+                    if (keyValue instanceof Date) {
+                        continue;
+                    }
+                    entityData.put(key, FastChar.getJson().toJson(keyValue));
+                }
                 entityList.add(entityData);
             }
 
-            int[] batchSaveResult = FastChar.getDb().batchSaveEntity(entityList, Math.min(entityList.size(), 2000), checkAttr.toArray(new String[]{}));
+            int[] batchSaveResult = FastChar.getDB().batchSaveEntity(entityList, Math.min(entityList.size(), 2000), checkAttr.toArray(new String[]{}));
             paramFile.delete();
             int count = 0;
             for (int i : batchSaveResult) {
@@ -1227,9 +1472,35 @@ public class ExtEntityAction extends FastAction {
         FastExtLayerHelper.LayerMap layerMap = entity.getLayerMap();
         if (layerMap != null) {
             FastExtLayerHelper.updateAllLayerValue(layerMap);
-            responseJson(0, "更新成功！");
+            responseJson(0, "更新成功！共更新了" + layerMap.toAllTableNameList().size() + "张关系表格！");
         }
         responseJson(-1, "更新失败！表格未绑定权限层级！");
+    }
+
+
+    /**
+     * 更新相同字段值
+     */
+    public void updateSame() {
+        String entityCode = getParam("entityCode", true);
+
+        Class<? extends FastExtEntity<?>> extEntityClass = FastExtConfig.getInstance().getExtEntities().getExtEntity(entityCode);
+        if (extEntityClass == null) {
+            responseJson(-1, "EntityCode不存在！" + entityCode);
+            return;
+        }
+
+        FastExtEntity<?> entity = FastChar.getOverrides().newInstance(extEntityClass);
+        if (entity == null) {
+            responseJson(-1, "EntityCode不存在！" + entityCode);
+            return;
+        }
+        FastExtLayerHelper.LayerMap layerMap = entity.getLayerMap();
+        if (layerMap != null) {
+            int sameColumn = FastExtSameHelper.updateSameColumn(layerMap);
+            responseJson(0, "更新成功！共更新了" + sameColumn + "张关系表格！");
+        }
+        responseJson(-1, "更新失败！表格未被其他表格绑定！");
     }
 
 
@@ -1265,12 +1536,6 @@ public class ExtEntityAction extends FastAction {
         }
         setRequestAttr("entityDetails", entity.getTableDetails());
 
-        Map<String, Object> where = getParamToMap("where");
-        entity.putAll(where);
-
-        ExtManagerEntity managerEntity = getSession("manager");
-        entity.pullLayer(managerEntity);
-
         List<String> seriesColumns = new ArrayList<>();
 
         Map<String, String> selectColumnMap = new LinkedHashMap<>();
@@ -1283,11 +1548,11 @@ public class ExtEntityAction extends FastAction {
             String nickName = column + FastStringUtils.firstCharToUpper(function);
 
             if (FastStringUtils.isNotEmpty(column) && FastStringUtils.isNotEmpty(function)) {
-                seriesColumns.add(function + "(" + FastSql.formatAlias(column, "t") + ") as " + nickName);
+                seriesColumns.add(function + "(" + FastSqlTool.formatAlias(column, "t") + ") as " + nickName);
                 selectColumnMap.put(nickName, details);
             }
         }
-        columnDate = FastSql.formatAlias(columnDate, "t");
+        columnDate = FastSqlTool.formatAlias(columnDate, "t");
 
         String dateSelect = "date_format(" + columnDate + ",'%Y-%m-%d') as reportDate ";
         if (type == 1) {//月报表
@@ -1296,33 +1561,35 @@ public class ExtEntityAction extends FastAction {
             dateSelect = "date_format(" + columnDate + ",'%H:00') as reportDate ";
         } else if (type == 3) {//时分报表
             dateSelect = "date_format(" + columnDate + ",'%H:%i') as reportDate ";
+        } else if (type == 4) {//年报表
+            dateSelect = "date_format(" + columnDate + ",'%Y') as reportDate ";
         }
 
-        boolean fromRecycle = entity.getBoolean("^fromRecycle");
-        String showListSql = managerEntity.getString("Sql" + entityCode + "_" + fromRecycle);
-        if (FastStringUtils.isEmpty(showListSql)) {
-            responseJson(-1, "清除失败！请稍后重试！");
+        String storeId = getParam("storeId", entityCode);
+        if (!LIST_SQL_MAP.containsKey(storeId)) {
+            responseJson(-1, "统计失败！数据安全异常！");
         }
-        int fromIndex = showListSql.indexOf("from");
-        int whereIndex = showListSql.lastIndexOf("where");
+        FastSqlInfo fastSqlInfo = LIST_SQL_MAP.get(storeId);
+        String listSql = FastSqlTool.removeOrderBy(fastSqlInfo.getSql());
+
+        int fromIndex = listSql.indexOf("from");
         String sqlStr = "select " + FastStringUtils.join(seriesColumns, ",") + " , " + dateSelect
-                + showListSql.substring(fromIndex, whereIndex);
+                + listSql.substring(fromIndex);
 
         sqlStr += " where 1=1 and " + columnDate + " >= '" + beginDate + "' " +
                 " and " + columnDate + " <= '" + endDate + "' " +
                 " group by reportDate ";
 
-        FastSqlInfo sqlInfo = entity.toSelectSql(sqlStr);
         try {
             List<FastEChartsBean> chartBeans = new ArrayList<>();
-            List<? extends FastEntity<?>> list = FastChar.getDb().setDatabase(entity.getDatabase()).select(sqlInfo.getSql(), sqlInfo.toParams());
+            List<? extends FastEntity<?>> list = FastChar.getDB().setDatabase(entity.getDatabase()).select(sqlStr, fastSqlInfo.toParams());
             for (FastEntity<?> result : list) {
-                for (String key : selectColumnMap.keySet()) {
+                for (Map.Entry<String, String> stringStringEntry : selectColumnMap.entrySet()) {
                     FastEChartsBean fastChartBean = new FastEChartsBean();
                     fastChartBean.setTitle(chartTitle);
-                    fastChartBean.setName(selectColumnMap.get(key));
+                    fastChartBean.setName(stringStringEntry.getValue());
                     fastChartBean.setDate(result.getString("reportDate"));
-                    fastChartBean.setValue(result.get(key));
+                    fastChartBean.setValue(result.get(stringStringEntry.getKey()));
                     if (chartType.equalsIgnoreCase("stack")) {
                         fastChartBean.setType("bar");
                         fastChartBean.setStack("true");
@@ -1337,6 +1604,101 @@ public class ExtEntityAction extends FastAction {
             e.printStackTrace();
         }
 
+    }
+
+
+    /**
+     * 替换指定的字符
+     */
+    public void replace() throws Exception {
+        String entityCode = getParam("entityCode", true);
+        String menu = getParam("menu");
+        setRequestAttr("menu", menu);
+
+        Class<? extends FastExtEntity<?>> extEntityClass = FastExtConfig.getInstance().getExtEntities().getExtEntity(entityCode);
+        if (extEntityClass == null) {
+            responseJson(-1, "EntityCode不存在！" + entityCode);
+            return;
+        }
+        FastExtEntity<?> entity = FastClassUtils.newInstance(extEntityClass);
+        if (entity == null) {
+            responseJson(-1, "EntityCode不存在！" + entityCode);
+            return;
+        }
+
+        String field = getParam("field", true);
+        String replace = getParam("replace", true);
+        String toValue = getParam("toValue", "");
+
+        String storeId = getParam("storeId", entityCode);
+        if (!LIST_SQL_MAP.containsKey(storeId)) {
+            responseJson(-1, "替换失败！数据安全异常！");
+        }
+        FastSqlInfo fastSqlInfo = LIST_SQL_MAP.get(storeId);
+        String listSql = FastSqlTool.removeOrderBy(fastSqlInfo.getSql());
+
+        int fromIndex = listSql.indexOf("from");
+
+        Collection<FastColumnInfo<?>> primaries = entity.getPrimaries();
+        if (primaries.size() > 0) {
+            FastColumnInfo<?> fastColumnInfo = primaries.iterator().next();
+            String inSqlStr = " select " + fastColumnInfo.getName() + " " + listSql.substring(fromIndex);
+
+            String sqlStr = " update " + entity.getTableName() + "  set " + field + " = replace(" + field + ",'" + replace + "','" + toValue + "') " +
+                    " where " + fastColumnInfo.getName() + " in ( select * from ( " + inSqlStr + " ) as temp ) ";
+
+            int updateCount = FastChar.getDB().update(sqlStr, fastSqlInfo.toParams());
+            responseJson(0, "替换成功！共替换" + updateCount + "条数据！");
+        }
+
+
+
+
+        responseJson(-1, "替换失败！无效列表数据！");
+
+    }
+
+
+    /**
+     * 读取entity.js源码
+     */
+    public void loadSource() throws IOException {
+        String entityCode = getParam("entityCode", true);
+
+        FastExtConfig extConfig = FastExtConfig.getInstance();
+
+        for (String sourcePath : extConfig.getAllSourceProjectPath()) {
+            File file = ExtFileUtils.searchFile(new File(sourcePath), entityCode + ".js", ".js", true);
+            if (file != null) {
+                responseJson(0, "读取成功！", FastFileUtils.readFileToString(file, "utf-8"));
+            }
+        }
+        responseJson(-1, "未查询到" + entityCode + ".js的源码文件！");
+    }
+
+
+    /**
+     * 保存entity.js源码
+     */
+    public void saveSource() throws IOException {
+        String entityCode = getParam("entityCode", true);
+        String content = getParam("content", true);
+        FastExtConfig extConfig = FastExtConfig.getInstance();
+
+        for (String sourcePath : extConfig.getAllSourceProjectPath()) {
+            File file = ExtFileUtils.searchFile(new File(sourcePath), entityCode + ".js", ".js", true);
+            if (file != null) {
+                FastFileUtils.writeStringToFile(file, content);
+            }
+        }
+
+        //保存到编译的项目目录里js
+        File file = ExtFileUtils.searchFile(new File(FastChar.getPath().getWebRootPath()), entityCode + ".js", ".js", true);
+        if (file != null) {
+            FastFileUtils.writeStringToFile(file, content);
+        }
+
+        responseJson(0, "保存成功！");
     }
 
 

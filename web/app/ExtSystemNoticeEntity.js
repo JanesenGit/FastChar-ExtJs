@@ -78,10 +78,10 @@ function ExtSystemNoticeEntity() {
 				dataIndex: "noticeState",
 				align: "center",
 				width: 220,
-				rendererFunction: "renders.enum('NoticeStateEnum')",
+				rendererFunction: "renders.enum('ExtSystemNoticeStateEnum')",
 				field: {
 					xtype: 'enumcombo',
-					enumName: 'NoticeStateEnum'
+					enumName: 'ExtSystemNoticeStateEnum'
 				}
 			},
 			{
@@ -230,7 +230,7 @@ function ExtSystemNoticeEntity() {
 					columnWidth: 1,
 					value: 0,
 					allowBlank: false,
-					enumName: "NoticeStateEnum"
+					enumName: "ExtSystemNoticeStateEnum"
 				},
 				{
 					name: "data.noticeDateTime",
@@ -393,10 +393,10 @@ function ExtSystemNoticeEntity() {
 					dataIndex: "noticeState",
 					align: "center",
 					width: 220,
-					rendererFunction: "renders.enum('NoticeStateEnum')",
+					rendererFunction: "renders.enum('ExtSystemNoticeStateEnum')",
 					field: {
 						xtype: 'enumcombo',
-						enumName: 'NoticeStateEnum'
+						enumName: 'ExtSystemNoticeStateEnum'
 					},
 					editable: false
 				},

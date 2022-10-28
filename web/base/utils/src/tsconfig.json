@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "module": "AMD",
+    "target": "es5",
+    "removeComments": true,
+    "declaration": false,
+    "experimentalDecorators": true,
+    "allowJs": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "sourceMap": false,
+    "outFile": "../fast-ext-utils.js"
+  },
+  "exclude": [
+    "node_modules",
+    "docs",
+    "dist"
+  ]
+}

@@ -13,6 +13,7 @@
 
 .x-column-header{
     background-color:$[color2];
+    text-shadow: 1px 1px 1px white;
 }
 
 .x-column-header-over{

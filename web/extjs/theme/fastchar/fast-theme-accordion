@@ -12,3 +12,13 @@
 .x-accordion-item .x-accordion-hd {
     background: #ececec !important;
 }
+
+.x-accordion-hd .x-panel-header-title {
+    color: black;
+    text-shadow: 1px 1px 1px white;
+}
+
+.x-accordion-hd .x-title-icon-default {
+    color: black;
+    text-shadow: 1px 1px 1px white;
+}

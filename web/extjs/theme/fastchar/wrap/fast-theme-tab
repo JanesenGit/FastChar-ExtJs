@@ -51,3 +51,16 @@
 .x-tab-over.x-tab-focus.x-tab-active.x-tab-default{
     background: linear-gradient(0deg, #ffffff,#ffffff,$[frontColor1],$[frontColor]);
 }
+
+
+
+.systemTab .x-box-menu-after{
+    background: unset !important;
+    border: unset;
+    box-shadow:unset;
+    border-radius:unset;
+}
+
+.systemTab .x-btn-icon-el-default-small {
+    background:url('icons/icon_system_tab_more.svg');
+}

@@ -6,12 +6,12 @@ import com.fastchar.core.FastChar;
 import com.fastchar.database.info.FastColumnInfo;
 import com.fastchar.database.info.FastTableInfo;
 import com.fastchar.exception.FastDatabaseException;
-
+import com.fastchar.extjs.FastExtConfig;
 import com.fastchar.utils.FastArrayUtils;
-import com.fastchar.utils.FastBooleanUtils;
 import com.fastchar.utils.FastStringUtils;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -21,21 +21,11 @@ import java.util.List;
 @AFastOverride
 public class FastExtTableInfo extends FastTableInfo<FastExtTableInfo> {
     private static final long serialVersionUID = 4590861561177081866L;
-    private static String[] BIND_VALUES = new String[]{"SessionLayer"};
+    private static final String[] BIND_VALUES = new String[]{"SessionLayer"};
 
-    private String layer;
-    private String bind;
-    private String recycle;
-
-    private boolean checkLayer;
-    private boolean checkLayerLink;
-    private boolean checkSameLink;
-    private FastExtColumnInfo layerColumn;
-    private FastExtColumnInfo layerLinkColumn;
-    private FastExtColumnInfo sameLinkColumn;
     public String getShortName() {
         if (containsKey("shortName")) {
-            return getString("shortName");
+            return mapWrap.getString("shortName");
         }
         if (FastStringUtils.isNotEmpty(getComment())) {
             return getComment().replace("管理", "");
@@ -44,6 +34,7 @@ public class FastExtTableInfo extends FastTableInfo<FastExtTableInfo> {
     }
 
     public boolean isBindSessionLayer() {
+        String bind = mapWrap.getString("bind");
         if (FastStringUtils.isNotEmpty(bind)) {
             return bind.equalsIgnoreCase("SessionLayer");
         }
@@ -51,63 +42,51 @@ public class FastExtTableInfo extends FastTableInfo<FastExtTableInfo> {
     }
 
     public boolean isRecycle() {
-        return FastBooleanUtils.formatToBoolean(recycle);
+        return mapWrap.getBoolean("recycle");
     }
+
 
     public FastExtColumnInfo getLayerColumn() {
-        if (layerColumn == null && !checkLayer) {
-            checkLayer = true;
-            for (FastColumnInfo<?> column : getColumns()) {
-                if (column instanceof FastExtColumnInfo) {
-                    FastExtColumnInfo extColumnInfo = (FastExtColumnInfo) column;
-                    if (extColumnInfo.isLayer()) {
-                        layerColumn = extColumnInfo;
-                    }
-                }
-            }
-        }
-        return layerColumn;
+        return mapWrap.getObject("__layerColumn");
     }
 
-    public FastExtColumnInfo getLayerLinkColumn() {
-        if (layerLinkColumn == null && !checkLayerLink) {
-            checkLayerLink = true;
-            for (FastColumnInfo<?> column : getColumns()) {
-                if (column instanceof FastExtColumnInfo) {
-                    FastExtColumnInfo extColumnInfo = (FastExtColumnInfo) column;
-                    if (extColumnInfo.isBindLayer()) {
-                        layerLinkColumn = extColumnInfo;
-                    }
-                }
-            }
-        }
-        return layerLinkColumn;
+    public FastExtColumnInfo getBindLayerColumn() {
+        return mapWrap.getObject("__bindLayerColumn");
     }
 
     public FastExtColumnInfo getSameLinkColumn() {
-        if (sameLinkColumn == null && !checkSameLink) {
-            checkSameLink = true;
-            for (FastColumnInfo<?> column : getColumns()) {
-                if (column instanceof FastExtColumnInfo) {
-                    FastExtColumnInfo extColumnInfo = (FastExtColumnInfo) column;
-                    if (extColumnInfo.isBindSame()) {
-                        sameLinkColumn = extColumnInfo;
-                    }
-                }
-            }
-        }
-        return sameLinkColumn;
+        return mapWrap.getObject("__bindSameColumn");
     }
 
-
+    @Override
+    public FastColumnInfo<?> addColumn(FastColumnInfo<?> columnInfo) {
+        FastColumnInfo<?> fastColumnInfo = super.addColumn(columnInfo);
+        if (fastColumnInfo instanceof FastExtColumnInfo) {
+            FastExtColumnInfo extColumnInfo = (FastExtColumnInfo) fastColumnInfo;
+            if (extColumnInfo.isLayer()) {
+                put("__layerColumn", extColumnInfo);
+            }
+            if (extColumnInfo.isBindLayer()) {
+                put("__bindLayerColumn", extColumnInfo);
+            }
+            if (extColumnInfo.isBindSame()) {
+                put("__bindSameColumn", extColumnInfo);
+            }
+        }
+        return fastColumnInfo;
+    }
 
     @Override
     public void validate() throws FastDatabaseException {
         super.validate();
+        String layer = getLayer();
+        String bind = getBind();
 
+        //自动创建层级列
         if (FastStringUtils.isNotEmpty(layer)) {
-            if (!checkColumn(layer)) {
+            if (!isColumn(layer)) {
                 FastExtColumnInfo columnInfo = new FastExtColumnInfo();
+                columnInfo.setSortIndex(-1);
                 columnInfo.setName(layer);
                 columnInfo.setLayer("true");
                 columnInfo.setType("text");
@@ -116,8 +95,7 @@ public class FastExtTableInfo extends FastTableInfo<FastExtTableInfo> {
                 columnInfo.setNullable("null");
                 columnInfo.setFileName(getFileName());
                 columnInfo.setLineNumber(getLineNumber());
-                columnInfo.fromProperty();
-                getColumns().add(0, columnInfo);
+                addColumn(columnInfo);
             }
         }
 
@@ -130,12 +108,14 @@ public class FastExtTableInfo extends FastTableInfo<FastExtTableInfo> {
         }
 
 
-
         List<String> layers = new ArrayList<>();
         List<String> bindLayers = new ArrayList<>();
         List<String> layerStackTraceElements = new ArrayList<>();
         List<String> bindLayerStackTraceElements = new ArrayList<>();
-        for (FastColumnInfo<?> column : getColumns()) {
+
+        int countLink = 0;
+        Collection<FastColumnInfo<?>> columns = getColumns();
+        for (FastColumnInfo<?> column : columns) {
             if (column instanceof FastExtColumnInfo) {
                 FastExtColumnInfo extColumnInfo = (FastExtColumnInfo) column;
                 if (extColumnInfo.isLayer()) {
@@ -145,6 +125,9 @@ public class FastExtTableInfo extends FastTableInfo<FastExtTableInfo> {
                 if (extColumnInfo.isBindLayer()) {
                     bindLayers.add(column.getName());
                     bindLayerStackTraceElements.add("\n\tat " + extColumnInfo.getStackTrace("bind"));
+                }
+                if (extColumnInfo.isLink()) {
+                    countLink++;
                 }
             }
         }
@@ -160,44 +143,48 @@ public class FastExtTableInfo extends FastTableInfo<FastExtTableInfo> {
 
         if (isRecycle()) {
             FastTableInfo<?> copyRecycle = copy();
-            copyRecycle.set("recycle", null);
+            copyRecycle.put("recycle", null);
             copyRecycle.setName(copyRecycle.getName() + "_recycle");
-            copyRecycle.fromProperty();
             copyRecycle.validate();
-            FastChar.getDatabases().get(getDatabaseName()).addTable(copyRecycle);
+            FastChar.getDatabases().get(getDatabase()).addTable(copyRecycle);
+        }
+
+        if (FastStringUtils.isNotEmpty(layer) && !getMapWrap().getBoolean("rootLayer", false)) {
+            FastExtConfig instance = FastExtConfig.getInstance();
+            if (instance.isStrictBindLayer()) {
+                if (bindLayers.size() == 0 && countLink > 0) {
+                    throw new FastDatabaseException(FastChar.getLocal().getInfo("Db_Table_Error4", getName())
+                            + "\n\tat " + getStackTrace("layer"));
+                }
+            }
         }
 
     }
 
-    @Override
-    public void columnToMap() {
-        super.columnToMap();
-    }
-
     public String getLayer() {
-        return layer;
+        return mapWrap.getString("layer");
     }
 
     public FastExtTableInfo setLayer(String layer) {
-        this.layer = layer;
+        put("layer", layer);
         return this;
     }
 
     public String getBind() {
-        return bind;
+        return mapWrap.getString("bind");
     }
 
     public FastExtTableInfo setBind(String bind) {
-        this.bind = bind;
+        put("bind", bind);
         return this;
     }
 
     public String getRecycle() {
-        return recycle;
+        return mapWrap.getString("recycle");
     }
 
     public FastExtTableInfo setRecycle(String recycle) {
-        this.recycle = recycle;
+        put("recycle", recycle);
         return this;
     }
 

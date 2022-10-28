@@ -15,10 +15,11 @@ pre.prettyprint {
 
 
 *{
-     -moz-transition: opacity 300ms ,border-color 500ms ,box-shadow 300ms ,text-shadow 300ms  !important;
+     -moz-transition: opacity 300ms ,border-color 500ms ,box-shadow 300ms ,text-shadow 300ms !important;
      -webkit-transition: opacity 300ms,border-color 500ms ,box-shadow 300ms,text-shadow 300ms !important;
      -o-transition:opacity 300ms,border-color 500ms ,box-shadow 300ms,text-shadow 300ms !important;
      transition:opacity 300ms,border-color 500ms ,box-shadow 300ms ,text-shadow 300ms !important;
+     line-height: $[fontSize6];
 }
 
 
@@ -63,6 +64,9 @@ pre.prettyprint {
     display: none;
 }
 
+.fast-system-color{
+    color:$[color];
+}
 
 /* 修改默认字体的大小*/
 .x-btn-default-small .x-btn-inner, .x-btn-default-medium .x-btn-inner,
@@ -80,12 +84,19 @@ pre.prettyprint {
 	.x-fieldset-header, .x-column-header, .x-mask-msg div,
 	.x-btn-group-header-text-default-framed, table.x-datepicker-inner a,
 	.x-monthpicker-item, .x-dd-drag-ghost , .x-form-item-label ,
-	.x-window-body-default ,.x-tab-inner-default{
+	.x-window-body-default ,.x-tab-inner-default,.x-boundlist-item,
+	.x-form-text-default,.x-panel-body-default,.x-form-cb-label-default,
+	.x-body{
 	font-size: $[fontSize] !important;
+	font-weight: 400;
+}
+
+.x-webkit .x-form-text{
+    height:100%;
 }
 
 .x-title-text {
-    font-size: $[fontSize2] !important;
+    font-size: $[fontSize4] !important;
 }
 
 .tdVTop{
@@ -109,10 +120,6 @@ pre.prettyprint {
 /* 去除tab的边框 */
 #tabs-body {
 	border-width: 0 !important;
-}
-
-.x-message-box {
-	z-index: 99999999 !important;
 }
 
 .x-splitter-focus:after{
@@ -156,7 +163,7 @@ pre.prettyprint {
 
 body>.x-mask {
     background-image: none;
-    background-color: rgba(0, 0, 0, 0.55);
+    background-color: rgba(0, 0, 0, 0.35);
 }
 
 .x-item-disabled-normal {
@@ -198,13 +205,18 @@ body>.x-mask {
 }
 
 .edit-menu{
-     border-radius: 4px !important;
+    border-radius: $[inputRadius] !important;
+}
+
+.edit-menu  .x-css-shadow{
+   border-radius: $[inputRadius] !important;
 }
 
 .edit-details-menu{
-    border-bottom-right-radius: 8px !important;
-    border-top-right-radius: 8px !important;
+   //border-bottom-right-radius: $[inputRadius] !important;
+   //border-top-right-radius: $[inputRadius] !important;
 }
+
 
 .header-search-menu{
    border-top-left-radius: 0 !important;
@@ -217,4 +229,162 @@ body>.x-mask {
     padding: 10px !important;
     width: 100% !important;
     height: 100% !important;
+}
+
+.redBorder {
+    border-color: #d81e06 !important;
+}
+
+a {
+  text-decoration: none;
+}
+
+.x-form-text-default{
+    min-height: 32px;
+}
+
+.x-btn-default-small{
+   padding:8px !important;
+}
+
+.fast-textarea .x-form-trigger-wrap-default,.fast-contentfield .x-form-trigger-wrap-default{
+    border-radius: 8px !important;
+    overflow: hidden;
+}
+
+.fast-textarea .x-form-trigger-default,.fast-contentfield .x-form-trigger-default{
+    color: #444;
+    background:transparent !important;
+}
+
+
+
+.radiusNullField .x-form-trigger-wrap-default{
+   border-radius: 0 !important;
+}
+
+.fast-filefield .x-form-trigger-default{
+    background: transparent !important;
+    padding-top: 0 !important;
+}
+
+.fast-filefield .x-form-trigger-wrap-default{
+     border-radius: 0 !important;
+     -webkit-box-shadow:inset 0 0;
+     box-shadow:inset 0 0;
+}
+
+.fast-filefield-label-right .x-form-item-label-inner{
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.fast-filefield-label-left .x-form-item-label-inner{
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.x-mask-msg-text{
+    padding: 0 0 0 0;
+    background-image: unset;
+}
+
+
+.numberTip{
+    position: absolute;
+    border-radius: 55px;
+    background: red;
+    box-shadow: 0px 0px 3px 2px black;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    border:1px solid white;
+    font-weight: bold;
+}
+
+.validSuccess .x-form-text{
+    color:green;
+}
+
+.x-form-cb-label-default{
+    margin-top: 6px;
+}
+
+.x-mask-msg-inner {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.x-grid-item{
+    min-height: 35px;
+}
+
+.tox-tinymce{
+   border:unset !important;
+}
+
+.x-tool{
+   text-shadow: 1px 1px 1px black;
+}
+
+
+.x-form-text-default .x-tagfield-item{
+    line-height: 24px;
+    height: 24px;
+    border-radius: 5px;
+}
+
+.x-form-text-default .x-tagfield-item-close{
+    top: 4px;
+}
+
+.x-form-text-default.x-tagfield{
+    padding:5px 0 2px 6px;
+}
+
+.x-grid-dirty-cell > .x-grid-cell-inner:after{
+    color:red;
+    font-size: xx-large;
+    text-shadow: 1px 1px 1px black;
+}
+
+
+.x-grid-scrollbar-clipper-locked, .x-grid-scrollbar-locked {
+    overflow: hidden !important;
+}
+
+.x-grid-scrollbar-clipper > .x-tree-view{
+    overflow: hidden auto !important;
+}
+
+
+.desktop-start-menu{
+   border-bottom-left-radius: 0 !important;
+   border-bottom-right-radius: 0 !important;
+}
+
+.fast-grid-click{
+   color:blue;
+   cursor:pointer;
+}
+
+.fast-grid-click:hover{
+   border-bottom: 1px solid;
+   color:red;
+}
+
+.fast-desktop-menu-path-click{
+    cursor:pointer;
+}
+
+.fast-desktop-menu-path-click:hover{
+   filter:alpha(opacity=60) ;
+   -moz-opacity:0.6;
+   -khtml-opacity: 0.6;
+   opacity: 0.6;
 }

@@ -1,9 +1,16 @@
 .loginLogo{
     margin-top: 20px;
     background:#ffffff;
+    -webkit-user-drag: none;
+    user-select: none;
+    pointer-events: none;
 }
 
 .headContainer{
+}
+
+.headButton{
+   border-radius:88px !important;
 }
 
 .headTitle{
@@ -13,10 +20,18 @@
    font-size: $[fontSize6] !important;
    line-height: $[fontSize6] !important;
    font-weight: 700;
+   -webkit-user-drag: none;
+   user-select: none;
+   pointer-events: none;
 }
+
 .headLogo {
     background:#ffffff;
+    -webkit-user-drag: none;
+    user-select: none;
+    pointer-events: none;
 }
+
 .leftBottom{
     background: #32404e !important;
     cursor: pointer;

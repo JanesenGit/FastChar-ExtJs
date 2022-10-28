@@ -1,13 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE data>
 
-<data>
+<data database="*">
 
-    <ext_manager_role database="*" roleId="1" roleLayerCode="2ce596d3d575aad60c291b778927df64"
+    <ext_manager_role roleId="1" roleLayerCode="2ce596d3d575aad60c291b778927df64"
                       roleName="超级系统管理员" roleState="0" roleType="0" parentRoleId="-1" roleDateTime="@now"/>
 
-    <ext_manager database="*" roleId="1" managerId="1" managerLayerCode="2ce596d3d575aad60c291b778927df64@64914057823fbf475e346085af494448"
+    <ext_manager roleId="1" managerId="1"
+                 managerLayerCode="2ce596d3d575aad60c291b778927df64@64914057823fbf475e346085af494448"
                  managerLoginName="admin" managerPassword="21232f297a57a5a743894a0e4a801fc3"
-                 managerName="超级系统管理员" managerState="0" managerDateTime="@now"/>
+                 managerName="超级系统管理员" managerState="0" managerDateTime="@now" onlineType="0"/>
 
 </data>

@@ -4,12 +4,17 @@ import com.fastchar.core.FastChar;
 import com.fastchar.core.FastEntity;
 import com.fastchar.database.FastPage;
 import com.fastchar.database.info.FastSqlInfo;
+import com.fastchar.extjs.FastExtConfig;
+import com.fastchar.extjs.core.FastExtLayerType;
 import com.fastchar.extjs.entity.abstracts.AbstractExtSystemNoticeEntity;
 import com.fastchar.utils.FastDateUtils;
-
-import java.util.*;
-
 import com.fastchar.utils.FastStringUtils;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 
 public class ExtSystemNoticeEntity extends AbstractExtSystemNoticeEntity {
     private static final long serialVersionUID = 1L;
@@ -52,6 +57,17 @@ public class ExtSystemNoticeEntity extends AbstractExtSystemNoticeEntity {
         return selectBySql(page, pageSize, sqlInfo.getSql(), sqlInfo.toParams());
     }
 
+    @Override
+    public void pullLayer(ExtManagerEntity managerEntity) {
+        if (managerEntity.getManagerRole().getRoleType() != ExtManagerRoleEntity.RoleTypeEnum.超级角色) {
+            if (FastChar.getConfig(FastExtConfig.class).getLayerType() == FastExtLayerType.Layer_Manager) {
+                put(getLayerColumn().getName() + "?%", managerEntity.getLayerValue());
+            } else if (FastChar.getConfig(FastExtConfig.class).getLayerType() == FastExtLayerType.Layer_Role) {
+                put(getLayerColumn().getName() + "?%", managerEntity.getLayerValue(1));
+            }
+        }
+    }
+    
     @Override
     public void setDefaultValue() {
         set("managerId", 0);
@@ -154,7 +170,7 @@ public class ExtSystemNoticeEntity extends AbstractExtSystemNoticeEntity {
             sqlStr += " and noticeId not in (" + FastStringUtils.join(excludeIds, ",") + ")";
         }
         sqlStr += " order by noticeDateTime desc ";
-        return FastChar.getDb().setLog(false).select(sqlStr, managerLayerCode + "@%", ExtSystemNoticeStateEnum.待处理.ordinal());
+        return FastChar.getDB().setLog(false).select(sqlStr, managerLayerCode + "@%", ExtSystemNoticeStateEnum.待处理.ordinal());
     }
 
 

@@ -6,36 +6,34 @@ public class FastHeadLinkInfo extends FastHeadInfo {
     public FastHeadLinkInfo() {
         this.setTagName("link");
     }
-    private String rel;
-    private String type;
-    private String href;
 
     public String getRel() {
-        return rel;
+        return mapWrap.getString("rel");
     }
 
     public void setRel(String rel) {
-        this.rel = rel;
+        put("rel", rel);
     }
 
     public String getType() {
-        return type;
+        return mapWrap.getString("type");
     }
 
     public void setType(String type) {
-        this.type = type;
+        put("type", type);
     }
 
     public String getHref() {
-        return href;
+        return mapWrap.getString("href");
     }
 
     public void setHref(String href) {
-        this.href = href;
+        put("href", href);
     }
 
 
     public void wrapHttp(String http) {
+        String href = getHref();
         if (FastStringUtils.isEmpty(href)) {
             return;
         }
@@ -50,6 +48,6 @@ public class FastHeadLinkInfo extends FastHeadInfo {
 
     @Override
     public boolean isWriteHtml() {
-        return false;
+        return mapWrap.getBoolean("data-write-html", false);
     }
 }

@@ -1,33 +1,41 @@
 package com.fastchar.extjs.core.heads;
 
-import com.fastchar.core.FastBaseInfo;
-import com.fastchar.core.FastChar;
-import com.fastchar.utils.FastStringUtils;
+import com.fastchar.core.FastMapWrap;
 
-import java.io.File;
+import java.util.LinkedHashMap;
 
-public class FastHeadInfo extends FastBaseInfo {
+public class FastHeadInfo  extends LinkedHashMap<String, Object> {
     private static final long serialVersionUID = 5565876705941162979L;
-    private String text;
+    protected transient FastMapWrap mapWrap;
 
-    public String getText() {
-        return text;
+    public FastHeadInfo() {
+        super(16);
+        mapWrap = FastMapWrap.newInstance(this);
     }
 
+    public FastMapWrap getMapWrap() {
+        return mapWrap;
+    }
+
+    public void setTagName(String tagName) {
+        put("tag", tagName);
+    }
+    public String getTagName() {
+        return  mapWrap.getString("tag");
+    }
+
+
+    public String getText() {
+        return mapWrap.getString("text", "");
+    }
+    
     public void setText(String text) {
-        this.text = text;
+        put("text", text);
     }
 
     public boolean isWriteHtml() {
         return true;
     }
 
-
-    @Override
-    public void fromProperty() {
-        super.fromProperty();
-        put("tag", getTagName());
-        put("text", getText());
-    }
 
 }

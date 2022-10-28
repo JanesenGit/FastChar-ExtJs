@@ -4,6 +4,15 @@
     fill: currentColor;
     overflow: hidden;
 }
+
+.svgIconFill{
+    width: 100%;
+    height: 100%;
+    vertical-align: -0.15em;
+    fill: currentColor;
+    overflow: hidden;
+}
+
 .extIcon {
     font-size: 18px;
 }
@@ -58,8 +67,186 @@
     color: gray;
 }
 
+.greenColor {
+    color: green;
+}
+
 .redColor{
     color: #d81e06;
+}
+
+.yellowColor{
+    color: #ffcd00;
+}
+
+
+.blueColor{
+    color: #0000c8;
+}
+
+
+.deeppinkColor {
+    color: #FF1493;
+}
+
+.purpleColor{
+    color: #800080;
+}
+
+.color1{color:#DDDDDD;}
+.color2{color:#AAAAAA;}
+.color3{color:#888888;}
+.color4{color:#666666;}
+.color5{color:#444444;}
+.color6{color:#000000;}
+.color7{color:#FFB7DD;}
+.color8{color:#FF88C2;}
+.color9{color:#FF44AA;}
+.color10{color:#FF0088;}
+.color11{color:#C10066;}
+.color12{color:#A20055;}
+.color13{color:#8C0044;}
+.color14{color:#FFCCCC;}
+.color15{color:#FF8888;}
+.color16{color:#FF3333;}
+.color17{color:#FF0000;}
+.color18{color:#CC0000;}
+.color19{color:#AA0000;}
+.color20{color:#880000;}
+.color21{color:#FFC8B4;}
+.color22{color:#FFA488;}
+.color23{color:#FF7744;}
+.color24{color:#FF5511;}
+.color25{color:#E63F00;}
+.color26{color:#C63300;}
+.color27{color:#A42D00;}
+.color28{color:#FFDDAA;}
+.color29{color:#FFBB66;}
+.color30{color:#FFAA33;}
+.color31{color:#FF8800;}
+.color32{color:#EE7700;}
+.color33{color:#CC6600;}
+.color34{color:#BB5500;}
+.color35{color:#FFEE99;}
+.color36{color:#FFDD55;}
+.color37{color:#FFCC22;}
+.color38{color:#FFBB00;}
+.color39{color:#DDAA00;}
+.color40{color:#AA7700;}
+.color41{color:#886600;}
+.color42{color:#FFFFBB;}
+.color43{color:#FFFF77;}
+.color44{color:#FFFF33;}
+.color45{color:#FFFF00;}
+.color46{color:#EEEE00;}
+.color47{color:#BBBB00;}
+.color48{color:#888800;}
+.color49{color:#EEFFBB;}
+.color50{color:#DDFF77;}
+.color51{color:#CCFF33;}
+.color52{color:#BBFF00;}
+.color53{color:#99DD00;}
+.color54{color:#88AA00;}
+.color55{color:#668800;}
+.color56{color:#CCFF99;}
+.color57{color:#BBFF66;}
+.color58{color:#99FF33;}
+.color59{color:#77FF00;}
+.color60{color:#66DD00;}
+.color61{color:#55AA00;}
+.color62{color:#227700;}
+.color63{color:#99FF99;}
+.color64{color:#66FF66;}
+.color65{color:#33FF33;}
+.color66{color:#00FF00;}
+.color67{color:#00DD00;}
+.color68{color:#00AA00;}
+.color69{color:#008800;}
+.color70{color:#BBFFEE;}
+.color71{color:#77FFCC;}
+.color72{color:#33FFAA;}
+.color73{color:#00FF99;}
+.color74{color:#00DD77;}
+.color75{color:#00AA55;}
+.color76{color:#008844;}
+.color77{color:#AAFFEE;}
+.color78{color:#77FFEE;}
+.color79{color:#33FFDD;}
+.color80{color:#00FFCC;}
+.color81{color:#00DDAA;}
+.color82{color:#00AA88;}
+.color83{color:#008866;}
+.color84{color:#99FFFF;}
+.color85{color:#66FFFF;}
+.color86{color:#33FFFF;}
+.color87{color:#00FFFF;}
+.color88{color:#00DDDD;}
+.color89{color:#00AAAA;}
+.color90{color:#008888;}
+.color91{color:#CCEEFF;}
+.color92{color:#77DDFF;}
+.color93{color:#33CCFF;}
+.color94{color:#00BBFF;}
+.color95{color:#009FCC;}
+.color96{color:#0088A8;}
+.color97{color:#007799;}
+.color98{color:#CCDDFF;}
+.color99{color:#99BBFF;}
+.color100{color:#5599FF;}
+.color101{color:#0066FF;}
+.color102{color:#0044BB;}
+.color103{color:#003C9D;}
+.color104{color:#003377;}
+.color105{color:#CCCCFF;}
+.color106{color:#9999FF;}
+.color107{color:#5555FF;}
+.color108{color:#0000FF;}
+.color109{color:#0000CC;}
+.color110{color:#0000AA;}
+.color111{color:#000088;}
+.color112{color:#CCBBFF;}
+.color113{color:#9F88FF;}
+.color114{color:#7744FF;}
+.color115{color:#5500FF;}
+.color116{color:#4400CC;}
+.color117{color:#2200AA;}
+.color118{color:#220088;}
+.color119{color:#D1BBFF;}
+.color120{color:#B088FF;}
+.color121{color:#9955FF;}
+.color122{color:#7700FF;}
+.color123{color:#5500DD;}
+.color124{color:#4400B3;}
+.color125{color:#3A0088;}
+.color126{color:#E8CCFF;}
+.color127{color:#D28EFF;}
+.color128{color:#B94FFF;}
+.color129{color:#9900FF;}
+.color130{color:#7700BB;}
+.color131{color:#66009D;}
+.color132{color:#550088;}
+.color133{color:#F0BBFF;}
+.color134{color:#E38EFF;}
+.color135{color:#E93EFF;}
+.color136{color:#CC00FF;}
+.color137{color:#A500CC;}
+.color138{color:#7A0099;}
+.color139{color:#660077;}
+.color140{color:#FFB3FF;}
+.color141{color:#FF77FF;}
+.color142{color:#FF3EFF;}
+.color143{color:#FF0 0FF;}
+.color144{color:#CC00CC;}
+.color145{color:#990099;}
+.color146{color:#770077;}
+
+
+.fontSize20{
+    font-size: 16px;
+}
+
+.fontSize18{
+    font-size: 16px;
 }
 
 .fontSize16{
@@ -67,6 +254,18 @@
 }
 .fontSize14 {
     font-size: 14px;
+}
+.fontSize12 {
+    font-size: 12px;
+}
+.fontSize10 {
+    font-size: 10px;
+}
+.fontSize8 {
+    font-size: 8px;
+}
+.fontSizeSmall {
+    font-size: small;
 }
 
 .marginLeft5{
@@ -91,4 +290,12 @@
 
 .marginRight10{
     margin-right: 5px;
+}
+
+.textBlackShadow{
+    text-shadow: 1px 1px 1px black;
+}
+
+.textBlackShadowWhite{
+    text-shadow: 1px 1px 1px white;
 }

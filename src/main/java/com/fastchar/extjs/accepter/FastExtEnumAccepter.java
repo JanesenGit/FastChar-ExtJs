@@ -16,15 +16,15 @@ public class FastExtEnumAccepter implements IFastScannerAccepter {
     public static Map<String, Class<? extends Enum<?>>> ENUM_MAP = new HashMap<>();
 
     @Override
-    public boolean onScannerClass(FastEngine engine, Class<?> scannedClass) throws Exception {
+    public void onScannerClass(FastEngine engine, Class<?> scannedClass) throws Exception {
         if (scannedClass.isEnum()) {
             if (!FastClassUtils.checkNewInstance(scannedClass)) {
-                return false;
+                return;
             }
             if (ENUM_MAP.containsKey(scannedClass.getSimpleName())) {
                 Class<? extends Enum<?>> existEnumClass = ENUM_MAP.get(scannedClass.getSimpleName());
                 if (FastClassUtils.isSameClass(existEnumClass, scannedClass)) {
-                    return true;
+                    return;
                 }
                 String errorInfo = FastChar.getLocal().getInfo("ExtEnum_Error1", scannedClass.getSimpleName());
 
@@ -40,13 +40,10 @@ public class FastExtEnumAccepter implements IFastScannerAccepter {
                 );
             }
             ENUM_MAP.put(scannedClass.getSimpleName(), (Class<? extends Enum<?>>) scannedClass);
-            return true;
         }
-        return false;
     }
 
     @Override
-    public boolean onScannerFile(FastEngine engine, File file) throws Exception {
-        return false;
+    public void onScannerFile(FastEngine engine, File file) throws Exception {
     }
 }

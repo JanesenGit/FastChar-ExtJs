@@ -1,8 +1,8 @@
 @font-face {
   font-family: "extIcon"; /* Project id 1144120 */
-  src: url('iconfont.woff2?t=1637201718721') format('woff2'),
-       url('iconfont.woff?t=1637201718721') format('woff'),
-       url('iconfont.ttf?t=1637201718721') format('truetype');
+  src: url('iconfont.woff2?t=1664259181975') format('woff2'),
+       url('iconfont.woff?t=1664259181975') format('woff'),
+       url('iconfont.ttf?t=1664259181975') format('truetype');
 }
 
 .extIcon {
@@ -13,16 +13,240 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+.extArrowLeft2-copy:before {
+  content: "\eb0b";
+}
+
+.extArrowRight2:before {
+  content: "\e66b";
+}
+
+.extArrowRight3:before {
+  content: "\eb09";
+}
+
+.extArrowLeft3:before {
+  content: "\eb0a";
+}
+
+.extMemory:before {
+  content: "\e66a";
+}
+
+.extJVM:before {
+  content: "\e69a";
+}
+
+.extCPU:before {
+  content: "\e839";
+}
+
+.extDisk:before {
+  content: "\e685";
+}
+
+.extSize:before {
+  content: "\e664";
+}
+
+.extTags:before {
+  content: "\e886";
+}
+
+.extImages:before {
+  content: "\e662";
+}
+
+.extLinks:before {
+  content: "\e663";
+}
+
+.extClicks:before {
+  content: "\e669";
+}
+
+.extDatePicker:before {
+  content: "\e660";
+}
+
+.extHistory2:before {
+  content: "\e65f";
+}
+
+.extTable:before {
+  content: "\e65d";
+}
+
+.extDatabase:before {
+  content: "\e65a";
+}
+
+.extPrint:before {
+  content: "\e65c";
+}
+
+.extWord:before {
+  content: "\e7d3";
+}
+
+.extEditor2:before {
+  content: "\e60d";
+}
+
+.extWarn:before {
+  content: "\e657";
+}
+
+.extMouseClick:before {
+  content: "\e60a";
+}
+
+.extSnow:before {
+  content: "\e647";
+}
+
+.extReport2:before {
+  content: "\e68d";
+}
+
+.extException:before {
+  content: "\e7c8";
+}
+
+.extConvertCode:before {
+  content: "\e638";
+}
+
+.extInfo2:before {
+  content: "\e7dc";
+}
+
+.extQuestion2:before {
+  content: "\e614";
+}
+
+.extDoQuestion:before {
+  content: "\e665";
+}
+
+.extPreview:before {
+  content: "\e626";
+}
+
+.extManage:before {
+  content: "\e6a5";
+}
+
+.extExcelModule:before {
+  content: "\e741";
+}
+
+.extDownload:before {
+  content: "\e620";
+}
+
+.extPgkIOS:before {
+  content: "\e761";
+}
+
+.extPkgAndroid:before {
+  content: "\e762";
+}
+
+.extJPG:before {
+  content: "\e655";
+}
+
+.extVIDEO:before {
+  content: "\e656";
+}
+
+.extPNG:before {
+  content: "\e658";
+}
+
+.extMoney:before {
+  content: "\e659";
+}
+
+.extDImage:before {
+  content: "\e65e";
+}
+
+.extSee:before {
+  content: "\e8d5";
+}
+
+.extExclude:before {
+  content: "\e700";
+}
+
+.extLastPoint:before {
+  content: "\e6bd";
+}
+
+.extResetPassword:before {
+  content: "\e75f";
+}
+
+.extDetails:before {
+  content: "\e627";
+}
+
+.extField:before {
+  content: "\e654";
+}
+
+.extColumn:before {
+  content: "\e625";
+}
+
+.extLogin2:before {
+  content: "\e750";
+}
+
+.extManager2:before {
+  content: "\e652";
+}
+
+.extExits:before {
+  content: "\e61d";
+}
+
+.extDelRepeat:before {
+  content: "\e651";
+}
+
+.extAlignLeft:before {
+  content: "\e689";
+}
+
+.extAlignRight:before {
+  content: "\e68b";
+}
+
+.extAlignCenter:before {
+  content: "\e68c";
+}
+
 .extFileIOS:before {
   content: "\e64f";
 }
 
 .extFileAPK:before {
-  content: "\e810";
+  content: "\e8d6";
 }
 
 .extFileCSV:before {
   content: "\e642";
+}
+
+.extZIP:before {
+  content: "\e644";
+}
+
+.extTET:before {
+  content: "\e645";
 }
 
 .extFileWord:before {
@@ -213,10 +437,6 @@
   content: "\e617";
 }
 
-.extLastPoint:before {
-  content: "\e647";
-}
-
 .extArrowLeft:before {
   content: "\e616";
 }
@@ -243,10 +463,6 @@
 
 .extDownload2:before {
   content: "\e612";
-}
-
-.extDownload:before {
-  content: "\e6ad";
 }
 
 .extFixed:before {
@@ -297,16 +513,8 @@
   content: "\e628";
 }
 
-.extExcelModule:before {
-  content: "\e60d";
-}
-
 .extPower:before {
   content: "\e60c";
-}
-
-.extSee:before {
-  content: "\e614";
 }
 
 .extInfo:before {
@@ -385,10 +593,6 @@
   content: "\e687";
 }
 
-.extResetPassword:before {
-  content: "\e60a";
-}
-
 .extSet:before {
   content: "\e60b";
 }
@@ -417,16 +621,8 @@
   content: "\e698";
 }
 
-.extDetails:before {
-  content: "\e626";
-}
-
 .extDelete:before {
   content: "\e6db";
-}
-
-.extField:before {
-  content: "\e620";
 }
 
 .extMath:before {
@@ -439,10 +635,6 @@
 
 .extLog:before {
   content: "\e661";
-}
-
-.extExits:before {
-  content: "\e690";
 }
 
 .extWindow:before {

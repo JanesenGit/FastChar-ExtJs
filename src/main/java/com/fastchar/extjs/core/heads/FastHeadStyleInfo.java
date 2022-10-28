@@ -5,9 +5,8 @@ public class FastHeadStyleInfo extends FastHeadInfo {
         setTagName("style");
     }
 
-
     @Override
     public boolean isWriteHtml() {
-        return false;
+        return getMapWrap().getBoolean("data-write-html", false);
     }
 }

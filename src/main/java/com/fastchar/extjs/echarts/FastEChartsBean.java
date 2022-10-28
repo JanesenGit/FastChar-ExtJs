@@ -4,7 +4,6 @@ import com.fastchar.core.FastJsonWrap;
 import com.fastchar.utils.FastClassUtils;
 import com.fastchar.utils.FastNumberUtils;
 import com.fastchar.utils.FastStringUtils;
-import net.sf.cglib.reflect.FastClass;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;

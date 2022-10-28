@@ -3,7 +3,8 @@
 }
 
 .x-datepicker-month .x-btn-default-small{
-    background:transparent !important;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
 }
 
 .x-monthpicker-item a.x-monthpicker-selected{
@@ -14,4 +15,20 @@
 .x-monthpicker-item a.x-monthpicker-selected{
 	background-color:$[color];
 	border-color:$[color];
+}
+
+.x-datepicker-month .x-btn-split-right:after, .x-datepicker-month .x-btn-over .x-btn-split-right:after{
+    color:white;
+}
+.x-datepicker-prev{
+    color:black;
+    font-size: 22px;
+    font-weight: bold;
+    text-shadow: 1px 1px 1px white;
+}
+.x-datepicker-next{
+    color:black;
+    font-size: 22px;
+    font-weight: bold;
+    text-shadow: 1px 1px 1px white;
 }

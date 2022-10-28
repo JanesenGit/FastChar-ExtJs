@@ -14,6 +14,7 @@
 
 .x-column-header{
     background:linear-gradient(0deg, $[color2], #fefefe);
+    text-shadow: 1px 1px 1px white;
 }
 
 .x-column-header-over{

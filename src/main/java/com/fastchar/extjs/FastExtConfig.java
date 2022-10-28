@@ -1,20 +1,28 @@
 package com.fastchar.extjs;
 
+import com.fastchar.core.FastAction;
 import com.fastchar.core.FastChar;
-import com.fastchar.core.FastFile;
-import com.fastchar.extjs.compress.YuiCompress;
+import com.fastchar.core.FastMapWrap;
 import com.fastchar.extjs.core.FastExtEntities;
+import com.fastchar.extjs.core.FastExtJsFile;
 import com.fastchar.extjs.core.FastExtLayerHelper;
 import com.fastchar.extjs.core.FastExtLayerType;
 import com.fastchar.extjs.core.heads.FastHeadExtInfo;
 import com.fastchar.extjs.core.heads.FastHeadInfo;
 import com.fastchar.extjs.core.heads.FastHeadStyleInfo;
 import com.fastchar.extjs.core.menus.FastMenuInfo;
+import com.fastchar.extjs.entity.ExtManagerEntity;
+import com.fastchar.extjs.exception.FastExtConfigException;
 import com.fastchar.extjs.interfaces.IFastAppJsListener;
+import com.fastchar.extjs.core.FastExtHeadHtmlParser;
+import com.fastchar.extjs.core.FastExtMenuXmlParser;
+import com.fastchar.extjs.interfaces.IFastAppJsDirectoryListener;
 import com.fastchar.extjs.utils.ColorUtils;
 import com.fastchar.extjs.utils.ExtFileUtils;
 import com.fastchar.interfaces.IFastConfig;
-import com.fastchar.utils.*;
+import com.fastchar.utils.FastFileUtils;
+import com.fastchar.utils.FastNumberUtils;
+import com.fastchar.utils.FastStringUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -39,11 +47,27 @@ public final class FastExtConfig implements IFastConfig {
     private FastExtEntities extEntities = new FastExtEntities();
     private FastExtLayerType layerType = FastExtLayerType.None;//权限级别，默认以当前管理角色为最高级别
     private String menuPrefix = "fast-menus";
+
+    private String headPrefix = "fast-head";
+
     private final Set<String> excludeMenuFiles = new HashSet<>();//被排除的menu文件名
     private String uglifyJsPath; //uglify-js 压缩工具的本地路径
     private boolean noticeListener;//是否开启后台通知监听
 
     private List<FastExtLayerHelper.LayerMap> layerMaps;//表格的层级拓扑图
+
+    private final Map<String, Set<String>> passLoginRemoteIp = new HashMap<>();//跳过登录的浏览器主机地址
+
+    private String onlyOfficeJs;//配置onlyOffice的js地址，将启用onlyoffice预览office文档
+
+    private boolean removeAutoDirectory = true;//是否自动移除webroot目录下的auto文件
+
+    private boolean strictBindLayer = false;//检测到未绑定layer上级字段的列，将严格的抛出异常
+
+    private boolean managerLoginErrorLimit = true;//登录密码错误限次
+
+    private final Set<String> sourceProjectPath = new HashSet<>();
+
 
     /**
      * 获取系统默认的主题色
@@ -140,12 +164,14 @@ public final class FastExtConfig implements IFastConfig {
     }
 
     /**
-     * 获取合并后生成的js文件
-     *
-     * @return 文件对象
+     * 移除合并后的所有js文件
      */
-    public File getMergeJs() {
-        return new File(FastChar.getPath().getWebRootPath(), "app.js");
+    public void removeMergeJs() {
+        try {
+            FastFileUtils.forceDelete(new File(FastChar.getPath().getWebRootPath(), "bin"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -211,13 +237,82 @@ public final class FastExtConfig implements IFastConfig {
 
 
     /**
+     * 添加后台免登录的客户端ip地址
+     *
+     * @param managerId 管理员ID
+     * @param remoteIp  ip地址，支持通配符 *
+     * @return 当前对象
+     */
+    public FastExtConfig addPassLoginRemoteIp(int managerId, String... remoteIp) {
+        for (String ip : remoteIp) {
+            String passLoginManger = getPassLoginManger(ip);
+            if (FastStringUtils.isNotEmpty(passLoginManger)) {
+                String errorInfo = FastChar.getLocal().getInfo("ExtConfig_Error1", ip, passLoginManger);
+                throw new FastExtConfigException(errorInfo);
+            }
+        }
+        String key = "ID:" + managerId;
+        if (!passLoginRemoteIp.containsKey(key)) {
+            passLoginRemoteIp.put(key, new HashSet<String>());
+        }
+        passLoginRemoteIp.get(key).addAll(Arrays.asList(remoteIp));
+        return this;
+    }
+
+    /**
+     * 添加后台免登录的客户端ip地址
+     *
+     * @param managerLoginName 管理员登录名
+     * @param managerLoginPwd  管理员登录的明文密码
+     * @param remoteIp         ip地址，支持通配符 *
+     * @return 当前对象
+     */
+    public FastExtConfig addPassLoginRemoteIp(String managerLoginName, String managerLoginPwd, String... remoteIp) {
+        for (String ip : remoteIp) {
+            String passLoginMangerId = getPassLoginManger(ip);
+            if (FastStringUtils.isNotEmpty(passLoginMangerId)) {
+                String errorInfo = FastChar.getLocal().getInfo("ExtConfig_Error1", ip, passLoginMangerId);
+                throw new FastExtConfigException(errorInfo);
+            }
+        }
+        String key = "ACCOUNT:" + managerLoginName + "/" + managerLoginPwd;
+        if (!passLoginRemoteIp.containsKey(key)) {
+            passLoginRemoteIp.put(key, new HashSet<String>());
+        }
+        passLoginRemoteIp.get(key).addAll(Arrays.asList(remoteIp));
+        return this;
+    }
+
+
+    /**
+     * 根据客户端IP获取免登录的管理ID
+     *
+     * @param remoteIp 客户端IP
+     * @return 管理员ID
+     */
+    public String getPassLoginManger(String remoteIp) {
+        if (FastStringUtils.isEmpty(remoteIp)) {
+            return null;
+        }
+        for (Map.Entry<String, Set<String>> stringSetEntry : passLoginRemoteIp.entrySet()) {
+            Set<String> ipSet = stringSetEntry.getValue();
+            for (String ipPattern : ipSet) {
+                if (FastStringUtils.matches(ipPattern, remoteIp)) {
+                    return stringSetEntry.getKey();
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
      * 获取配置的ext值，在fast-head-*.html配置的scheme="ext"值
      *
      * @param name ext名称
      * @return FastHeadExtInfo对象值
      */
     public FastHeadExtInfo getExtInfo(String name) {
-        List<FastHeadInfo> heads = FastChar.getValues().get("heads");
+        List<FastHeadInfo> heads = FastExtHeadHtmlParser.getInstance().getHeads();
         if (heads != null) {
             for (FastHeadInfo head : heads) {
                 if (head instanceof FastHeadExtInfo) {
@@ -238,7 +333,7 @@ public final class FastExtConfig implements IFastConfig {
      */
     public List<FastHeadExtInfo> getExtInfo() {
         List<FastHeadExtInfo> extInfos = new ArrayList<>();
-        List<FastHeadInfo> heads = FastChar.getValues().get("heads");
+        List<FastHeadInfo> heads = FastExtHeadHtmlParser.getInstance().getHeads();
         if (heads != null) {
             for (FastHeadInfo head : heads) {
                 if (head instanceof FastHeadExtInfo) {
@@ -250,13 +345,34 @@ public final class FastExtConfig implements IFastConfig {
         return extInfos;
     }
 
+
+    /**
+     * 获取所有ext值，在fast-head-*.html配置的scheme="ext"值
+     *
+     * @return FastHeadExtInfo值集合
+     */
+    public Map<String, Object> getExtInfoToMap() {
+        Map<String, Object> extInfos = new HashMap<>();
+        List<FastHeadInfo> heads = FastExtHeadHtmlParser.getInstance().getHeads();
+        if (heads != null) {
+            for (FastHeadInfo head : heads) {
+                if (head instanceof FastHeadExtInfo) {
+                    FastHeadExtInfo headExtInfo = (FastHeadExtInfo) head;
+                    extInfos.put(headExtInfo.getName(), headExtInfo);
+                }
+            }
+        }
+        return extInfos;
+    }
+
+
     /**
      * 获取配置的项目标题
      *
      * @return 字符串
      */
     public String getProjectTitle() {
-        List<FastHeadInfo> heads = FastChar.getValues().get("heads");
+        List<FastHeadInfo> heads = FastExtHeadHtmlParser.getInstance().getHeads();
         for (FastHeadInfo head : heads) {
             if (FastStringUtils.isEmpty(head.getTagName())) {
                 continue;
@@ -274,14 +390,14 @@ public final class FastExtConfig implements IFastConfig {
      * @return 字符串
      */
     public String getProjectIcon() {
-        List<FastHeadInfo> heads = FastChar.getValues().get("heads");
+        List<FastHeadInfo> heads = FastExtHeadHtmlParser.getInstance().getHeads();
         for (FastHeadInfo head : heads) {
             if (FastStringUtils.isEmpty(head.getTagName())) {
                 continue;
             }
             if (head.getTagName().equalsIgnoreCase("link")
-                    && head.getString("rel", "none").equalsIgnoreCase("icon")) {
-                return head.getString("href");
+                    && head.getMapWrap().getString("rel", "none").equalsIgnoreCase("icon")) {
+                return head.getMapWrap().getString("href");
             }
         }
         return null;
@@ -293,37 +409,99 @@ public final class FastExtConfig implements IFastConfig {
      *
      * @return File对象集合
      */
-    public List<File> getAppJs() {
-        File mergeFile = getMergeJs();
+    public List<File> getAppJs(ExtManagerEntity session, FastAction action) {
+        IFastAppJsDirectoryListener appJsDirectoryListener = FastChar.getOverrides().singleInstance(false, IFastAppJsDirectoryListener.class);
+
+        File mergeFile = new File(FastChar.getPath().getWebRootPath(), "bin/app.js");
+
+        if (appJsDirectoryListener != null) {
+            String appJsMergeName = appJsDirectoryListener.getAppJsMerge(session, action);
+            if (FastStringUtils.isNotEmpty(appJsMergeName)) {
+                mergeFile = new File(FastChar.getPath().getWebRootPath(), "bin/" + appJsMergeName);
+            }
+        }
+
         if (mergeFile.exists()) {
             return Collections.singletonList(mergeFile);
         }
-        List<File> jsFiles = new ArrayList<>();
-        Map<String, List<File>> app = getJsFiles(new File(FastChar.getPath().getWebRootPath(), "app"));
         List<String> pathLoaders = FastChar.getModules().getPathLoadModules();
-        for (String path : pathLoaders) {
-            app.putAll(getJsFiles(new File(path)));
+
+        List<File> sourceJsFiles = new ArrayList<>();
+
+        List<String> appJsDirectoryList = new ArrayList<>();
+
+        if (appJsDirectoryListener != null) {
+            List<String> appJsDirectorySystem = appJsDirectoryListener.getAppJsDirectory(session, action);
+            if (appJsDirectorySystem != null) {
+                appJsDirectoryList.addAll(appJsDirectorySystem);
+            }
         }
 
-        for (List<File> value : app.values()) {
-            if (value.size() > 1) {
-                Collections.sort(value, new Comparator<File>() {
+        if (appJsDirectoryList.isEmpty()) {
+            appJsDirectoryList.add("app");
+        }
+
+        for (String directory : appJsDirectoryList) {
+            sourceJsFiles.add(new File(FastChar.getPath().getWebRootPath(), directory));
+        }
+
+        for (String path : pathLoaders) {
+            sourceJsFiles.add(new File(path));
+        }
+        Map<String, List<FastExtJsFile>> app = getJsFiles(sourceJsFiles.toArray(new File[]{}));
+
+
+        List<File> jsFiles = new ArrayList<>();
+        for (Map.Entry<String, List<FastExtJsFile>> stringListEntry : app.entrySet()) {
+            List<FastExtJsFile> value = stringListEntry.getValue();
+            if (value.isEmpty()) {
+                continue;
+            }
+
+            List<FastExtJsFile> realValue = new ArrayList<>();
+            for (FastExtJsFile fastExtJsFile : value) {
+                File file = fastExtJsFile.getFile();
+                if (notifyListener(file)) {
+                    realValue.add(fastExtJsFile);
+                }
+            }
+
+            if (realValue.size() > 1) {
+                Collections.sort(realValue, new Comparator<FastExtJsFile>() {
                     @Override
-                    public int compare(File o1, File o2) {
-                        return o2.compareTo(o1);
+                    public int compare(FastExtJsFile o1, FastExtJsFile o2) {
+                        return Integer.compare(o1.getLevel(), o2.getLevel());
                     }
                 });
             }
-            if (notifyListener(value.get(0))) {
-                jsFiles.add(value.get(0));
-            }
-        }
 
+            jsFiles.add(realValue.get(0).getFile());
+        }
         if (FastChar.getConfig(FastExtConfig.class).isMergeAppJs()) {
             ExtFileUtils.merge(mergeFile, jsFiles.toArray(new File[]{}));
             return Collections.singletonList(mergeFile);
         }
         return jsFiles;
+    }
+
+    /**
+     * 获取onlyOffice的js地址
+     *
+     * @return
+     */
+    public String getOnlyOfficeJs() {
+        return onlyOfficeJs;
+    }
+
+    /**
+     * 配置onlyOffice的js地址，将启用onlyoffice预览office文档
+     *
+     * @param onlyOfficeJs 地址
+     * @return
+     */
+    public FastExtConfig setOnlyOfficeJs(String onlyOfficeJs) {
+        this.onlyOfficeJs = onlyOfficeJs;
+        return this;
     }
 
     private boolean notifyListener(File jsFile) {
@@ -332,7 +510,11 @@ public final class FastExtConfig implements IFastConfig {
             if (iFastAppJsListener == null) {
                 continue;
             }
-            if (!iFastAppJsListener.onLoadJs(jsFile)) {
+            Boolean onLoadAppJs = iFastAppJsListener.onLoadAppJs(jsFile);
+            if (onLoadAppJs == null) {
+                continue;
+            }
+            if (!onLoadAppJs) {
                 return false;
             }
         }
@@ -341,31 +523,29 @@ public final class FastExtConfig implements IFastConfig {
     }
 
 
-    private Map<String, List<File>> getJsFiles(File file) {
-        Map<String, List<File>> mapFiles = new LinkedHashMap<>();
-        if (file.isDirectory()) {
-            File[] files = file.listFiles();
-            if (files == null) {
-                return mapFiles;
-            }
-            Arrays.sort(files, new Comparator<File>() {
-                @Override
-                public int compare(File o1, File o2) {
-                    return o2.compareTo(o1);
+    public Map<String, List<FastExtJsFile>> getJsFiles(File... sourceJsFiles) {
+        Map<String, List<FastExtJsFile>> mapFiles = new LinkedHashMap<>();
+
+        for (File file : sourceJsFiles) {
+            if (file.isDirectory()) {
+                File[] files = file.listFiles();
+                if (files == null) {
+                    continue;
                 }
-            });
-            for (File f : files) {
-                if (!f.isDirectory()) {
-                    if (f.getName().endsWith(".js")) {
-                        String fileCode = FastChar.getSecurity().MD5_Encrypt(f.getName().replaceFirst("@[0-9]+", ""));
-                        if (!mapFiles.containsKey(fileCode)) {
-                            mapFiles.put(fileCode, new ArrayList<File>());
-                        }
-                        mapFiles.get(fileCode).add(f);
+                Map<String, List<FastExtJsFile>> jsFiles = getJsFiles(files);
+                for (Map.Entry<String, List<FastExtJsFile>> stringListEntry : jsFiles.entrySet()) {
+                    if (!mapFiles.containsKey(stringListEntry.getKey())) {
+                        mapFiles.put(stringListEntry.getKey(), new ArrayList<FastExtJsFile>());
                     }
-                } else {
-                    mapFiles.putAll(getJsFiles(f));
+                    mapFiles.get(stringListEntry.getKey()).addAll(stringListEntry.getValue());
                 }
+            } else if (file.getName().toLowerCase().endsWith(".js")) {
+                FastExtJsFile fastExtJsFile = new FastExtJsFile(file);
+                String fileCode = fastExtJsFile.getFileCode();
+                if (!mapFiles.containsKey(fileCode)) {
+                    mapFiles.put(fileCode, new ArrayList<FastExtJsFile>());
+                }
+                mapFiles.get(fileCode).add(fastExtJsFile);
             }
         }
         return mapFiles;
@@ -404,7 +584,7 @@ public final class FastExtConfig implements IFastConfig {
 
 
     public Collection<FastHeadStyleInfo> getAllTabThemeInfo() {
-        FastMenuInfo menus = FastChar.getValues().get("menus");
+        FastMenuInfo menus = FastExtMenuXmlParser.newInstance().getMenus();
         Map<String, FastHeadStyleInfo> themeMap = new LinkedHashMap<>();
         buildTabThemeContent(menus.getChildren(), themeMap);
         return themeMap.values();
@@ -415,7 +595,7 @@ public final class FastExtConfig implements IFastConfig {
         for (FastMenuInfo menu : menus) {
             String baseCls = menu.getBaseCls();
             if (!themeMap.containsKey(baseCls)) {
-                FastHeadStyleInfo themeInfo = FastExtConfig.getInstance().getThemeInfo(menu.getColorValue(), true, "." + baseCls);
+                FastHeadStyleInfo themeInfo = FastExtConfig.getInstance().getThemeInfo(menu.getColorValue(), true, ".fastchar-extjs ." + baseCls);
                 if (themeInfo != null) {
                     themeMap.put(baseCls, themeInfo);
                 }
@@ -429,7 +609,7 @@ public final class FastExtConfig implements IFastConfig {
      * 获取系统主题下的tab页面的css代码
      */
     public FastHeadStyleInfo getThemeInfo(String colorValue) {
-        return getThemeInfo(colorValue, false, null);
+        return getThemeInfo(colorValue, false, ".fastchar-extjs");
     }
 
     /**
@@ -453,6 +633,15 @@ public final class FastExtConfig implements IFastConfig {
                     Map<String, Object> placeholder = new HashMap<String, Object>();
                     placeholder.put("color", colorValue);
                     placeholder.put("themeColor", colorValue);
+                    FastHeadExtInfo frontRadius = getExtInfo("front-radius");
+                    if (frontRadius != null) {
+                        placeholder.put("inputRadius", frontRadius.getValue());
+                        placeholder.put("buttonRadius", frontRadius.getValue());
+                    } else {
+                        placeholder.put("inputRadius", "5px");
+                        placeholder.put("buttonRadius", "5px");
+                    }
+
                     for (int i = 1; i < 9; i++) {
                         placeholder.put("color" + i, ColorUtils.getLightColor(colorValue, 1 - FastNumberUtils.formatToDouble("0." + i)));
                         placeholder.put("colorDark" + i, ColorUtils.getDarkColor(colorValue, 1 - FastNumberUtils.formatToDouble("0." + i)));
@@ -485,8 +674,7 @@ public final class FastExtConfig implements IFastConfig {
                     }
 
                     FastHeadStyleInfo styleInfo = new FastHeadStyleInfo();
-                    styleInfo.setText(YuiCompress.compressCss(theme));
-                    styleInfo.fromProperty();
+                    styleInfo.setText(theme);
                     return styleInfo;
                 }
             }
@@ -505,14 +693,26 @@ public final class FastExtConfig implements IFastConfig {
      * @return 替换后的内容
      */
     public static String replacePlaceholder(Map<String, Object> placeholders, String content) {
-        for (String key : placeholders.keySet()) {
-            if (placeholders.get(key) != null) {
-                content = content.replaceAll("\\$\\{" + key + "}", placeholders.get(key).toString());
-                content = content.replaceAll("\\$\\[" + key + "]", placeholders.get(key).toString());
-            }
+        if (FastStringUtils.isEmpty(content)) {
+            return content;
+        }
+        Pattern compile = Pattern.compile("(\\$[{\\[][^{}\\[\\]]+[}\\]])");
+        Matcher matcher = compile.matcher(content);
+        FastMapWrap fastMapWrap = FastMapWrap.newInstance(placeholders);
+
+        Map<String, String> keyValue = new HashMap<>();
+        while (matcher.find()) {
+            String realKey = matcher.group(1);
+            String runKey = realKey.replace("[", "{").replace("]", "}");
+            String value = fastMapWrap.getString(runKey, "");
+            keyValue.put(realKey, value);
+        }
+        for (String key : keyValue.keySet()) {
+            content = content.replace(key, keyValue.get(key));
         }
         return content;
     }
+
 
     /**
      * 在css内容中给所有样式组插入前缀
@@ -529,7 +729,17 @@ public final class FastExtConfig implements IFastConfig {
         while (matcher.find()) {
             String oldPrefix = matcher.group(1);
             String[] split = oldPrefix.split(",");
-            String newPrefix = " " + prefix+" " + FastStringUtils.join(split, " , " + prefix + " ");
+            List<String> prefixList = new ArrayList<>();
+
+            for (String css : split) {
+                if (css.trim().startsWith(".")) {
+                    prefixList.add(prefix + " " + css);
+                } else {
+                    prefixList.add(css);
+                }
+            }
+
+            String newPrefix = FastStringUtils.join(prefixList, ",");
             newContent.append(newPrefix).append("{").append(matcher.group(2)).append("}");
         }
         return newContent.toString();
@@ -576,12 +786,91 @@ public final class FastExtConfig implements IFastConfig {
         return this;
     }
 
+    /**
+     * 系统head.html文件前缀
+     *
+     * @return 前缀
+     */
+    public String getHeadPrefix() {
+        return headPrefix;
+    }
+
+    /**
+     * 设置head.html文件的统一前缀
+     *
+     * @param headPrefix 前缀，默认：fast-head-*.html
+     */
+    public void setHeadPrefix(String headPrefix) {
+        this.headPrefix = headPrefix;
+    }
+
     public boolean isNoticeListener() {
         return noticeListener;
     }
 
     public FastExtConfig setNoticeListener(boolean noticeListener) {
         this.noticeListener = noticeListener;
+        return this;
+    }
+
+    public boolean isRemoveAutoDirectory() {
+        return removeAutoDirectory;
+    }
+
+    public FastExtConfig setRemoveAutoDirectory(boolean removeAutoDirectory) {
+        this.removeAutoDirectory = removeAutoDirectory;
+        return this;
+    }
+
+
+    public boolean isStrictBindLayer() {
+        return strictBindLayer;
+    }
+
+    public FastExtConfig setStrictBindLayer(boolean strictBindLayer) {
+        this.strictBindLayer = strictBindLayer;
+        return this;
+    }
+
+    /**
+     * 添加本地项目源码地址
+     *
+     * @param paths 项目地址
+     * @return 当前对象
+     */
+    public FastExtConfig addSourceProjectPath(String... paths) {
+        sourceProjectPath.addAll(Arrays.asList(paths));
+        return this;
+    }
+
+
+    /**
+     * 获取所有项目源码地址
+     *
+     * @return 集合
+     */
+    public Set<String> getAllSourceProjectPath() {
+        return sourceProjectPath;
+    }
+
+
+    /**
+     * 是否开启管理员登录密码错误的限次
+     *
+     * @return 布尔值
+     */
+    public boolean isManagerLoginErrorLimit() {
+        return managerLoginErrorLimit;
+    }
+
+    /**
+     * 设置管理员登录密码错误的限次
+     *
+     * @param managerLoginErrorLimit 布尔值
+     * @return 当前对象
+     */
+    public FastExtConfig setManagerLoginErrorLimit(boolean managerLoginErrorLimit) {
+        this.managerLoginErrorLimit = managerLoginErrorLimit;
         return this;
     }
 }

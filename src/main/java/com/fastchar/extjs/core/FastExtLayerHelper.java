@@ -9,13 +9,19 @@ import com.fastchar.extjs.FastExtConfig;
 import com.fastchar.extjs.core.database.FastExtColumnInfo;
 import com.fastchar.extjs.core.database.FastExtLinkInfo;
 import com.fastchar.extjs.core.database.FastExtTableInfo;
+import com.fastchar.extjs.core.enums.FastEnumInfo;
+import com.fastchar.extjs.interfaces.IFastExtEnum;
 import com.fastchar.utils.FastClassUtils;
+import com.fastchar.utils.FastMD5Utils;
 import com.fastchar.utils.FastStringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public final class FastExtLayerHelper {
+    private static final ThreadLocal<FastExtLayerCache> THREAD_LOCAL_LAYER_CACHE = new ThreadLocal<>();
+
+
 
     /**
      * 根据上级构建当前实体的层级编号
@@ -31,18 +37,46 @@ public final class FastExtLayerHelper {
                 String parentLayerCode = extEntity.getString(FastExtEntity.EXTRA_PARENT_LAYER_CODE);
 
                 if (FastStringUtils.isEmpty(parentLayerCode)) {
-                    FastExtColumnInfo layerLinkColumn = extEntity.getLayerLinkColumn();
+                    FastExtColumnInfo layerLinkColumn = extEntity.getBindLayerColumn();
                     if (layerLinkColumn != null && entity.isNotEmpty(layerLinkColumn.getName())) {
-                        FastExtLinkInfo linkInfo = layerLinkColumn.getLinkInfo();
-                        if (linkInfo != null) {
-                            FastEntities.EntityInfo entityInfo = FastChar.getEntities().getFirstEntityInfo(linkInfo.getTableName());
-                            if (entityInfo != null) {
-                                FastEntity<?> fastEntity = FastClassUtils.newInstance(entityInfo.getTargetClass());
-                                if (fastEntity instanceof FastExtEntity) {
-                                    FastExtEntity<?> linkExtEntity = (FastExtEntity<?>) fastEntity;
-                                    linkExtEntity.setDatabase(entity.getDatabase());
-                                    fastEntity.set(linkInfo.getKeyColumnName(), entity.get(layerLinkColumn.getName()));
-                                    parentLayerCode = linkExtEntity.selectLayerValue(linkInfo.getKeyColumnName());
+
+                        //权限字段绑定到枚举值，从枚举值中获取层级编号
+                        if (layerLinkColumn.isRenderEnum()) {
+                            IFastExtEnum enumClass = FastChar.getOverrides().singleInstance(IFastExtEnum.class, layerLinkColumn.getEnumName());
+                            try {
+                                FastEnumInfo anEnum = enumClass.getEnum(entity.get(layerLinkColumn.getName()));
+                                if (anEnum != null) {
+                                    parentLayerCode = anEnum.getString("layerValue");
+                                }
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            }
+                        } else {
+                            FastExtLinkInfo linkInfo = layerLinkColumn.getLinkInfo();
+                            if (linkInfo != null) {
+                                FastEntities.EntityInfo entityInfo = FastChar.getEntities().getFirstEntityInfo(linkInfo.getTableName());
+                                if (entityInfo != null) {
+                                    FastEntity<?> fastEntity = FastClassUtils.newInstance(entityInfo.getTargetClass());
+                                    if (fastEntity instanceof FastExtEntity) {
+                                        FastExtEntity<?> linkExtEntity = (FastExtEntity<?>) fastEntity;
+                                        linkExtEntity.setDatabase(entity.getDatabase());
+                                        Object keyValue = entity.get(layerLinkColumn.getName());
+
+                                        FastExtLayerCache fastExtLayerCache = THREAD_LOCAL_LAYER_CACHE.get();
+                                        if (fastExtLayerCache == null) {
+                                            fastExtLayerCache = new FastExtLayerCache();
+                                            THREAD_LOCAL_LAYER_CACHE.set(fastExtLayerCache);
+                                        }
+
+                                        String layerCacheValue = fastExtLayerCache.getLayer(linkExtEntity.getClass(), keyValue);
+                                        if (FastStringUtils.isNotEmpty(layerCacheValue)) {
+                                            parentLayerCode = layerCacheValue;
+                                        }else{
+                                            fastEntity.set(linkInfo.getKeyColumnName(), keyValue);
+                                            parentLayerCode = linkExtEntity.selectLayerValue(linkInfo.getKeyColumnName());
+                                            fastExtLayerCache.putLayer(linkExtEntity.getClass(), keyValue, parentLayerCode);
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -76,9 +110,9 @@ public final class FastExtLayerHelper {
         if (layerMap == null) {
             return null;
         }
-        List<String> sqlList = new ArrayList<>();
+        List<String> sqlList = new ArrayList<>(10);
 
-        FastDatabaseInfo databaseInfo = FastChar.getDatabases().get(layerMap.getDatabaseName());
+        FastDatabaseInfo databaseInfo = FastChar.getDatabases().get(layerMap.getDatabase());
         List<String> tableNameList = layerMap.toAllTableNameList();
         for (String tableName : tableNameList) {
             FastTableInfo<?> tableInfo = databaseInfo.getTableInfo(tableName);
@@ -117,24 +151,36 @@ public final class FastExtLayerHelper {
             if (layerColumn == null) {
                 continue;
             }
-            FastExtColumnInfo layerLinkColumn = extTableInfo.getLayerLinkColumn();
+            FastExtColumnInfo bindLayerColumn = extTableInfo.getBindLayerColumn();
             if (parentTable.equals("root")) {
-                if (layerLinkColumn == null || layerLinkColumn.getLinkInfo().getTableName().equals(extTableInfo.getName())) {
+                if (bindLayerColumn == null || bindLayerColumn.isRenderEnum() || bindLayerColumn.getLinkInfo().getTableName().equals(extTableInfo.getName())) {
                     LayerMap layerMap = new LayerMap();
                     layerMap.setParentTableName(parentTable);
-                    layerMap.setDatabaseName(extTableInfo.getDatabaseName());
+                    layerMap.setDatabase(extTableInfo.getDatabase());
                     layerMap.setTableName(extTableInfo.getName());
                     layerMap.setChildren(buildLayerMap(extTableInfo.getName(), databaseInfo));
                     layerMaps.add(layerMap);
                 }
-            } else if (layerLinkColumn != null && layerLinkColumn.getLinkInfo().getTableName().equals(parentTable)) {
-                if (layerLinkColumn.getLinkInfo().getTableName().equals(extTableInfo.getName())) {
+                continue;
+            }
+
+            if (bindLayerColumn == null) {
+                continue;
+            }
+            if (bindLayerColumn.isRenderEnum()) {
+                continue;
+            }
+            if (bindLayerColumn.getLinkInfo() == null) {
+                continue;
+            }
+            if (bindLayerColumn.getLinkInfo().getTableName().equals(parentTable)) {
+                if (bindLayerColumn.getLinkInfo().getTableName().equals(extTableInfo.getName())) {
                     continue;
                 }
                 LayerMap layerMap = new LayerMap();
                 layerMap.setParentTableName(parentTable);
                 layerMap.setTableName(extTableInfo.getName());
-                layerMap.setDatabaseName(extTableInfo.getDatabaseName());
+                layerMap.setDatabase(extTableInfo.getDatabase());
                 layerMap.setChildren(buildLayerMap(extTableInfo.getName(), databaseInfo));
                 layerMaps.add(layerMap);
             }
@@ -149,7 +195,7 @@ public final class FastExtLayerHelper {
             FastEntity<?> fastEntity = FastChar.getOverrides().newInstance(entityInfo.getTargetClass());
             if (fastEntity instanceof FastExtEntity) {
                 FastExtEntity<?> entity = (FastExtEntity<?>) fastEntity;
-                entity.setDatabase(layerMap.getDatabaseName());
+                entity.setDatabase(layerMap.getDatabase());
                 updateAllLayerValue(entity);
             }
         }
@@ -169,11 +215,28 @@ public final class FastExtLayerHelper {
         String justSelfLayerSql = "update " + entity.getTableName() + " " +
                 " set " + layerColumn.getName() + " = substr(md5(uuid()), 1, 16) ";
 
-        FastExtColumnInfo layerLinkColumn = entity.getLayerLinkColumn();
-        if (layerLinkColumn == null) {
+        FastExtColumnInfo bindLayerColumn = entity.getBindLayerColumn();
+        if (bindLayerColumn == null) {
             entity.updateBySql(justSelfLayerSql);
         } else {
-            FastExtLinkInfo linkInfo = layerLinkColumn.getLinkInfo();
+            if (bindLayerColumn.isRenderEnum()) {
+
+                IFastExtEnum enumClass = FastChar.getOverrides().singleInstance(IFastExtEnum.class, bindLayerColumn.getEnumName());
+                try {
+                    List<FastEnumInfo> enums = enumClass.getEnums();
+                    for (FastEnumInfo anEnum : enums) {
+                        justSelfLayerSql = "update " + entity.getTableName() + " " +
+                                " set " + layerColumn.getName() + " = concat('" + anEnum.getMapWrap().getString("layerValue", FastMD5Utils.MD5To16(FastStringUtils.buildUUID())) + "',substr(md5(uuid()), 1, 16)) " +
+                                " where " + bindLayerColumn.getName() + " = ? or " + bindLayerColumn.getName() + " = ? ";
+                        entity.updateBySql(justSelfLayerSql, anEnum.getId(), anEnum.getName());
+                    }
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+                return;
+            }
+
+            FastExtLinkInfo linkInfo = bindLayerColumn.getLinkInfo();
             FastExtTableInfo linkTableInfo = (FastExtTableInfo) linkInfo.getTableInfo();
             if (linkTableInfo == null) {
                 entity.updateBySql(justSelfLayerSql);
@@ -185,32 +248,35 @@ public final class FastExtLayerHelper {
                 return;
             }
 
-            if (linkInfo.getTableName().equals(entity.getTableName())) {//自身表格的权限层级
+            if (linkInfo.getTableName().equals(entity.getTableName())) {//自身表格的权限层级，使用循环更新
+                //先清空所有权限字段的值
+
                 String firstClearSql = "update " + entity.getTableName() + " set "
                         + layerColumn.getName() + " = null";
                 entity.updateBySql(firstClearSql);
 
                 String secondRootSql = "update " + entity.getTableName() + " set "
                         + layerColumn.getName() + " = substr(md5(uuid()),1,16) " +
-                        " where " + layerLinkColumn.getName() + " = ? or " + layerLinkColumn.getName() + " is null ";
-
-                entity.updateBySql(secondRootSql, -1);
+                        " where " + bindLayerColumn.getName() + " is null or " + bindLayerColumn.getName() + " <= ?  ";
+                entity.updateBySql(secondRootSql, 0);
 
                 boolean loop = true;
                 while (loop) {
                     String whileSqlStr = "update " + entity.getTableName() + " as t" +
-                            " inner join " + linkInfo.getTableName() + " as b" +
-                            " on b." + linkInfo.getKeyColumnName() + " = t." + layerLinkColumn.getName() +
-                            " set t." + layerColumn.getName() + " = concat ( b." + linkTableLayerColumn.getName() + ",'@',substr(md5(uuid()),1,16)) " +
-                            " where  b." + linkTableLayerColumn.getName() + " is not null and t." + layerColumn.getName() + " is null ";
+                            " left join " + linkInfo.getTableName() + " as b" +
+                            " on b." + linkInfo.getKeyColumnName() + " = t." + bindLayerColumn.getName() +
+                            //此处不可使用coalesce设置上级权限值的默认值，必须判断上级不可为空才能循环更新
+                            " set t." + layerColumn.getName() + " = concat (b." + linkTableLayerColumn.getName() + ",'@',substr(md5(uuid()),1,16)) " +
+                            " where  t." + layerColumn.getName() + " is null and b." + linkTableLayerColumn.getName() + " is not null ";
+
+                    //【重要】此处是循环更新，注意条件语句的判断！！！！
                     loop = entity.updateBySql(whileSqlStr) > 0;
                 }
             } else {
                 String sqlStr = "update " + entity.getTableName() + " as t" +
-                        " inner join " + linkInfo.getTableName() + " as b" +
-                        " on b." + linkInfo.getKeyColumnName() + " = t." + layerLinkColumn.getName() +
-                        " set t." + layerColumn.getName() + " = concat ( b." + linkTableLayerColumn.getName() + ",'@',substr(md5(uuid()),1,16)) " +
-                        " where  b." + linkTableLayerColumn.getName() + " is not null ";
+                        " left join " + linkInfo.getTableName() + " as b" +
+                        " on b." + linkInfo.getKeyColumnName() + " = t." + bindLayerColumn.getName() +
+                        " set t." + layerColumn.getName() + " = concat ( coalesce(b." + linkTableLayerColumn.getName() + ",'" + FastMD5Utils.MD5To16(FastStringUtils.buildUUID()) + "'),'@',substr(md5(uuid()),1,16)) ";
                 entity.updateBySql(sqlStr);
             }
         }
@@ -232,7 +298,7 @@ public final class FastExtLayerHelper {
             return null;
         }
         for (LayerMap layerMap : layerMaps) {
-            if (FastStringUtils.defaultValue(layerMap.getDatabaseName(), "").equals(databaseName)
+            if (FastStringUtils.defaultValue(layerMap.getDatabase(), "").equals(databaseName)
                     && FastStringUtils.defaultValue(layerMap.getTableName(), "").equals(tableName)) {
                 return layerMap;
             }
@@ -246,7 +312,7 @@ public final class FastExtLayerHelper {
 
 
     public static class LayerMap {
-        private String databaseName;
+        private String database;
         private String tableName;
         private String parentTableName;
         private List<LayerMap> children = new ArrayList<>();
@@ -269,12 +335,12 @@ public final class FastExtLayerHelper {
             return this;
         }
 
-        public String getDatabaseName() {
-            return databaseName;
+        public String getDatabase() {
+            return database;
         }
 
-        public LayerMap setDatabaseName(String databaseName) {
-            this.databaseName = databaseName;
+        public LayerMap setDatabase(String database) {
+            this.database = database;
             return this;
         }
 

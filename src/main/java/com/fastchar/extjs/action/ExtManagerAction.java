@@ -11,12 +11,16 @@ import com.fastchar.extjs.annotation.AFastSession;
 import com.fastchar.extjs.core.heads.FastHeadExtInfo;
 import com.fastchar.extjs.entity.*;
 import com.fastchar.extjs.interfaces.IFastManagerListener;
+import com.fastchar.utils.FastDateUtils;
 import com.fastchar.utils.FastMD5Utils;
+import com.fastchar.utils.FastStringUtils;
 
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 
 @AFastRoute({"/controller"})
 public class ExtManagerAction extends FastAction {
+    public static final ConcurrentHashMap<Integer, String> MANAGER_SINGLE_LOGIN_CODE = new ConcurrentHashMap<>();
 
     @Override
     protected String getRoute() {
@@ -36,10 +40,13 @@ public class ExtManagerAction extends FastAction {
         setRequestAttr("managerName", loginName);
         setRequestAttr("managerRole", "后台管理员");
 
-        FastHeadExtInfo extInfo = FastExtConfig.getInstance().getExtInfo("login-type");
+        FastExtConfig extConfig = FastExtConfig.getInstance();
+        FastHeadExtInfo extInfo = extConfig.getExtInfo("login-type");
         if (extInfo != null) {
             if (!extInfo.getValue().equalsIgnoreCase("normal")) {
-                if (!validateCaptcha(getParam("validateCode", true))) {
+                String validateCode = FastStringUtils.defaultValue(getSession("validateCode"), FastStringUtils.buildUUID());
+                if (!validateCaptcha(validateCode) && !validateCaptcha(getParam("validateCode", true))) {
+                    resetCaptcha();
                     responseJson(-3, "登录失败，验证码错误！");
                     return;
                 }
@@ -48,18 +55,31 @@ public class ExtManagerAction extends FastAction {
         String loginPassword = getParam("loginPassword", true);
 
         ExtManagerEntity managerEntity = ExtManagerEntity.getInstance().login(loginName, loginPassword);
-        int errorCount = ExtManagerErrorEntity.dao().countTodayError(loginName);
-        int nextCount = Math.max(7 - errorCount, 0);
-        String errorInfo = null;
-        if (nextCount > 0) {
-            errorInfo = "今日还剩余" + nextCount + "次！";
-        } else {
-            responseJson(-1, "您今日登录错误次数超限！请明日再试！");
+
+        String errorInfo = "";
+        if (extConfig.isManagerLoginErrorLimit()) {
+            int errorCount = ExtManagerErrorEntity.dao().countTodayError(loginName);
+            int nextCount = Math.max(7 - errorCount, 0);
+            if (nextCount > 0) {
+                errorInfo = "今日还剩余" + nextCount + "次！";
+            } else {
+                responseJson(-1, "您今日登录错误次数超限！请明日再试！");
+            }
         }
 
         ExtManagerErrorEntity payErrorEntity = new ExtManagerErrorEntity();
         payErrorEntity.set("managerLoginName", loginName);
         if (managerEntity != null) {
+
+            if (managerEntity.getManagerRole() == null || managerEntity.getManagerRole().getRoleId() <= 0) {
+                responseJson(-1, "登录失败！您的账户未分配角色！");
+            }
+
+            if (managerEntity.getManagerRole().getInt("roleType", -1) < 0) {
+                responseJson(-1, "登录失败！您的账户角色的类型异常！");
+            }
+
+
             if (managerEntity.getInt("managerState") == ExtManagerEntity.ManagerStateEnum.禁用.ordinal()) {
                 responseJson(-1, "登录失败！您的账号已被禁用！");
             }
@@ -76,16 +96,28 @@ public class ExtManagerAction extends FastAction {
             ExtManagerRoleEntity extManagerRoleEntity = managerEntity.getObject("role");
             if (extManagerRoleEntity != null) {
                 setRequestAttr("managerRole", extManagerRoleEntity.getRoleName());
-            }else{
+            } else {
                 setRequestAttr("managerRole", "管理员");
             }
+            managerEntity.set("lastLoginTime", FastDateUtils.getDateString());
+            managerEntity.update();
 
-            setSession("manager", managerEntity);
+            ExtManagerEntity.setSession(this, managerEntity);
+
+            String loginCode = FastStringUtils.buildOnlyCode("EXT");
+            setSession("loginCode", loginCode);
+            if (managerEntity.getInt("onlineType") == ExtManagerEntity.OnlineTypeEnum.单个终端.ordinal()) {
+                MANAGER_SINGLE_LOGIN_CODE.put(managerEntity.getManagerId(), loginCode);
+            } else {
+                MANAGER_SINGLE_LOGIN_CODE.remove(managerEntity.getManagerId());
+            }
             payErrorEntity.delete("managerLoginName");
 
+            resetCaptcha();
             responseJson(0, "登录成功！");
         } else {
             payErrorEntity.save();
+            resetCaptcha();
             responseJson(-2, "登录失败，用户名或密码错误！" + errorInfo);
         }
     }
@@ -162,14 +194,17 @@ public class ExtManagerAction extends FastAction {
      */
     @AFastLog(value = "${managerRole}【${managerName}】退出了登录！", type = "管理员退出")
     public void logout() {
-        ExtManagerEntity managerEntity = getSession("manager");
-        setRequestAttr("managerName", managerEntity.getString("managerName"));
-        ExtManagerRoleEntity extManagerRoleEntity = managerEntity.getObject("role");
-        setRequestAttr("managerRole", extManagerRoleEntity.getRoleName());
-        removeSession("manager");
+        ExtManagerEntity managerEntity = ExtManagerEntity.getSession(this);
+        if (managerEntity != null) {
+            setRequestAttr("managerName", managerEntity.getManagerName());
+            ExtManagerRoleEntity extManagerRoleEntity = managerEntity.getObject("role");
+            setRequestAttr("managerRole", extManagerRoleEntity.getRoleName());
+        } else {
+            setRequestAttr("managerName", "会话失效账户");
+        }
+        ExtManagerEntity.removeSession(this);
         responseJson(0, "退出成功！");
     }
-
 
 
     /**
@@ -181,7 +216,7 @@ public class ExtManagerAction extends FastAction {
     @AFastSession
     @AFastLog(value = "${managerRole}【${managerName}】重置了登录密码！", type = "密码重置")
     public void resetPassword() {
-        ExtManagerEntity sessionUser = getSession("manager");
+        ExtManagerEntity sessionUser = ExtManagerEntity.getSession(this);
         setRequestAttr("managerName", sessionUser.getString("managerName"));
         ExtManagerRoleEntity extManagerRoleEntity = sessionUser.getObject("role");
         setRequestAttr("managerRole", extManagerRoleEntity.getRoleName());
@@ -206,10 +241,9 @@ public class ExtManagerAction extends FastAction {
      */
     @AFastSession
     @AFastLog(value = "${managerRole}【${managerName}】修改了登录密码！", type = "密码重置")
-    public void modifyPassword(){
+    public void modifyPassword() {
 
-
-        ExtManagerEntity sessionUser = getSession("manager");
+        ExtManagerEntity sessionUser = ExtManagerEntity.getSession(this);
         setRequestAttr("managerName", sessionUser.getString("managerName"));
 
         ExtManagerRoleEntity extManagerRoleEntity = sessionUser.getObject("role");
@@ -222,14 +256,14 @@ public class ExtManagerAction extends FastAction {
 
         String managerPassword = getParam("managerPassword", true);
 
-        String oldPassword=managerEntity.getString("managerPassword");
+        String oldPassword = managerEntity.getString("managerPassword");
 
-        if(!newPassword.equals(reNewPassword)){
+        if (!newPassword.equals(reNewPassword)) {
             responseJson(-1, "两次密码输入不一致！");
             return;
         }
 
-        if(!FastMD5Utils.MD5(managerPassword).equals(oldPassword)){
+        if (!FastMD5Utils.MD5(managerPassword).equals(oldPassword)) {
             responseJson(-1, "当前密码输入错误！");
             return;
         }
@@ -251,7 +285,7 @@ public class ExtManagerAction extends FastAction {
     @AFastSession
     @AFastLog(value = "${managerRole}【${managerName}】同步了管理的角色权限！", type = "权限同步")
     public void updatePower() {
-        ExtManagerEntity sessionUser = getSession("manager");
+        ExtManagerEntity sessionUser = ExtManagerEntity.getSession(this);
         setRequestAttr("managerName", sessionUser.getString("managerName"));
 
         ExtManagerRoleEntity extManagerRoleEntity = sessionUser.getObject("role");
@@ -267,6 +301,7 @@ public class ExtManagerAction extends FastAction {
             if (managerRole != null) {
                 byId.set("managerMenuPower", managerRole.getRoleMenuPower());
                 byId.set("managerExtPower", managerRole.getRoleExtPower());
+                byId.set("powerState", 0);
                 byId.update();
             }
         }
@@ -283,7 +318,7 @@ public class ExtManagerAction extends FastAction {
     public void waitNotice() throws Exception {
         setLog(false);
         List<Integer> noticeId = getParamToIntList("noticeId");
-        ExtManagerEntity sessionUser = getSession("manager");
+        ExtManagerEntity sessionUser = ExtManagerEntity.getSession(this);
         List<FastEntity<?>> list = ExtSystemNoticeEntity.dao().getList(sessionUser.getLayerValue(), noticeId.toArray(new Integer[]{}));
         responseJson(0, "获取成功！", list);
     }
@@ -309,9 +344,23 @@ public class ExtManagerAction extends FastAction {
      */
     @AFastSession
     public void clearNotice() {
-        ExtManagerEntity sessionUser = getSession("manager");
+        ExtManagerEntity sessionUser = ExtManagerEntity.getSession(this);
         ExtSystemNoticeEntity.dao().clearNotice(sessionUser.getLayerValue());
         responseJson(0, "清空成功！");
+    }
+
+
+    /**
+     * 清空登录错误记录
+     */
+    public void clearLoginError() {
+        String loginName = getParam("loginName", true);
+
+        ExtManagerErrorEntity payErrorEntity = new ExtManagerErrorEntity();
+        payErrorEntity.set("managerLoginName", loginName);
+
+        payErrorEntity.delete("managerLoginName");
+        responseJson(0, "清除成功！");
     }
 
 }

@@ -4,4 +4,19 @@
 
 .x-tool-img {
 	background-color: transparent !important;
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+}
+
+.x-fieldset-default.x-fieldset-collapsed .x-tool-toggle{
+    background-color: transparent !important;
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+}
+
+
+.x-btn-inner-default-toolbar-small{
+    color:black;
 }

@@ -5,8 +5,12 @@ import com.fastchar.core.FastFile;
 import com.fastchar.extjs.core.menus.FastMenuInfo;
 import com.fastchar.extjs.entity.ExtManagerEntity;
 import com.fastchar.extjs.entity.ExtSystemNoticeEntity;
+import com.fastchar.extjs.core.FastExtMenuXmlParser;
+import com.fastchar.interfaces.IFastCache;
+import com.fastchar.interfaces.IFastMemoryCache;
 import com.fastchar.utils.FastDateUtils;
 import com.fastchar.utils.FastFileUtils;
+import com.fastchar.utils.FastMD5Utils;
 import com.fastchar.utils.FastStringUtils;
 
 import java.io.File;
@@ -26,11 +30,11 @@ public class FastExtHelper {
      */
     public static void refreshExtWeb() {
         try {
-            FastChar.getConfig(FastExtConfig.class)
-                    .getMergeJs().delete();
+            FastChar.getConfig(FastExtConfig.class).removeMergeJs();
             FastChar.getObservable().notifyObservers("refreshHeads");
             FastChar.getObservable().notifyObservers("refreshMenus");
-        } catch (Exception ignored) { }
+        } catch (Exception ignored) {
+        }
     }
 
 
@@ -59,7 +63,7 @@ public class FastExtHelper {
             String title,
             String content,
             String actionMenu) {
-         addWaitInfo(null, null, title, content, actionMenu);
+        addWaitInfo(null, null, title, content, actionMenu);
     }
 
     /**
@@ -99,7 +103,7 @@ public class FastExtHelper {
         FastMenuInfo menuInfo = null;
         if (FastStringUtils.isNotEmpty(actionMenu)) {
             String[] menuArray = actionMenu.split("@");
-            FastMenuInfo menus = FastChar.getValues().get("menus");
+            FastMenuInfo menus = FastExtMenuXmlParser.newInstance().getMenus();
             menuInfo = getMenu(menuArray, 0, menus);
         }
         String menuId = null;
@@ -160,19 +164,64 @@ public class FastExtHelper {
         HttpURLConnection conn = (HttpURLConnection) httpURL.openConnection();
         String headerField = conn.getHeaderField("content-disposition");
         String contentType = conn.getContentType();
+
         if (FastStringUtils.isNotEmpty(headerField)) {
             String regStr = "filename=\"(.*)\"";
             Matcher matcher = Pattern.compile(regStr).matcher(headerField);
             if (matcher.find()) {
                 fileName = matcher.group(1);
             }
+        } else {
+            String fromContentType = FastFileUtils.getExtensionFromContentType(contentType);
+            if (FastStringUtils.isNotEmpty(fromContentType) && !fileName.endsWith("." + fromContentType)) {
+                fileName = fileName + "." + fromContentType;
+            }
         }
+
         File saveFile = new File(FastChar.getConstant().getAttachDirectory(), fileName);
         FastFileUtils.copyURLToFile(httpURL, saveFile);
         paramFile = FastFile.newInstance(saveFile.getParent(), fileName);
         paramFile.setUploadFileName(fileName);
         paramFile.setContentType(contentType);
         return paramFile;
+    }
+
+
+    public static String saveCache(String source) {
+
+        String key = FastMD5Utils.MD5To16(source);
+        IFastCache iFastCache = FastChar.safeGetCache();
+        if (iFastCache != null) {
+            try {
+                iFastCache.set("FastExtJsCache", key, source);
+                return key;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        IFastMemoryCache iFastMemoryCache = FastChar.safeGetMemoryCache();
+        if (iFastMemoryCache != null) {
+            iFastMemoryCache.put(key, source);
+            return key;
+        }
+        return null;
+    }
+
+
+    public static String getCache(String key) {
+        IFastCache iFastCache = FastChar.safeGetCache();
+        if (iFastCache != null) {
+            try {
+                return iFastCache.get("FastExtJsCache", key);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        IFastMemoryCache iFastMemoryCache = FastChar.safeGetMemoryCache();
+        if (iFastMemoryCache != null) {
+            return iFastMemoryCache.get(key);
+        }
+        return null;
     }
 
 }

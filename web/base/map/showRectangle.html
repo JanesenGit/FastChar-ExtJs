@@ -85,6 +85,8 @@
                 map.addControl(new AMap.MapType());
 
                 window.parent.onMapLoadDone();
+
+                addScript({src: "fast-map-level.min.js?v="+ new Date().getTime()});
             });
         } catch (e) {
             console.error(e);
@@ -93,7 +95,7 @@
     }
 
 
-    function showImgLayerInMap(imgUrl, southWestLngLat, northEastLngLat,zIndex) {
+    function showImgLayerInMap(imgUrl, southWestLngLat, northEastLngLat, zIndex, minZoom, maxZoom) {
         let bounds = new AMap.Bounds(
             new AMap.LngLat(southWestLngLat.split(",")[0], southWestLngLat.split(",")[1]),
             new AMap.LngLat(northEastLngLat.split(",")[0], northEastLngLat.split(",")[1])
@@ -101,11 +103,17 @@
         if (!zIndex) {
             zIndex = 6;
         }
+        if (minZoom === undefined) {
+            minZoom = 1;
+        }
+        if (maxZoom === undefined) {
+            maxZoom = 50;
+        }
         let imageLayer = new AMap.ImageLayer({
             url: imgUrl,
             bounds: bounds,
             zIndex: zIndex,
-            zooms: [0, 50]
+            zooms: [minZoom, maxZoom],
         });
         map.add(imageLayer);
         map.setBounds(bounds);

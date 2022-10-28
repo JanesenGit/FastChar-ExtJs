@@ -97,7 +97,8 @@
                 map.addControl(new AMap.MapType());
                 regeocoder();
 
-                addScript({src: "fast-img-layer.js"});
+                addScript({src: "fast-img-layer.min.js?v="+ new Date().getTime()});
+                addScript({src: "fast-map-level.min.js?v=" + new Date().getTime()});
             });
         } catch (e) {
             console.error(e);

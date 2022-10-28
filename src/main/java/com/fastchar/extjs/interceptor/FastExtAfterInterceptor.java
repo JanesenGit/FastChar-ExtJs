@@ -6,7 +6,6 @@ import com.fastchar.extjs.annotation.AFastLog;
 import com.fastchar.extjs.entity.ExtManagerEntity;
 import com.fastchar.extjs.entity.ExtSystemLogEntity;
 import com.fastchar.interfaces.IFastInterceptor;
-import com.fastchar.interfaces.IFastJson;
 import com.fastchar.out.FastOutText;
 import com.fastchar.utils.FastStringUtils;
 
@@ -19,7 +18,7 @@ public class FastExtAfterInterceptor implements IFastInterceptor {
                 AFastLog fastLog = fastAction.getFastRoute().getMethod().getAnnotation(AFastLog.class);
 
                 ExtSystemLogEntity extSystemLogEntity = new ExtSystemLogEntity();
-                ExtManagerEntity manager = fastAction.getSession("manager");
+                ExtManagerEntity manager = ExtManagerEntity.getSession(fastAction);
                 if (manager != null) {
                     extSystemLogEntity.set("managerId", manager.getId());
                 }
@@ -36,13 +35,11 @@ public class FastExtAfterInterceptor implements IFastInterceptor {
 
             }
 
-
-            if (fastAction.getFastOut().getStatus() == 404
-                    || fastAction.getFastOut().getStatus() == 500
+            if (fastAction.getFastOut().getStatus() == 500
                     || fastAction.getFastOut().getStatus() == 502) {
                 if (fastAction.getFastOut() instanceof FastOutText) {
                     fastAction.responseJson(-1, "操作失败！" + fastAction.getFastOut().getData());
-                }else{
+                } else {
                     fastAction.responseJson(-1, "操作失败！" + fastAction.getFastOut().getDescription());
                 }
             } else {

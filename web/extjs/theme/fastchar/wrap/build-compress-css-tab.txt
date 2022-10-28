@@ -11,3 +11,5 @@ fast-theme-shadow
 fast-theme-window
 fast-theme-progress
 fast-theme-picker
+fast-theme-desktop
+../fast-theme-tab-system

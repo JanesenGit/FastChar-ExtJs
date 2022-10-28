@@ -1,15 +1,15 @@
 package com.fastchar.extjs.utils;
 
-import com.fastchar.core.FastChar;
 import com.fastchar.utils.FastFileUtils;
+import com.fastchar.utils.FastStringUtils;
 
-import javax.activation.FileTypeMap;
-import javax.activation.MimetypesFileTypeMap;
-import java.io.*;
-import java.net.URL;
-import java.net.URLConnection;
+import java.io.File;
+import java.io.FilenameFilter;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 
 public class ExtFileUtils {
 
@@ -69,5 +69,45 @@ public class ExtFileUtils {
     }
 
 
+    public static File searchFile(File parentFile, String fileName, String endPrefix, boolean isExact) {
+        if (FastStringUtils.isEmpty(fileName)) {
+            fileName = "";
+        }
+        if (parentFile.isDirectory()) {
+            File[] files = parentFile.listFiles();
+            if (files == null) {
+                return null;
+            }
+            Arrays.sort(files, new Comparator<File>() {
+                @Override
+                public int compare(File o1, File o2) {
+                    return o1.compareTo(o2);
+                }
+            });
+
+            for (File child : files) {
+                if (child.isFile()) {
+                    if (isExact) {
+                        if (child.getName().equals(fileName) && child.getName().endsWith(endPrefix)) {
+                            return child;
+                        }
+                    } else {
+                        if (child.getName().contains(fileName) && child.getName().endsWith(endPrefix)) {
+                            return child;
+                        }
+                    }
+                }
+                File file = searchFile(child, fileName, endPrefix, isExact);
+                if (file != null) {
+                    return file;
+                }
+            }
+        } else if (parentFile.getName().contains(fileName) && parentFile.getName().endsWith(endPrefix) && !isExact) {
+            return parentFile;
+        } else if (parentFile.getName().equals(fileName) && parentFile.getName().endsWith(endPrefix) && isExact) {
+            return parentFile;
+        }
+        return null;
+    }
 
 }

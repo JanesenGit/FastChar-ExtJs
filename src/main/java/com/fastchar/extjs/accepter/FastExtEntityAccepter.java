@@ -10,16 +10,13 @@ import java.io.File;
 @SuppressWarnings("unchecked")
 public class FastExtEntityAccepter implements IFastScannerAccepter {
     @Override
-    public boolean onScannerClass(FastEngine engine, Class<?> scannedClass) throws Exception {
+    public void onScannerClass(FastEngine engine, Class<?> scannedClass) throws Exception {
         if (FastExtEntity.class.isAssignableFrom(scannedClass)) {
             FastExtConfig.getInstance().getExtEntities().addEntity((Class<? extends FastExtEntity<?>>) scannedClass);
-            return true;
         }
-        return false;
     }
 
     @Override
-    public boolean onScannerFile(FastEngine engine, File file) throws Exception {
-        return false;
+    public void onScannerFile(FastEngine engine, File file) throws Exception {
     }
 }
