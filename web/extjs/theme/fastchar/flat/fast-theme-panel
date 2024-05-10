@@ -1,14 +1,27 @@
 .x-panel-header-default {
 	border-color: transparent !important;
-	background-color: $[color];
+	background-color: ${color};
+    border-top-left-radius: ${inputRadius};
+    border-top-right-radius: ${inputRadius};
+}
+
+.x-panel-body-default{
+    background: transparent;
+}
+
+.fast-list-details-panel-collapsed {
+    border-bottom-right-radius: ${inputRadius};
+    border-top-left-radius: 0px !important;
 }
 
 .x-panel-header-title-default>.x-title-icon-wrap-default>.x-title-icon-default{
-    line-height: 20px;
+    line-height: calc(${fontSize} + 8px);
+    font-size: calc(${fontSize} + 8px);
 }
 
 .x-border-region-slide-in {
-    box-shadow:-3px 0 5px 0px $[color8] !important;
+    box-shadow:-3px 0 5px 0px ${color8} !important;
+    border-radius: ${inputRadius};
 }
 
 .x-panel-header-title-default{
@@ -17,5 +30,5 @@
 }
 
 .x-panel-header-default-horizontal {
-    padding: 12px 14px 12px 14px;
+    padding: 15px 14px 15px 14px;
 }

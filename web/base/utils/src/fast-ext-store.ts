@@ -4,8 +4,6 @@ namespace FastExt {
      * Ext.data.Store数据源相关操作
      */
     export class Store {
-        private constructor() {
-        }
 
         /**
          * 每页最大页数
@@ -19,25 +17,28 @@ namespace FastExt {
          * @param splitChar 菜单拼接的分隔符
          * @returns {string|null}
          */
-        static getStoreMenuText(store, menu?, splitChar?: string): string {
+        static getStoreMenuText(store: any, menu?: any, splitChar?: string): string {
             if (Ext.isEmpty(splitChar)) {
                 splitChar = ">";
             }
             if (menu) {
-                return FastExt.System.getPlainMenu(menu, splitChar);
+                return FastExt.System.MenuHandler.getPlainMenu(menu, splitChar);
+            } else if (store && store.grid && store.grid.tabMenu) {
+                return FastExt.System.MenuHandler.getPlainMenu(store.grid.tabMenu, splitChar);
             } else if (store && store.entity) {
-                return FastExt.System.getPlainMenu(store.entity.menu, splitChar);
+                return FastExt.System.MenuHandler.getPlainMenu(FastExt.System.MenuHandler.searchMenuByEntityCode(store.entity.entityCode), splitChar);
             }
-            return null;
+            return "";
         }
 
         /**
          * 提交Store被修改过的数据
          * @param store
          * @param successMsg 修改成功的消息提示
+         * @param extend_params 其他参数
          * @return Ext.Promise
          */
-        static commitStoreUpdate(store, successMsg?: string): any {
+        static commitStoreUpdate(store: any, successMsg?: string, extend_params?: any): any {
             return new Ext.Promise(function (resolve, reject) {
                 if (!store) {
                     return;
@@ -51,6 +52,10 @@ namespace FastExt {
                 if (store.commiting) {
                     return;
                 }
+                if (!extend_params) {
+                    extend_params = {};
+                }
+
                 let records = store.getUpdatedRecords();
                 let phantoms = store.getNewRecords();
                 records = records.concat(phantoms);
@@ -61,9 +66,10 @@ namespace FastExt {
                 }
                 store.commiting = true;
                 let params = {"entityCode": store.entity.entityCode};
-                if (store.entity.menu) {
-                    params["menu"] = FastExt.Store.getStoreMenuText(store);
-                }
+
+
+                params["menu"] = FastExt.Store.getStoreMenuText(store);
+
                 for (let i = 0; i < records.length; i++) {
                     let record = records[i];
                     for (let j = 0; j < store.entity.idProperty.length; j++) {
@@ -80,11 +86,16 @@ namespace FastExt {
                         }
                     }
                 }
+
+                params = FastExt.Json.mergeJson(params, extend_params);
+
                 FastExt.Server.updateEntity(params, function (success, message) {
                     store.commiting = false;
                     resolve(success);
                     if (success) {
-                        FastExt.Dialog.toast(successMsg ? successMsg : message);
+                        if (successMsg !== "false") {
+                            FastExt.Dialog.toast(successMsg ? successMsg : message);
+                        }
                         store.commitChanges();
                     } else {
                         store.rejectChanges();
@@ -98,9 +109,10 @@ namespace FastExt {
          * 提交Store里被选中删除的数据
          * @param store
          * @param data
+         * @param extend_params 扩展参数
          * @return Ext.Promise
          */
-        static commitStoreDelete(store, data) {
+        static commitStoreDelete(store: any, data: any, extend_params?: any) {
             return new Ext.Promise(function (resolve, reject) {
                 if (!store.entity) {
                     return;
@@ -109,9 +121,8 @@ namespace FastExt {
                     return;
                 }
                 let params = {"entityCode": store.entity.entityCode};
-                if (store.entity.menu) {
-                    params["menu"] = FastExt.Store.getStoreMenuText(store);
-                }
+                params["menu"] = FastExt.Store.getStoreMenuText(store);
+
                 for (let i = 0; i < data.length; i++) {
                     let record = data[i];
                     for (let j = 0; j < store.entity.idProperty.length; j++) {
@@ -119,7 +130,8 @@ namespace FastExt {
                         params['data[' + i + '].' + idName] = record.get(idName);
                     }
                 }
-                FastExt.Server.deleteEntity(params, function (success, message) {
+                params = FastExt.Json.mergeJson(params, extend_params);
+                FastExt.Server.deleteEntity(params, function (success: boolean, message: string) {
                     resolve(success);
                     if (success) {
                         FastExt.Dialog.toast(message);
@@ -141,7 +153,7 @@ namespace FastExt {
          * @param data
          * @return Ext.Promise
          */
-        static commitStoreReback(store, data) {
+        static commitStoreReback(store: any, data: any) {
             return new Ext.Promise(function (resolve, reject) {
                 if (!store.entity) {
                     return;
@@ -150,9 +162,7 @@ namespace FastExt {
                     return;
                 }
                 let params = {"entityCode": store.entity.entityCode};
-                if (store.entity.menu) {
-                    params["menu"] = FastExt.Store.getStoreMenuText(store);
-                }
+                params["menu"] = FastExt.Store.getStoreMenuText(store);
                 for (let i = 0; i < data.length; i++) {
                     let record = data[i];
                     for (let j = 0; j < store.entity.idProperty.length; j++) {
@@ -182,7 +192,7 @@ namespace FastExt {
          * @param data
          * @return Ext.Promise
          */
-        static commitStoreCopy(store, data) {
+        static commitStoreCopy(store: any, data: any) {
             return new Ext.Promise(function (resolve, reject) {
                 if (!store.entity) {
                     return;
@@ -191,9 +201,7 @@ namespace FastExt {
                     return;
                 }
                 let params = {"entityCode": store.entity.entityCode};
-                if (store.entity.menu) {
-                    params["menu"] = Store.getStoreMenuText(store);
-                }
+                params["menu"] = Store.getStoreMenuText(store);
                 let hasData = false;
                 for (let i = 0; i < data.length; i++) {
                     let record = data[i];
@@ -228,9 +236,9 @@ namespace FastExt {
 
         /**
          * 判断record是否被修改过
-         * @param record [Ext.data.Model]
+         * @param record
          */
-        static isModified(record): boolean {
+        static isModified(record: any): boolean {
             for (let name in record.data) {
                 try {
                     if (record.isModified(name)) {
@@ -248,7 +256,7 @@ namespace FastExt {
          * @param where 请求实体数据列表的接口参数 json对象
          * @param tree 是否用作Ext.tree.Panel
          */
-        static getEntityDataStore(entity, where?, tree?) {
+        static getEntityDataStore(entity: any, where?: any, tree?: any) {
             if (Ext.isEmpty(entity)) {
                 FastExt.Dialog.showAlert("系统提醒", "参数entity不可为空！");
                 return;
@@ -262,24 +270,12 @@ namespace FastExt {
                 treeConfig: tree,
                 proxy: {
                     type: 'ajax',
-                    url: 'entity/list',
+                    url: FastExt.Server.entityListUrl(),
                     actionMethods: {
                         create: 'POST',
                         read: 'POST',
                         update: 'POST',
                         destroy: 'POST'
-                    },
-                    listeners: {
-                        exception: function (obj, request, operation, eOpts) {
-                            try {
-                                let data = eval("(" + request.responseText + ")");
-                                if (!data.success) {
-                                    FastExt.Dialog.showAlert("数据获取失败", data.message, null, true, true);
-                                }
-                            } catch (e) {
-                                FastExt.Dialog.showAlert("数据获取失败", request.responseText, null, true, true);
-                            }
-                        }
                     },
                     reader: {
                         type: 'json',
@@ -302,7 +298,7 @@ namespace FastExt {
                             let newParams = {
                                 "entityCode": store.entity.entityCode,
                                 "limit": store.pageSize,
-                                "storeId": store.getId(),
+                                "storeId": store.getStoreCode(),
                             };
                             if (store.where) {
                                 for (let w in store.where) {
@@ -391,7 +387,7 @@ namespace FastExt {
             config.autoLoad = false;
             let entityStore;
             if (tree) {
-                if (!FastExt.System.silenceGlobalSave) {
+                if (!FastExt.System.InitHandler.isSilenceGlobalSaving()) {
                     config["root"] = {
                         expanded: true
                     };
@@ -400,16 +396,17 @@ namespace FastExt {
             } else {
                 entityStore = Ext.create('Ext.data.Store', config);
             }
-            entityStore.on("load", function (store) {
-                setTimeout(function () {
-                    try {
-                        if (store.grid) {
-                            store.grid.syncRowHeights();
-                        }
-                    } catch (e) {
-                    }
-                }, 300);
-            });
+            // 取消此功能，会造成treeStore下拉加载后 滚动条回滚到顶部问题
+            // entityStore.on("load", function (store) {
+            //     setTimeout(function () {
+            //         try {
+            //             if (store.grid) {
+            //                 store.grid.syncRowHeights();
+            //             }
+            //         } catch (e) {
+            //         }
+            //     }, 300);
+            // });
             return entityStore;
         }
 
@@ -424,7 +421,7 @@ namespace FastExt {
          * @param justData 只获取数据
          * @return Ext.data.Store
          */
-        static getEnumDataStore(enumName, firstData?, lastData?, params?, useCache?, reload?, justData?): any {
+        static getEnumDataStore(enumName: string, firstData?: any, lastData?: any, params?: any, useCache?: boolean, reload?: boolean, justData?: boolean): any {
             return new Ext.Promise(function (resolve, reject) {
                 FastExt.Store.getEnumDataArray(enumName, firstData, lastData, params, useCache, reload).then(function (dataArray) {
                     if (justData) {
@@ -450,7 +447,7 @@ namespace FastExt {
          * @param useCache
          * @param reload
          */
-        static getEnumDataArray(enumName, firstData?, lastData?, params?, useCache?, reload?) {
+        static getEnumDataArray(enumName: string, firstData?: any, lastData?: any, params?: any, useCache?: boolean, reload?: boolean) {
             return new Ext.Promise(function (resolve, reject) {
                 if (!params) {
                     params = {};
@@ -478,13 +475,13 @@ namespace FastExt {
                 };
 
                 if (!useCache || !FastExt.Cache.existEnumCache(enumName, cacheKey) || reload) {
-                    $.post("showEnums?enumName=" + enumName, params, function (result) {
+                    $.post(FastExt.Server.showEnumsUrl() + "?enumName=" + enumName, params, function (result) {
                         try {
                             if (result.success) {
                                 FastExt.Cache.setEnumCache(enumName, cacheKey, result.data);
                                 resolve(filterData());
                             } else {
-                                Ext.Msg.alert('枚举获取失败', result.message);
+                                FastExt.Dialog.showException("枚举获取失败！" + result.message, "getEnumDataArray");
                             }
                         } catch (e) {
                             FastExt.Dialog.showException(e, "获取枚举数据源！[getEnumDataStore]");
@@ -503,7 +500,7 @@ namespace FastExt {
          * @param attr 查找的匹配的属性名，默认属性名：id
          * @return Ext.data.Record
          */
-        static getEnumData(enumName, id, attr?): any {
+        static getEnumData(enumName: string, id: string, attr?: string): any {
             return new Ext.Promise(function (resolve, reject) {
                 if (!attr) {
                     attr = "id";
@@ -530,7 +527,7 @@ namespace FastExt {
          * Grid列渲染枚举接口
          * @param enumName
          */
-        static getEnumDataByRender(enumName) {
+        static getEnumDataByRender(enumName: string) {
             try {
                 let key = "Enum@" + enumName + "@Loading";
                 if (FastExt.Base.toBool(FastExt.Cache.memory[key], false)) {
@@ -832,7 +829,7 @@ namespace FastExt {
         }
 
         /**
-         * 获取yes或no的数据源
+         * 获取yes或no的数据源 1：是 0：否
          * @return Ext.data.Store
          */
         static getYesOrNoDataStore(): any {
@@ -851,6 +848,25 @@ namespace FastExt {
             });
         }
 
+        /**
+         * 获取yes或no的数据源 true：是 false：否
+         * @return Ext.data.Store
+         */
+        static getYesOrNoDataStore2(): any {
+            return Ext.create('Ext.data.Store', {
+                id: 'yesOrNoDataStore',
+                fields: ["id", "text"],
+                data: [
+                    {
+                        'text': '是',
+                        "id": 'true'
+                    },
+                    {
+                        'text': '否',
+                        "id": 'false'
+                    }]
+            });
+        }
 
         /**
          * 获取主题的数据源

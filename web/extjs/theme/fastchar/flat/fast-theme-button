@@ -9,17 +9,19 @@
 	box-shadow: transparent 0 0 0 0 !important;
 }
 
-.x-btn-wrap-default-toolbar-small.x-btn-arrow-right:after {
-    color: $[color] !important;
-}
 
 .x-btn{
-    border-radius: $[buttonRadius];
+    border-radius: ${buttonRadius};
+    min-height: 38px;
+    min-width: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .x-btn-default-small {
-	background-color: $[color];
-	border-color: $[color];
+	background-color: ${color};
+	border-color: ${color};
 	text-shadow: 1px 1px 1px black;
 }
 
@@ -28,50 +30,33 @@
 }
 
 .x-btn-over.x-btn-default-small {
-    background-color: $[color];
-	border-color: $[color];
-	filter:alpha(opacity=70);
-    -moz-opacity:0.7;
-    -khtml-opacity: 0.7;
-    opacity: 0.7;
+    background-color: ${color4};
+	border-color: ${color};
 }
 
 .x-btn-over .x-btn-default-small-mc {
-    background-color: $[color];
-	border-color: $[color];
-	filter:alpha(opacity=70);
-    -moz-opacity:0.7;
-    -khtml-opacity: 0.7;
-    opacity: 0.7;
+    background-color: ${color4};
+	border-color: ${color};
 }
 
 
 .x-btn-focus.x-btn-default-small {
-	background-color: $[color];
-	border-color: $[color];
+	background-color: ${color4};
+	border-color: ${color};
 }
-
 
 
 .x-btn-focus {
-	border-color: $[color] !important;
+	border-color: ${color} !important;
 }
 
 .x-btn-default-small-focus {
-	border-color:$[color] !important;
+	border-color:${color} !important;
 }
 
-.x-btn.x-btn-pressed.x-btn-default-small{
-	background-color: $[color];
-	border-color:$[color];
-	filter:alpha(opacity=50);
-    -moz-opacity:0.5;
-    -khtml-opacity: 0.5;
-    opacity: 0.5;
-}
 .x-btn.x-btn-disabled.x-btn-default-small{
-	background-color: $[color6];
-	border-color:$[color6];
+	background-color: ${color6};
+	border-color:${color6};
 }
 
 
@@ -80,10 +65,23 @@
 }
 
 .x-btn .x-unselectable .x-box-item .x-toolbar-item .x-btn-default-small .x-btn-menu-active{
-    border-color:$[color];
+    border-color:${color};
 }
+
 .x-btn.x-btn-menu-active.x-btn-default-small, .x-btn.x-btn-pressed.x-btn-default-small{
-    border-color:$[color];
+    border-color:${color};
     background-image: none;
-    background-color: $[color];
+    background-color: ${color4};
+}
+
+.x-btn-text.x-btn-icon-left > .x-btn-icon-el-default-toolbar-small{
+    margin-right:0;
+}
+
+.x-btn-default-toolbar-small{
+    background-color:#ffffff;
+}
+
+.x-btn-over.x-btn-default-toolbar-small{
+    background-color:#f0f0f0;
 }

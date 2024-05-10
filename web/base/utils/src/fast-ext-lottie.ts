@@ -7,25 +7,17 @@ namespace FastExt {
 
 
         /**
-         * lottie.min.js文件的路径
-         */
-        static lottieJsPath: string = "base/lottie/lottie.min.js";
-
-        /**
-         * 是否已加载了lottie.min.js文件
-         */
-        static loadedLottieJs: boolean;
-
-
-        /**
          * 渲染lottie json动画到指定的组件中
          * @param cmb 组件
          * @param jsonPath lottie动画的json数据地址
          * @param callBack 加载成后的回调
          */
         static loadJsonAnim(cmb, jsonPath, callBack?) {
-            FastExt.Lottie.loadJsonAnimByEl(FastExt.Base.getTargetBodyElement(cmb), jsonPath, callBack);
+            let lottieContainerId = FastExt.Base.buildOnlyCode("LTE");
+            cmb.update('<div id="' + lottieContainerId + '" ></div>');
+            FastExt.Lottie.loadJsonAnimByEl(document.getElementById(lottieContainerId), jsonPath, callBack);
         }
+
 
         /**
          * 渲染lottie json动画到指定的组件中
@@ -33,37 +25,25 @@ namespace FastExt {
          * @param jsonPath lottie动画的json数据地址
          * @param callBack 加载成后的回调
          */
-        static loadJsonAnimByEl(el, jsonPath, callBack?) {
-            let doLoad = function () {
-                FastExt.Lottie.loadedLottieJs = true;
-                if (el) {
-                    if (Ext.isEmpty(el.id)) {
-                        el.id = "fastchar-id-" + $.md5(FastExt.Base.buildUUID16());
-                    }
-                    FastExt.Cache.memory[el.id + "Lottie"] = bodymovin.loadAnimation({
-                        container: el,
-                        renderer: 'svg',
-                        loop: true,
-                        autoplay: true,
-                        path: jsonPath,
-                        rendererSettings: {
-                            progressiveLoad: false,
-                            hideOnTransparent: true
-                        }
-                    });
-                    FastExt.Cache.memory[el.id + "Lottie"].cacheId = el.id + "Lottie";
-                    if (callBack) {
-                        FastExt.Cache.memory[el.id + "Lottie"].addEventListener("data_ready", callBack);
-                    }
-                } else {
-                    console.error("加载Lottie动画失败！无法获取目标控件的BodyElement！");
+        static loadJsonAnimByEl(el: any, jsonPath: string, callBack?: any) {
+            if (el) {
+                if (Ext.isEmpty(el.id)) {
+                    el.id = "fastchar-id-" + $.md5(FastExt.Base.buildUUID16());
                 }
-
-            };
-            if (!this.loadedLottieJs) {
-                FastExt.System.addScript({src: FastExt.Lottie.lottieJsPath}, doLoad);
+                $(el).addClass("fast-lottie-container");
+                FastExt.Cache.memory[el.id + "Lottie"] = lottie.loadAnimation({
+                    container: el,
+                    renderer: 'svg',
+                    loop: true,
+                    autoplay: true,
+                    path: jsonPath
+                });
+                FastExt.Cache.memory[el.id + "Lottie"].cacheId = el.id + "Lottie";
+                if (callBack) {
+                    FastExt.Cache.memory[el.id + "Lottie"].addEventListener("data_ready", callBack);
+                }
             } else {
-                doLoad();
+                console.error("加载Lottie动画失败！无法获取目标控件的BodyElement！");
             }
         }
 

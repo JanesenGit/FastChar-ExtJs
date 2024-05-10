@@ -1,9 +1,17 @@
 .x-boundlist-selected {
-	background-color: $[color] !important;
-	border-color: $[color] !important;
+	background-color: ${color} !important;
+	border-color: ${color} !important;
 }
 
 .x-boundlist-item-over {
-	background-color: $[color] !important;
-	border-color: $[color] !important;
+	background-color: ${color} !important;
+	border-color: ${color} !important;
+}
+
+.x-boundlist{
+    border-radius: ${inputRadius};
+}
+
+.x-boundlist-item{
+    padding: 5px 10px;
 }

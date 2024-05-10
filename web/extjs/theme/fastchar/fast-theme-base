@@ -3,6 +3,11 @@ li.L5, li.L6, li.L7, li.L8 {
   list-style-type: decimal !important;
 }
 
+:root{
+    --themeColor:${color};
+    --frontColor:${fontColor}
+}
+
 pre.prettyprint {
     word-break: break-word;
 }
@@ -13,29 +18,25 @@ pre.prettyprint {
    border-radius: 0 !important;
 }
 
-
 *{
-     -moz-transition: opacity 300ms ,border-color 500ms ,box-shadow 300ms ,text-shadow 300ms !important;
-     -webkit-transition: opacity 300ms,border-color 500ms ,box-shadow 300ms,text-shadow 300ms !important;
-     -o-transition:opacity 300ms,border-color 500ms ,box-shadow 300ms,text-shadow 300ms !important;
-     transition:opacity 300ms,border-color 500ms ,box-shadow 300ms ,text-shadow 300ms !important;
-     line-height: $[fontSize6];
+     -moz-transition: border-radius 300ms,font-size 300ms,background-color 300ms,color 300ms ,opacity 300ms ,border-color 300ms ,box-shadow 300ms !important;
+     -webkit-transition: border-radius 300ms,font-size 300ms,background-color 300ms,color 300ms ,opacity 300ms,border-color 300ms ,box-shadow 300ms !important;
+     -o-transition: border-radius 300ms,font-size 300ms,background-color 300ms,color 300ms ,opacity 300ms,border-color 300ms ,box-shadow 300ms !important;
+     transition: border-radius 300ms,font-size 300ms,background-color 300ms,color 300ms ,opacity 300ms,border-color 300ms ,box-shadow 300ms !important;
 }
 
-
-
 ::selection {
-    background: $[color];
+    background: ${color};
     color: #ffffff;
 }
 
 ::-moz-selection {
-    background: $[color];
+    background: ${color};
     color: #ffffff;
 }
 
 ::-webkit-selection {
-    background: $[color];
+    background: ${color};
     color: #ffffff;
 }
 
@@ -64,9 +65,7 @@ pre.prettyprint {
     display: none;
 }
 
-.fast-system-color{
-    color:$[color];
-}
+
 
 /* 修改默认字体的大小*/
 .x-btn-default-small .x-btn-inner, .x-btn-default-medium .x-btn-inner,
@@ -81,13 +80,13 @@ pre.prettyprint {
 	.x-tab button, .x-grid-rowbody, .x-grid-row .x-grid-cell,
 	.x-grid-group-title, .x-grid-row-editor .x-form-field,
 	.x-grid-row-editor .x-form-display-field, .x-form-invalid-under,
-	.x-fieldset-header, .x-column-header, .x-mask-msg div,
+	.x-fieldset-header, .x-mask-msg div,
 	.x-btn-group-header-text-default-framed, table.x-datepicker-inner a,
 	.x-monthpicker-item, .x-dd-drag-ghost , .x-form-item-label ,
 	.x-window-body-default ,.x-tab-inner-default,.x-boundlist-item,
 	.x-form-text-default,.x-panel-body-default,.x-form-cb-label-default,
 	.x-body{
-	font-size: $[fontSize] !important;
+	font-size: ${fontSize} !important;
 	font-weight: 400;
 }
 
@@ -96,7 +95,7 @@ pre.prettyprint {
 }
 
 .x-title-text {
-    font-size: $[fontSize4] !important;
+    font-size:  calc(${fontSize} + 4px) !important;
 }
 
 .tdVTop{
@@ -171,31 +170,6 @@ body>.x-mask {
     pointer-events: none;
 }
 
-
-.redAlert .x-window-header-default{
-   background: red !important
-}
-
-.redAlert .x-btn-default-small{
-   background: red !important;
-   border-color:#DD5044 !important;
-}
-
-.redAlert .x-btn-default-small-focus{
-     background: red !important;
-     border-color:#DD5044 !important;
-}
-
-
-.bgImage{
-     background-image: linear-gradient(45deg, #ffffff 50%, #f6f6f6 0);
-     background-size: 30px 30px;
-}
-
-.bgNull{
-     background:transparent !important;
-}
-
 .iframe-disabled-panel{
     cursor: default !important;
     pointer-events: none !important;
@@ -205,16 +179,16 @@ body>.x-mask {
 }
 
 .edit-menu{
-    border-radius: $[inputRadius] !important;
+    border-radius: ${inputRadius} !important;
 }
 
 .edit-menu  .x-css-shadow{
-   border-radius: $[inputRadius] !important;
+   border-radius: ${inputRadius} !important;
 }
 
 .edit-details-menu{
-   //border-bottom-right-radius: $[inputRadius] !important;
-   //border-top-right-radius: $[inputRadius] !important;
+   /*border-bottom-right-radius: ${inputRadius} !important;*/
+   /*border-top-right-radius: ${inputRadius} !important;*/
 }
 
 
@@ -239,52 +213,15 @@ a {
   text-decoration: none;
 }
 
-.x-form-text-default{
-    min-height: 32px;
-}
 
 .x-btn-default-small{
    padding:8px !important;
 }
 
-.fast-textarea .x-form-trigger-wrap-default,.fast-contentfield .x-form-trigger-wrap-default{
-    border-radius: 8px !important;
-    overflow: hidden;
+.x-form-spinner-default{
+    background: transparent;
 }
 
-.fast-textarea .x-form-trigger-default,.fast-contentfield .x-form-trigger-default{
-    color: #444;
-    background:transparent !important;
-}
-
-
-
-.radiusNullField .x-form-trigger-wrap-default{
-   border-radius: 0 !important;
-}
-
-.fast-filefield .x-form-trigger-default{
-    background: transparent !important;
-    padding-top: 0 !important;
-}
-
-.fast-filefield .x-form-trigger-wrap-default{
-     border-radius: 0 !important;
-     -webkit-box-shadow:inset 0 0;
-     box-shadow:inset 0 0;
-}
-
-.fast-filefield-label-right .x-form-item-label-inner{
-    display: inline-flex;
-    align-items: center;
-    justify-content: flex-end;
-}
-
-.fast-filefield-label-left .x-form-item-label-inner{
-    display: inline-flex;
-    align-items: center;
-    justify-content: flex-start;
-}
 
 .x-mask-msg-text{
     padding: 0 0 0 0;
@@ -292,7 +229,7 @@ a {
 }
 
 
-.numberTip{
+.fast-number-tip {
     position: absolute;
     border-radius: 55px;
     background: red;
@@ -303,10 +240,6 @@ a {
     color: white;
     border:1px solid white;
     font-weight: bold;
-}
-
-.validSuccess .x-form-text{
-    color:green;
 }
 
 .x-form-cb-label-default{
@@ -320,18 +253,11 @@ a {
     justify-content: center;
 }
 
-.x-grid-item{
-    min-height: 35px;
-}
+
 
 .tox-tinymce{
    border:unset !important;
 }
-
-.x-tool{
-   text-shadow: 1px 1px 1px black;
-}
-
 
 .x-form-text-default .x-tagfield-item{
     line-height: 24px;
@@ -347,20 +273,6 @@ a {
     padding:5px 0 2px 6px;
 }
 
-.x-grid-dirty-cell > .x-grid-cell-inner:after{
-    color:red;
-    font-size: xx-large;
-    text-shadow: 1px 1px 1px black;
-}
-
-
-.x-grid-scrollbar-clipper-locked, .x-grid-scrollbar-locked {
-    overflow: hidden !important;
-}
-
-.x-grid-scrollbar-clipper > .x-tree-view{
-    overflow: hidden auto !important;
-}
 
 
 .desktop-start-menu{
@@ -368,23 +280,29 @@ a {
    border-bottom-right-radius: 0 !important;
 }
 
-.fast-grid-click{
-   color:blue;
-   cursor:pointer;
+.x-column-header-align-left .x-column-header-text-wrapper{
+    padding-left: 10px;
+}
+.x-column-header-align-right .x-column-header-text-wrapper{
+    padding-right: 10px;
 }
 
-.fast-grid-click:hover{
-   border-bottom: 1px solid;
-   color:red;
+.x-row-place-holder{
+    pointer-events: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-drag: none;
 }
 
-.fast-desktop-menu-path-click{
-    cursor:pointer;
+
+.x-grid-cell-inner-row-place-holder:before{
+    border:0px !important;
 }
 
-.fast-desktop-menu-path-click:hover{
-   filter:alpha(opacity=60) ;
-   -moz-opacity:0.6;
-   -khtml-opacity: 0.6;
-   opacity: 0.6;
+.x-tip{
+    border-radius: ${inputRadius};
+}
+
+.x-splitter{
+    border-radius: ${inputRadius};
 }

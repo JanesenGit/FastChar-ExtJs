@@ -29,7 +29,7 @@ namespace FastExt {
                     grid.deleteEnable = FastExt.Component.countVisible(grid.deleteButtons) > 0;
                 }
 
-                if (!grid.addEnable) {
+                if (!grid.checkAdd()) {
                     let checkAdds = grid.query("[checkAddPower=true]");
                     for (let i = 0; i < checkAdds.length; i++) {
                         checkAdds[i].setHidden(true);
@@ -37,14 +37,14 @@ namespace FastExt {
                     }
                 }
 
-                if (!grid.deleteEnable) {
+                if (!grid.checkDelete()) {
                     let checkDeletes = grid.query("[checkDeletePower=true]");
                     for (let i = 0; i < checkDeletes.length; i++) {
                         checkDeletes[i].setHidden(true);
                         checkDeletes[i].setDisabled(true);
                     }
                 }
-                if (!grid.updateEnable) {
+                if (!grid.checkUpdate()) {
                     let checkUpdates = grid.query("[checkUpdatePower=true]");
                     for (let i = 0; i < checkUpdates.length; i++) {
                         checkUpdates[i].setHidden(true);
@@ -87,10 +87,15 @@ namespace FastExt {
                             }
                             let checkSelect = item.checkSelect;
                             let disabled = false;
-                            if (checkSelect === "multiple" || checkSelect === "m" || checkSelect > 1) {
-                                disabled = !(selectSize > 0);
-                            } else if (checkSelect === "radio" || checkSelect === "r" || checkSelect === "single" || checkSelect === "s" || checkSelect === 1) {
-                                disabled = !(selectSize === 1);
+                            if (Ext.isFunction(checkSelect)) {
+                                //返回true 代表可用 false 不可用
+                                disabled = !checkSelect(grid.getSelection());
+                            } else {
+                                if (checkSelect === "multiple" || checkSelect === "m" || checkSelect > 1) {
+                                    disabled = !(selectSize > 0);
+                                } else if (checkSelect === "radio" || checkSelect === "r" || checkSelect === "single" || checkSelect === "s" || checkSelect === 1) {
+                                    disabled = !(selectSize === 1);
+                                }
                             }
                             FastExt.Button.setDisabled(item, disabled);
                         }
@@ -98,6 +103,18 @@ namespace FastExt {
                 }
             } catch (e) {
                 console.error(e);
+            }
+        }
+
+        /**
+         * 刷新grid的选择数据，刷新分页栏【作用域必须为grid】
+         */
+        static doRefreshToolPaging() {
+            let grid = <any>this;
+            let pagingToolBar = grid.child('#pagingToolBar');
+            if (pagingToolBar) {
+                pagingToolBar.selectCount = grid.getSelection().length;
+                pagingToolBar.updateInfo();
             }
         }
 
@@ -397,9 +414,12 @@ namespace FastExt {
         /**
          * 检测grid是否允许添加数据【作用域必须为grid】
          */
-        static doCheckAdd(): boolean {
+        static doCheckAdd(checkAddButton?: boolean): boolean {
             let grid = <any>this;
-            if (FastExt.System.isSuperRole()) {
+            if (Ext.isEmpty(checkAddButton)) {
+                checkAddButton = false;
+            }
+            if (!checkAddButton && FastExt.System.ManagerHandler.isSuperRole()) {
                 return true;
             }
             return grid.addEnable;
@@ -408,12 +428,29 @@ namespace FastExt {
         /**
          * 检测grid是否允许删除数据【作用域必须为grid】
          */
-        static doCheckDelete(): boolean {
+        static doCheckDelete(checkDeleteButton?: boolean): boolean {
             let grid = <any>this;
-            if (FastExt.System.isSuperRole()) {
+            if (Ext.isEmpty(checkDeleteButton)) {
+                checkDeleteButton = false;
+            }
+            if (!checkDeleteButton && FastExt.System.ManagerHandler.isSuperRole()) {
                 return true;
             }
             return grid.deleteEnable;
+        }
+
+        /**
+         * 检测grid是否允许修改数据【作用域必须为grid】
+         */
+        static doCheckUpdate(checkUpdateButton?: boolean): boolean {
+            let grid = <any>this;
+            if (Ext.isEmpty(checkUpdateButton)) {
+                checkUpdateButton = false;
+            }
+            if (!checkUpdateButton && FastExt.System.ManagerHandler.isSuperRole()) {
+                return true;
+            }
+            return FastExt.Base.toBool(grid.updateEnable, true);
         }
 
         /**
@@ -516,6 +553,19 @@ namespace FastExt {
             } catch (e) {
                 console.error(e);
             }
+        }
+
+        /**
+         * 显示数据操作日志
+         */
+        static doShowDataLog(obj?: any) {
+            let grid = <any>this;
+            let data = grid.getSelection()[0];
+            let entityObj = eval("new ExtSystemDataLogEntity()");
+            entityObj.showWinList(obj, "操作日志", {
+                dataType: grid.getStore().entity.tableName,
+                dataId: data.get(grid.getStore().entity.idProperty[0]),
+            }, true);
         }
 
     }

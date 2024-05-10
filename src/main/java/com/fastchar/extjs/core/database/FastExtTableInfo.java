@@ -45,6 +45,10 @@ public class FastExtTableInfo extends FastTableInfo<FastExtTableInfo> {
         return mapWrap.getBoolean("recycle");
     }
 
+    public boolean isDataLog() {
+        return mapWrap.getBoolean("data_log");
+    }
+
 
     public FastExtColumnInfo getLayerColumn() {
         return mapWrap.getObject("__layerColumn");
@@ -54,7 +58,7 @@ public class FastExtTableInfo extends FastTableInfo<FastExtTableInfo> {
         return mapWrap.getObject("__bindLayerColumn");
     }
 
-    public FastExtColumnInfo getSameLinkColumn() {
+    public FastExtColumnInfo getBindSameColumn() {
         return mapWrap.getObject("__bindSameColumn");
     }
 
@@ -152,7 +156,7 @@ public class FastExtTableInfo extends FastTableInfo<FastExtTableInfo> {
         if (FastStringUtils.isNotEmpty(layer) && !getMapWrap().getBoolean("rootLayer", false)) {
             FastExtConfig instance = FastExtConfig.getInstance();
             if (instance.isStrictBindLayer()) {
-                if (bindLayers.size() == 0 && countLink > 0) {
+                if (bindLayers.isEmpty() && countLink > 0) {
                     throw new FastDatabaseException(FastChar.getLocal().getInfo("Db_Table_Error4", getName())
                             + "\n\tat " + getStackTrace("layer"));
                 }

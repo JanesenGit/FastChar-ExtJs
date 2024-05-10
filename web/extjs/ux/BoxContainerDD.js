@@ -7,6 +7,7 @@ Ext.define('Ext.ux.dd.BoxContainerDD', {
     /**
      * @method alignElWithMouse
      * @member Ext.dd.DD
+     * 
      */
     alignElWithMouse: function(el, iPageX, iPageY) {
         var me = this,

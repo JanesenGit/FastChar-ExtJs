@@ -1,12 +1,14 @@
 package com.fastchar.extjs.action;
 
+import com.fastchar.annotation.AFastPriority;
 import com.fastchar.core.FastAction;
 import com.fastchar.core.FastChar;
 import com.fastchar.extjs.FastExtConfig;
-import com.fastchar.extjs.core.heads.FastHeadExtInfo;
+import com.fastchar.extjs.annotation.AFastSecurityResponse;
 import com.fastchar.extjs.entity.ExtManagerEntity;
 import com.fastchar.extjs.entity.ExtManagerRoleEntity;
 import com.fastchar.extjs.entity.ExtSystemConfigEntity;
+import com.fastchar.utils.FastStringUtils;
 
 import java.util.HashMap;
 import java.util.List;
@@ -26,6 +28,14 @@ public class ExtConfigAction extends FastAction {
         setLog(false);
     }
 
+
+    private String getProjectName() {
+        String projectName = FastChar.getConstant().getProjectName();
+        if (FastStringUtils.isEmpty(projectName)) {
+            projectName = getProjectHost();
+        }
+        return projectName;
+    }
 
     /**
      * 保存ExtJs配置
@@ -47,7 +57,7 @@ public class ExtConfigAction extends FastAction {
 
         ExtSystemConfigEntity extConfigEntity = new ExtSystemConfigEntity();
         extConfigEntity.set("managerId", managerEntity.getId());
-        extConfigEntity.set("projectName", FastChar.getConstant().getProjectName());
+        extConfigEntity.set("projectName", getProjectName());
         extConfigEntity.set("configKey", configKey);
         extConfigEntity.set("configType", configType);
         extConfigEntity.set("configValue", configValue);
@@ -78,6 +88,7 @@ public class ExtConfigAction extends FastAction {
      * configKey 配置的key
      * configType 配置的类型
      */
+    @AFastSecurityResponse
     public void showExtConfig() {
 
         ExtManagerEntity managerEntity =  ExtManagerEntity.getSession(this);
@@ -89,7 +100,7 @@ public class ExtConfigAction extends FastAction {
         String configType = getParam("configType", true);
 
         ExtSystemConfigEntity extConfig = ExtSystemConfigEntity.getInstance().set("log", false)
-                .getExtConfig(managerEntity.getId(), FastChar.getConstant().getProjectName(),configKey, configType);
+                .getExtConfig(managerEntity.getId(), getProjectName(),configKey, configType);
         if (extConfig != null) {
             responseJson(0, "获取成功！", extConfig);
         }else{
@@ -112,7 +123,7 @@ public class ExtConfigAction extends FastAction {
         }
         String configKey = getParam("configKey", true);
         String configType = getParam("configType", true);
-        ExtSystemConfigEntity.getInstance().set("log", false).deleteConfig(managerEntity.getId(), FastChar.getConstant().getProjectName(), configKey, configType);
+        ExtSystemConfigEntity.getInstance().set("log", false).deleteConfig(managerEntity.getId(), getProjectName(), configKey, configType);
         responseJson(0, "删除成功！");
     }
 
@@ -122,6 +133,7 @@ public class ExtConfigAction extends FastAction {
      * 参数：
      * entityCode 实体编号
      */
+    @AFastSecurityResponse
     public void showEntityColumn() {
         ExtManagerEntity managerEntity =  ExtManagerEntity.getSession(this);
         if (managerEntity == null) {
@@ -156,7 +168,7 @@ public class ExtConfigAction extends FastAction {
             ExtSystemConfigEntity extConfigEntity = new ExtSystemConfigEntity();
             extConfigEntity.set("managerId", -1);
             extConfigEntity.set("configKey", stringObjectEntry.getKey());
-            extConfigEntity.set("projectName", FastChar.getConstant().getProjectName());
+            extConfigEntity.set("projectName", getProjectName());
             extConfigEntity.set("configType", "System");
             extConfigEntity.set("configValue", stringObjectEntry.getValue());
             extConfigEntity.put("log", false);
@@ -171,13 +183,9 @@ public class ExtConfigAction extends FastAction {
      * 参数：
      * 无
      */
+    @AFastSecurityResponse
     public void showSystemConfig() {
         Map<String, Object> data = new HashMap<>(16);
-
-        List<FastHeadExtInfo> extInfo = FastExtConfig.getInstance().getExtInfo();
-        for (FastHeadExtInfo fastHeadExtInfo : extInfo) {
-            data.put(fastHeadExtInfo.getName(), fastHeadExtInfo.getValue());
-        }
         List<ExtSystemConfigEntity> system = ExtSystemConfigEntity.getInstance().getExtConfigs(-1, "System");
         for (ExtSystemConfigEntity extSystemConfigEntity : system) {
             data.put(extSystemConfigEntity.getConfigKey(), extSystemConfigEntity.getConfigValue());

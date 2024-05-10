@@ -6,7 +6,8 @@ namespace FastExt{
      */
     export class Plugins{
 
-        constructor() {
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
             Ext.define('Ext.plugin.ShowLazyItems', {
                 extend: 'Ext.plugin.Abstract',
                 alias: 'plugin.showlazyitems',

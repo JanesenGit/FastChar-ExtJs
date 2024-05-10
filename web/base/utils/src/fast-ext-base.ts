@@ -3,8 +3,7 @@ namespace FastExt {
      * 常规功能方法
      */
     export class Base {
-        private constructor() {
-        }
+        static onlyIterator = 1;
 
         /**
          * 获取浏览器的操作系统
@@ -122,42 +121,6 @@ namespace FastExt {
             return newObj;
         }
 
-
-        /**
-         * 动态加载字符串函数，字符串的函数必须为匿名
-         * @param functionStr
-         * @returns 函数对象
-         * @example
-         * loadFunction("function(val){return val+1;}");
-         */
-        static loadFunction(functionStr: string): any {
-            try {
-                // @ts-ignore
-                if (functionStr.toString().trim().startsWith("function")) {
-                    let functionKey = "do" + $.md5(functionStr);
-
-                    if (Ext.isEmpty(FastExt.Cache.memory[functionKey])) {
-                        let myScript = document.createElement("script");
-                        myScript.type = "text/javascript";
-                        let code = "let " + functionKey + "=" + functionStr;
-                        try {
-                            myScript.appendChild(document.createTextNode(code));
-                        } catch (ex) {
-                            myScript.text = code;
-                        }
-                        document.body.appendChild(myScript);
-                        FastExt.Cache.memory[functionKey] = true;
-                    }
-                    return eval(functionKey);
-                    // 不可使用此方法，会照成函数内变量作用域不同
-                    // return eval("(function(){return " + functionStr + " })()");
-                }
-            } catch (e) {
-            }
-            return function () {
-            };
-        }
-
         /**
          * 动态触发浏览器下载文件
          * @param url 文件的下载路径
@@ -187,20 +150,7 @@ namespace FastExt {
          * @see {@link FastEnum.Target}
          */
         static openUrl(url: string, target?: FastEnum.Target) {
-            if (Ext.isEmpty(target)) {
-                target = FastEnum.Target._blank;
-            }
-            let a = document.createElement("a");
-            if (!a.click) {
-                window.location.href = url;
-                return;
-            }
-            a.setAttribute("href", url);
-            a.setAttribute("target", target);
-            a.style.display = "none";
-            $(document.body).append(a);
-            a.click();
-            $(a).remove();
+            FastExt.Windows.openUrl(url, target);
         }
 
 
@@ -238,7 +188,10 @@ namespace FastExt {
          * @param prefix 唯一标识的前缀
          */
         static buildOnlyNumber(prefix): string {
-            return prefix + Ext.now();
+            if (FastExt.Base.onlyIterator > 99) {
+                FastExt.Base.onlyIterator = 1;
+            }
+            return prefix + Ext.now() + (FastExt.Base.onlyIterator++);
         }
 
 
@@ -518,10 +471,10 @@ namespace FastExt {
          * @param defaultValue 默认值，当对象数据为空时返回
          */
         static toString(value, defaultValue): string {
-            if (defaultValue === undefined || defaultValue === null ) {
+            if (defaultValue === undefined || defaultValue === null) {
                 defaultValue = value;
             }
-            if (Ext.isEmpty(value) ) {
+            if (Ext.isEmpty(value)) {
                 return defaultValue;
             }
             return value.toString();
@@ -533,7 +486,7 @@ namespace FastExt {
          * @param defaultValue 默认值，当对象数据为空时返回
          */
         static toInt(value, defaultValue): number {
-            if (defaultValue === undefined || defaultValue === null ) {
+            if (defaultValue === undefined || defaultValue === null) {
                 defaultValue = value;
             }
             if (Ext.isEmpty(value) || isNaN(value)) {
@@ -549,7 +502,7 @@ namespace FastExt {
          * @param maxLength
          */
         static toMaxString(value, maxLength): string {
-            let realString = FastExt.Base.toString(value,"");
+            let realString = FastExt.Base.toString(value, "");
             if (realString.length > maxLength) {
                 return realString.substring(0, maxLength) + "…";
             }
@@ -587,7 +540,7 @@ namespace FastExt {
         /**
          * 将数字转成字节单位表示
          */
-        static toByteUnit(value, digits?) {
+        static toByteUnit(value:string, digits?:number) {
             if (Ext.isEmpty(digits)) {
                 digits = 2;
             }
@@ -609,6 +562,117 @@ namespace FastExt {
             }
             return aLong + "B";
         }
+
+        /**
+         * 替换占位符 ${key}或$[key]
+         * @param mapValue key-value对象值
+         * @param content 替换的内容
+         * @return 替换后的内容
+         */
+        static replacePlaceholder(mapValue: object, content: string): string {
+            const reg_str = /(\$[{\[][^{}\[\]]+[}\]])/g;
+            const result = content.match(reg_str);
+            if (!result) {
+                return;
+            }
+            const keyMap = {};
+            for (let regKey of result) {
+                let runKey = regKey.replace("[", "").replace("]", "").replace("{", "").replace("}", "").replace("$", "");
+                keyMap[regKey] = mapValue[runKey];
+            }
+            for (let keyMapKey in keyMap) {
+                // @ts-ignore
+                content = content.replaceAll(keyMapKey, keyMap[keyMapKey]);
+            }
+            return content;
+        }
+
+
+        /**
+         * 计算两个数之间的最大公约数
+         * @param num1
+         * @param num2
+         * @return {number}
+         */
+        static computeMaxDivisor(num1: number, num2: number): number {
+            if ((num1 - num2) < 0) {
+                var k = num1;
+                num1 = num2;
+                num2 = k;
+            }
+            while (num2 !== 0) {
+                let remainder = num1 % num2;
+                num1 = num2;
+                num2 = remainder;
+            }
+            return num1;
+        }
+
+
+
+        /**
+         * 格式化url地址，返回带上系统版本号参数
+         * @param url
+         * @param params
+         */
+        static formatUrlVersion(url: string, params?:any): string {
+            if (Ext.isEmpty(url)) {
+                return url;
+            }
+            let urlArray = url.split("@");
+            url = urlArray[0];
+            let newUrl = url;
+            if (url.indexOf("v=") < 0) {
+                if (url.indexOf("?") > 0) {
+                    newUrl = url + "&v=" + FastExt.System.ConfigHandler.getSystemVersionInt();
+                } else {
+                    newUrl = url + "?v=" + FastExt.System.ConfigHandler.getSystemVersionInt();
+                }
+            }
+            if (params) {
+                for (let key in params) {
+                    if (params.hasOwnProperty(key)) {
+                        newUrl = newUrl + "&" + key + "=" + params[key];
+                    }
+                }
+            }
+            urlArray[0] = newUrl;
+            return urlArray.join("@");
+        }
+
+        /**
+         * 格式化url地址，如果没有http开头，则自动拼接当前系统的http地址
+         * @param url
+         * @param params
+         */
+        static formatUrl(url:string, params?:any): string {
+            if (Ext.isEmpty(url)) {
+                return url;
+            }
+            // @ts-ignore
+            if (url.startWith("http://") || url.startWith("https://")) {
+                return this.formatUrlVersion(url, params);
+            }
+            if (FastExt.System.ConfigHandler.getSystemHttp()) {
+                return this.formatUrlVersion(FastExt.System.ConfigHandler.getSystemHttp() + url, params);
+            }
+            return this.formatUrlVersion(url, params);
+        }
+
+
+        /**
+         * 猜测文本的宽度
+         * @param text 文本内容
+         * @param space 容差值，默认2.5
+         */
+        static guessTextWidth(text:string,space?:number) {
+            if(Ext.isEmpty(space)) {
+                space = 2.5;
+            }
+            return (text.length + space) * FastExt.System.ConfigHandler.getFontSizeNumber();
+        }
+
+
 
     }
 }

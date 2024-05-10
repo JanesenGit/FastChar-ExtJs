@@ -9,14 +9,14 @@ import com.fastchar.validators.FastBaseValidator;
 
 public class FastEnumValidator extends FastBaseValidator {
     @Override
-    public String validate(String validator, String key, Object value) {
-        if (value != null && validator.startsWith("@")) {
+    public String validate(String validator, Object[] arguments, String paramName, Object paramValue) {
+        if (paramValue != null && validator.startsWith("@")) {
             String[] split = validator.split(":");
             String enumName = split[0].replace("@", "");
             IFastExtEnum enumClass = FastChar.getOverrides().singleInstance(false, IFastExtEnum.class, enumName);
             if (enumClass != null) {
                 try {
-                    FastEnumInfo anEnum = enumClass.getEnum(FastNumberUtils.formatToInt(value, -1));
+                    FastEnumInfo anEnum = enumClass.getEnum(FastNumberUtils.formatToInt(paramValue, -1));
                     if (anEnum == null) {
                         String message = null;
                         if (split.length == 2) {
@@ -25,10 +25,10 @@ public class FastEnumValidator extends FastBaseValidator {
                         if (FastStringUtils.isEmpty(message)) {
                             message = "参数{0}值错误！";
                         }
-                        return formatMessage(message, key);
+                        return formatMessage(message, paramName);
                     }
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    FastChar.getLogger().error(this.getClass(), e);
                 }
             }
         }

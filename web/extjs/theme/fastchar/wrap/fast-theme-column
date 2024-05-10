@@ -1,44 +1,57 @@
 .x-column-header {
 	font-weight: 600;
 	color:#000000;
+	border-color: #ffffff;
+	background-color: #f0f0f0;
+	min-height: calc(${rowHeight} + 5px);
+    text-shadow: 1px 1px 1px white;
+    display: grid;
+    align-items: center;
+    justify-content: center;
+    top:0 !important;
+    background:linear-gradient(0deg, ${color2}, #f7f7f7);
+    text-shadow: 1px 1px 1px white;
 }
+
+.x-column-header-inner {
+    padding: 0;
+    min-height: calc(${rowHeight} + 5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 
 .x-column-header-text {
 	min-Width: 30px !important;
 }
 
-
-.x-column-header-checkbox .x-column-header-inner {
-    padding: 7px 4px 7px 4px !important;
-}
-
-.x-column-header{
-    background:linear-gradient(0deg, $[color2], #fefefe);
-    text-shadow: 1px 1px 1px white;
-}
-
 .x-column-header-over{
-    background: linear-gradient(0deg, #fefefe, $[color2]) !important;
+    background: linear-gradient(0deg, #f7f7f7, ${color2}) !important;
 }
 
 .x-column-header-open{
-     background: linear-gradient(0deg, #fefefe, $[color6]) !important;
+     background: linear-gradient(0deg, #f7f7f7, ${color6}) !important;
+}
+
+.x-column-header-trigger{
+    border-color:#ffffff;
 }
 
 .x-column-header-open .x-column-header-trigger {
-    background: linear-gradient(0deg, #fefefe, $[color6]) !important;
+    background: linear-gradient(0deg, #f7f7f7, ${color6}) !important;
 }
 
 .x-column-header-over .x-column-header-trigger {
-     background: linear-gradient(0deg, #fefefe, $[color6]) !important;
+     background: linear-gradient(0deg, #f7f7f7, ${color6}) !important;
 }
 .x-column-header-default-focus{
-     background: linear-gradient(0deg, #fefefe, $[color6]) !important;
+     background: linear-gradient(0deg, #f7f7f7, ${color6}) !important;
  }
 .x-column-header-over .x-column-header-trigger, .x-column-header-open .x-column-header-trigger {
-    color: $[color] !important;
+    color: ${color} !important;
 }
 
 .x-column-header.x-column-header-focus .x-column-header-inner:after {
-	border-color: $[color];
+	border-color: ${color};
 }

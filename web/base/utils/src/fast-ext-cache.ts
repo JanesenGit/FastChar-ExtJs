@@ -114,6 +114,24 @@ namespace FastExt {
             this.memory[enumName] = null;
         }
 
+
+        /**
+         * 清空枚举的缓存
+         * @param enumName 枚举名称
+         */
+        static clearEnumCacheBySearch(enumName: string) {
+            let waitRemoveKey = [];
+            for (let memoryKey in this.memory) {
+                if (memoryKey.indexOf(enumName) >= 0) {
+                    waitRemoveKey.push(memoryKey);
+                }
+            }
+            for (let waitRemoveKeyElement of waitRemoveKey) {
+                delete this.memory[waitRemoveKeyElement];
+                this.memory[waitRemoveKeyElement] = null;
+            }
+        }
+
     }
 
 }

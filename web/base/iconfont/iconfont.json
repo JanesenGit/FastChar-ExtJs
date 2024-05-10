@@ -6,6 +6,69 @@
   "description": "",
   "glyphs": [
     {
+      "icon_id": "10995746",
+      "name": "旗帜1-01",
+      "font_class": "Flag",
+      "unicode": "e671",
+      "unicode_decimal": 58993
+    },
+    {
+      "icon_id": "1203",
+      "name": "向左",
+      "font_class": "Flat",
+      "unicode": "e670",
+      "unicode_decimal": 58992
+    },
+    {
+      "icon_id": "21924181",
+      "name": "上升",
+      "font_class": "Rise",
+      "unicode": "e66d",
+      "unicode_decimal": 58989
+    },
+    {
+      "icon_id": "21924182",
+      "name": "下降",
+      "font_class": "Decline",
+      "unicode": "e66f",
+      "unicode_decimal": 58991
+    },
+    {
+      "icon_id": "19486010",
+      "name": "向右三角箭头-1",
+      "font_class": "RightArrow",
+      "unicode": "e6ad",
+      "unicode_decimal": 59053
+    },
+    {
+      "icon_id": "12446343",
+      "name": "退出全屏",
+      "font_class": "ExitFullscreen",
+      "unicode": "e7d6",
+      "unicode_decimal": 59350
+    },
+    {
+      "icon_id": "9973211",
+      "name": "全屏",
+      "font_class": "Fullscreen",
+      "unicode": "e66e",
+      "unicode_decimal": 58990
+    },
+    {
+      "icon_id": "5169513",
+      "name": "历史",
+      "font_class": "History3",
+      "unicode": "e6d0",
+      "unicode_decimal": 59088
+    },
+    {
+      "icon_id": "3445230",
+      "name": "放大",
+      "font_class": "Max",
+      "unicode": "e6e8",
+      "unicode_decimal": 59112
+    },
+    {
       "icon_id": "32064304",
       "name": "箭头-copy",
       "font_class": "ArrowLeft2-copy",

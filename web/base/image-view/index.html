@@ -22,12 +22,13 @@
     </style>
 </head>
 <body onload="onLoad()">
-<img id="image">
+<img id="image" alt="图片" src=""/>
 </body>
 
 <script>
     var lastViewer = null;
-    function showImage(src,http) {
+
+    function showImage(src, http) {
         var imageElement = document.getElementById('image');
         imageElement.src = src;
         if (!lastViewer) {
@@ -44,35 +45,51 @@
                 }
             });
             lastViewer.show();
-        }else{
+        } else {
             lastViewer.update();
         }
     }
 
     function reset() {
-        lastViewer.reset();
+        if (lastViewer) {
+            lastViewer.reset();
+        }
     }
 
     function zoomOut() {
-        lastViewer.zoom(0.1);
+        if (lastViewer) {
+            lastViewer.zoom(0.1);
+        }
     }
+
     function zoomIn() {
-        lastViewer.zoom(-0.1);
+        if (lastViewer) {
+            lastViewer.zoom(-0.1);
+        }
     }
 
     function oneOne() {
-        lastViewer.zoomTo(1);
+        if (lastViewer) {
+            lastViewer.zoomTo(1);
+        }
     }
+
     function rotate() {
-        lastViewer.rotate(90);
+        if (lastViewer) {
+            lastViewer.rotate(90);
+        }
     }
 
-    function flipA(){
-        lastViewer.scaleX(-lastViewer.imageData.scaleX || -1);
+    function flipA() {
+        if (lastViewer) {
+            lastViewer.scaleX(-lastViewer.imageData.scaleX || -1);
+        }
     }
 
-    function flipB(){
-        lastViewer.scaleY(-lastViewer.imageData.scaleY || -1);
+    function flipB() {
+        if (lastViewer) {
+            lastViewer.scaleY(-lastViewer.imageData.scaleY || -1);
+        }
     }
 
     function onLoad() {

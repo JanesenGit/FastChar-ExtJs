@@ -1,4 +1,4 @@
 .x-css-shadow {
-    box-shadow:0 0 8px 2px $[color8] !important;
-    border-radius: 8px;
+    box-shadow:0 0 8px 2px ${color8} !important;
+    border-radius: ${inputRadius};
 }

@@ -35,7 +35,7 @@
 .fast-desktop-item-icon{
     width: 100%;
     background: #fff;
-    border-radius: 8px;
+    border-radius: ${inputRadius};
     display: flex;
     align-items: center;
     justify-content: center;
@@ -54,7 +54,7 @@
 .fast-desktop-item-icon-grid{
     width: 100%;
     background: #fff;
-    border-radius: 8px;
+    border-radius: ${inputRadius};
     display: grid;
     align-items: center;
     justify-content: center;
@@ -64,7 +64,7 @@
     grid-template-columns: 1fr 1fr;
     grid-template-rows: 1fr 1fr;
 
-    border-radius: 15px;
+    border-radius: calc(${inputRadius} * 2);
     border: 1px solid #ffffff;
 }
 

@@ -1,0 +1,106 @@
+{
+  "$schema": "fastchar-extjs.schema.json",
+  "priority": 0,
+  "title": "后台标题",
+  "icon": "logo_default.png",
+  "web_type": "unify",
+  "version": {
+    "value": 1,
+    "desc": "V1.0"
+  },
+  "copyright": {
+    "value": "版权描述",
+    "url": "http://www.fastchar.com"
+  },
+  "developer": {
+    "value": "开发者",
+    "url": "http://www.fastchar.com"
+  },
+  "restart": false,
+  "init": 1,
+  "theme": "extjs/theme/fast-theme-wrap",
+  "appjs_dir": ["/app"],
+  "appjs_bin": "bin/app.js",
+  "appjs_bin_enable": true,
+  "theme_color": "#2aa366",
+  "front_color": "#fecd52",
+  "system_logo": "logo_default.png",
+  "login_logo": "logo_default.png",
+  "system_layout": "normal",
+  "desktop_menu_record": true,
+  "desktop_bg_images": ["base/desktop/desktop_bg_img_default.jpg"],
+  "window_anim": true,
+  "tab_theme": true,
+  "login_type": "security",
+  "login_background": "base/login/background/index.html",
+  "login_lottie_json": "base/login/animation/default.json",
+  "amap_key": "67cadaa12096fff27e6b85875c129c96",
+  "amap_security": "5be1d8a994c5f2c65c4e1cda56bc3a69",
+  "amap_version": "2.0",
+  "amap_default_lnglat": null,
+  "doc_extjs": "https://www.fastchar.com/doc_extjs",
+  "font_size": "14px",
+  "front_radius": "8px",
+  "grid_row_height": "45px",
+  "script": [],
+  "style": [],
+  "power_setting": false,
+  "google_authentication": false,
+  "google_authentication_title": "Google双向验证器",
+  "google_authentication_app_url": "",
+  "only_office_js": null,
+  "only_office_secret": null,
+  "login_js": "base/login/login.min.js",
+  "index_js": "base/index/index.min.js",
+  "changelog": null,
+  "menu": [
+    {
+      "text": "系统管理",
+      "icon": "icons/icon_system.svg",
+      "color": "#theme_color",
+      "index": 9,
+      "children": [
+        {
+          "text": "管理员角色",
+          "method": "showList('ExtManagerRoleEntity')",
+          "icon": "icons/icon_role.svg",
+          "desktop": "true",
+          "desktop_align": "right",
+          "desktop_index": "0"
+        },
+        {
+          "text": "管理员信息",
+          "method": "showList('ExtManagerEntity')",
+          "icon": "icons/icon_admin.svg",
+          "desktop": "true",
+          "desktop_align": "right",
+          "desktop_index": "1"
+        }
+      ]
+    },
+    {
+      "text": "系统管理",
+      "icon": "icons/icon_system.svg",
+      "color": "#theme_color",
+      "index": 9,
+      "children": [
+        {
+          "text": "管理员角色",
+          "method": "showList('ExtManagerRoleEntity')",
+          "icon": "icons/icon_role.svg",
+          "desktop": "true",
+          "desktop_align": "right",
+          "desktop_index": "0"
+        },
+        {
+          "text": "管理员信息",
+          "method": "showList('ExtManagerEntity')",
+          "icon": "icons/icon_admin.svg",
+          "desktop": "true",
+          "desktop_align": "right",
+          "desktop_index": "1"
+        }
+      ]
+    }
+  ]
+}

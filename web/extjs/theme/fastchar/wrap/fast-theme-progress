@@ -1,3 +1,7 @@
 .x-progress-bar-default {
-	background-color:$[color] !important;
+	background-color:${color} !important;
+}
+
+.x-progress{
+    border-radius: ${inputRadius};
 }

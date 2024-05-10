@@ -4,7 +4,8 @@ namespace FastExt {
      * 请求后台接口
      */
     export class Server {
-        private constructor() {
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
             Server.initExtAjaxConfig();
             Server.initJQueryConfig();
         }
@@ -16,14 +17,59 @@ namespace FastExt {
         static silence: boolean;
 
         private static getGlobalParams() {
-            return {
+            if (!FastExt.CallSites.isFastExtUtilsCall()) {
+                console.warn("请勿非法执行核心代码！");
+                return {};
+            }
+            let param = {
                 "fromOS": FastExt.Base.getOS(),
                 "managerWeb": true,
-                "webVersion": FastExt.System.getExt("version").value,
                 "__browser": Ext.browser.name,
-                "__managerId": FastExt.System.getManagerId(),
+                "__managerId": FastExt.System.ManagerHandler.getManagerId(),
             };
+            if (FastExt.System.InitHandler.isInit()) {
+                param["webVersion"] = FastExt.System.ConfigHandler.getSystemVersionInt();
+            }
+            return param;
         }
+
+        private static getApiHost() {
+            return FastExt.System.ConfigHandler.getApiHost();
+        }
+
+        public static getSessionId() {
+            return FastExt.System.ConfigHandler.getSessionId();
+        }
+
+        private static safeToObj(response: string): any {
+            if (Ext.isEmpty(response)) {
+                return {};
+            }
+            if(Ext.isObject(response)){
+                return response;
+            }
+            try {
+                let json = FastExt.Json.jsonToObject(response);
+                if (json) {
+                    return json;
+                }
+            } catch (e) {
+            }
+            return {};
+        }
+
+        static checkResponse(httpRequest: any) {
+            if (httpRequest.status === 203) {
+                let response = FastExt.Server.safeToObj(httpRequest.response);
+                FastExt.LoginLayout.showSessionOut(response.message);
+            } else if (httpRequest.status === 403) {
+                FastExt.Dialog.showAlert("请求异常", httpRequest.response);
+            } else if (httpRequest.code === 203) {
+                let response = FastExt.Server.safeToObj(httpRequest.response);
+                FastExt.LoginLayout.showSessionOut(response.message);
+            }
+        }
+
 
         private static initExtAjaxConfig() {
             Ext.Ajax.on('beforerequest', function (conn, options, eObj) {
@@ -31,8 +77,6 @@ namespace FastExt {
                     if (FastExt.Server.isSilenceRequest()) {
                         return;
                     }
-                    FastExt.System.getProgressLine(FastExt.Color.toColor(FastExt.System.getExt("front-color").value)).set(0);
-                    FastExt.System.getProgressLine(FastExt.Color.toColor(FastExt.System.getExt("front-color").value)).animate(0.7);
                 } catch (e) {
                 } finally {
                     let fromGlobal = FastExt.Server.getGlobalParams();
@@ -40,98 +84,37 @@ namespace FastExt {
                     conn.setExtraParams(fromGlobal);
                 }
             });
-
-            Ext.Ajax.on('requestcomplete', function (conn, response, options) {
-                try {
-                    if (response.status === 203) {
-                        FastExt.System.sessionOut();
-                    } else if (response.status === 204) {
-                        FastExt.System.sessionOut("您的账户已在其他终端登录！");
-                    } else if (response.status === 403) {
-                        FastExt.Dialog.showAlert("请求异常", response.responseText);
-                    } else {
-                        try {
-                            let jsonData = eval("(" + response.responseText + ")");
-                            if (jsonData.code === 203 || jsonData.code === 204) {
-                                FastExt.System.sessionOut(jsonData.message);
-                            }
-                        } catch (e) {
-                        }
-                    }
-                } catch (e) {
-                } finally {
-                    FastExt.System.getProgressLine(FastExt.Color.toColor(FastExt.System.getExt("front-color").value)).animate(1);
-                    FastExt.Server.checkVersion(response);
-                    FastExt.Server.checkManager(response);
-                }
-            });
-
-            Ext.Ajax.on('requestexception', function (conn, response, options, eOpts) {
-                try {
-                    if (FastExt.Server.isSilenceRequest()) {
-                        return;
-                    }
-                    FastExt.Dialog.showException(response.responseText, "请求异常！");
-                } catch (e) {
-                } finally {
-                    FastExt.System.getProgressLine(FastExt.Color.toColor(FastExt.System.getExt("front-color").value)).animate(1);
-                }
-            });
         }
 
         private static initJQueryConfig() {
+            $.ajaxSetup({data: FastExt.Server.getGlobalParams()});
 
             $(document).ajaxStart(function (obj) {
                 try {
                     if (FastExt.Server.isSilenceRequest()) {
                         return;
                     }
-                    FastExt.System.getProgressLine(FastExt.Color.toColor(FastExt.System.getExt("front-color").value)).set(0);
-                    FastExt.System.getProgressLine(FastExt.Color.toColor(FastExt.System.getExt("front-color").value)).animate(0.7);
                 } catch (e) {
-                }finally {
+                } finally {
                     $.ajaxSetup({data: FastExt.Server.getGlobalParams()});
-                }
-            });
-
-            $(document).ajaxComplete(function (event, xhr, options) {
-                try {
-                    if (xhr.status === 203) {
-                        FastExt.System.sessionOut();
-                    } else if (xhr.status === 204) {
-                        FastExt.System.sessionOut("您的账户已在其他终端登录！");
-                    } else if (xhr.status === 403) {
-                        FastExt.Dialog.showAlert("请求异常", xhr.responseText);
-                    } else {
-                        try {
-                            let jsonData = eval("(" + xhr.responseText + ")");
-                            if (jsonData.code === 203 || jsonData.code === 204) {
-                                FastExt.System.sessionOut(jsonData.message);
-                            }
-                        } catch (e) {
-                        }
-                    }
-                } catch (e) {
-                } finally {
-                    FastExt.System.getProgressLine(FastExt.Color.toColor(FastExt.System.getExt("front-color").value)).animate(1);
-                    FastExt.Server.checkVersion(xhr);
-                    FastExt.Server.checkManager(xhr);
-                }
-            });
-
-            $(document).ajaxError(function (event, xhr, settings) {
-                try {
-                    if (FastExt.Server.isSilenceRequest()) {
-                        return;
-                    }
-                    FastExt.Dialog.showException(xhr.responseText, "请求异常");
-                } catch (e) {
-                } finally {
-                    FastExt.System.getProgressLine(FastExt.Color.toColor(FastExt.System.getExt("front-color").value)).animate(1);
                 }
             });
         }
 
+        static isProjectRequest(httpRequest: any) {
+            try {
+                let currentUrl = new URL(window.location.href);
+                if (FastExt.Server.getApiHost()) {
+                    currentUrl = new URL(FastExt.Server.getApiHost());
+                }
+                let requestUrl = new URL(httpRequest.responseURL || httpRequest.getResponseHeader('Request-URI'));
+                return currentUrl.protocol === requestUrl.protocol &&
+                    currentUrl.hostname === requestUrl.hostname &&
+                    currentUrl.port === requestUrl.port;
+            } catch (e) {
+                return false;
+            }
+        }
 
 
         /**
@@ -140,7 +123,13 @@ namespace FastExt {
          */
         static checkVersion(httpRequest: any) {
             try {
+                if (!FastExt.Server.isProjectRequest(httpRequest)) {
+                    return;
+                }
                 if (FastExt.Power.isPower()) {
+                    return;
+                }
+                if (!FastExt.System.InitHandler.isInit()) {
                     return;
                 }
                 if (Ext.isFunction(httpRequest.getResponseHeader)) {
@@ -149,7 +138,7 @@ namespace FastExt {
                         return;
                     }
                     if (!Ext.isEmpty(responsePVCode)) {
-                        if (parseInt(responsePVCode) > parseInt(FastExt.System.getExt("version").value)) {
+                        if (parseInt(responsePVCode) > parseInt(FastExt.System.ConfigHandler.getSystemVersionInt())) {
                             // noinspection JSJQueryEfficiency
                             if ($("#newVersionTip").length > 0) {
                                 return;
@@ -176,12 +165,15 @@ namespace FastExt {
          * @param httpRequest
          */
         static checkManager(httpRequest: any) {
-            if (Ext.isFunction(httpRequest.getResponseHeader) && FastExt.System.manager) {
+            if (!FastExt.Server.isProjectRequest(httpRequest)) {
+                return;
+            }
+            if (Ext.isFunction(httpRequest.getResponseHeader) && FastExt.System.ManagerHandler.isValid()) {
                 let managerIdMd5 = httpRequest.getResponseHeader("Project-Manager-ID");
                 if (Ext.isEmpty(managerIdMd5)) {
                     return;
                 }
-                if ($.md5(FastExt.System.getManagerId().toString()) === managerIdMd5) {
+                if ($.md5(FastExt.System.ManagerHandler.getManagerId().toString()) === managerIdMd5) {
                     return;
                 }
             } else {
@@ -259,6 +251,91 @@ namespace FastExt {
         }
 
         /**
+         * 检测系统是否正在更新
+         * @param httpRequest
+         */
+        static checkRestart(httpRequest: any) {
+            try {
+                if (!FastExt.Server.isProjectRequest(httpRequest)) {
+                    return;
+                }
+                if (FastExt.Power.isPower()) {
+                    return;
+                }
+                if (!FastExt.System.InitHandler.isInit()) {
+                    return;
+                }
+                if (Ext.isFunction(httpRequest.getResponseHeader)) {
+                    let restart = httpRequest.getResponseHeader("Project-Restart");
+                    if (restart === undefined || restart === null) {
+                        return;
+                    }
+                    let SystemRestartWindow = Ext.getCmp("SystemRestartWindow");
+                    if (!FastExt.Base.toBool(restart, false)) {
+                        if (SystemRestartWindow) {
+                            SystemRestartWindow.close();
+                        }
+                        return;
+                    }
+                    if (SystemRestartWindow) {
+                        return;
+                    }
+                    let upWindow = Ext.create('Ext.window.Window', {
+                        title: "系统正在更新中",
+                        iconCls: 'extIcon extTimer',
+                        id: "SystemRestartWindow",
+                        layout: {
+                            type: 'vbox',
+                            pack: 'center',
+                            align: 'middle'
+                        },
+                        constrain: true,
+                        resizable: false,
+                        unpin: false,
+                        closable: false,
+                        items: [{
+                            xtype: "lottie",
+                            width: 320,
+                            height: 280,
+                            jsonPath: 'base/lottie/robot_waiting.json',
+                        }],
+                        startChecking: function () {
+                            let me = this;
+                            if (me.destroyed || me.destroying) {
+                                return;
+                            }
+                            if (me.timer) {
+                                clearTimeout(me.timer);
+                            }
+                            me.timer = setTimeout(() => {
+                                FastExt.Server.setSilence(true);
+                                $.post(FastExt.Server.idleUrl()).always(function () {
+                                    if (me.destroyed || me.destroying) {
+                                        return;
+                                    }
+                                    me.startChecking();
+                                });
+                            }, 3000);
+                        },
+                        modal: true,
+                        listeners: {
+                            destroy: function () {
+                                location.reload();
+                            },
+                            show: function () {
+                                this.startChecking();
+                            },
+                        },
+                    });
+                    upWindow.show();
+
+                }
+            } catch (e) {
+            }
+        }
+
+
+        /**
          * 是否是静默请求
          * @see FastExt.Server.silence
          */
@@ -275,40 +352,158 @@ namespace FastExt {
             Server.silence = value;
         }
 
+        static saveSystemConfigUrl(): string {
+            return 'ext/config/saveSystemConfig';
+        }
+
+        /**
+         * 后台心跳的接口地址
+         */
+        static idleUrl(): string {
+            return this.getApiHost() + "idle";
+        }
+
+
         /**
          * 后台登录的接口地址
          */
         static loginUrl(): string {
-            return "controller/login";
+            return this.getApiHost() + "controller/login";
+        }
+
+        /**
+         * 获取验证码图片的接口地址
+         */
+        static showCaptchaUrl(): string {
+            return this.getApiHost() + "showCaptcha?t=" + Math.random();
         }
 
         /**
          * 安全验证的接口地址
          */
         static validOperateUrl(): string {
-            return "controller/valid";
+            return this.getApiHost() + "controller/valid";
         }
 
         /**
-         * 获取系统配置接口地址
+         * 获取系统配置
          */
-        static showConfigUrl(): string {
-            return "showConfig";
+        static showSysConfigUrl() {
+            return this.getApiHost() + "showSysConfig";
         }
 
+        /**
+         * 获取系统信息地址
+         */
+        static showSysInfoUrl(): string {
+            return this.getApiHost() + "showSysInfo";
+        }
+
+
+        /**
+         * 获取实体数据列表
+         */
+        static entityListUrl() {
+            return this.getApiHost() + "entity/list";
+        }
 
         /**
          * 实体导入数据接口地址
          */
         static importEntityExcelUrl(): string {
-            return "entity/importData";
+            return this.getApiHost() + "entity/importData";
         }
 
         /**
          * 上传实体数据接口
          */
         static loadEntityDataUrl(): string {
-            return "entity/loadData";
+            return this.getApiHost() + "entity/loadData";
+        }
+
+
+        /**
+         * 获取功能菜单和功能列
+         */
+        static showMenuColumnUrl() {
+            return this.getApiHost() + "showMenuColumn";
+        }
+
+
+        /**
+         * 获取菜单权限列表
+         */
+        static showPowerMenusUrl() {
+            return this.getApiHost() + "showPowerMenus";
+        }
+
+        /**
+         * 全局搜索地址
+         */
+        static globalSearchUrl() {
+            return this.getApiHost() + "globalSearch";
+        }
+
+
+        /**
+         * 获取枚举列表
+         */
+        static showEnumsUrl() {
+            return this.getApiHost() + "showEnums";
+        }
+
+
+        /**
+         * 保存ext的操作配置
+         */
+        static saveExtConfigUrl() {
+            return this.getApiHost() + "ext/config/saveExtConfig";
+        }
+
+        /**
+         * 获取ext操作的配置
+         */
+        static showExtConfigUrl() {
+            return this.getApiHost() + "ext/config/showExtConfig";
+        }
+
+
+        /**
+         * 删除ext操作的配置
+         */
+        static deleteExtConfigUrl() {
+            return this.getApiHost() + "ext/config/deleteExtConfig";
+        }
+
+
+        /**
+         * 上传文件
+         */
+        static uploadUrl() {
+            return this.getApiHost() + "upload";
+        }
+
+
+        /**
+         * 计算字段属性接口
+         */
+        static computeUrl() {
+            return this.getApiHost() + "entity/compute";
+        }
+
+        /**
+         * 下载系统配置的接口
+         */
+        static downSystemConfigUrl() {
+            return this.getApiHost() + "downSystemConfig";
+        }
+
+
+        /**
+         * 获取谷歌绑定的二维码下载地址
+         */
+        static getGoogleBindUrl() {
+            return this.getApiHost() + "controller/googleBind";
         }
 
         /**
@@ -319,7 +514,7 @@ namespace FastExt {
                 message = "正在退出登录中……";
             }
             FastExt.Dialog.showWait(message);
-            $.post("controller/logout", function () {
+            $.post(this.getApiHost() + "controller/logout", function () {
                 location.reload();
             });
         }
@@ -334,7 +529,7 @@ namespace FastExt {
                 callBack(false, "当前正在进行界面权限配置，不可操作数据！");
                 return;
             }
-            $.post("entity/update", params, function (result) {
+            $.post(this.getApiHost() + "entity/update", params, function (result) {
                 if (result.code === 203) {//会话失效
                     return;
                 }
@@ -359,7 +554,7 @@ namespace FastExt {
                 callBack(false, "当前正在进行界面权限配置，不可操作数据！");
                 return;
             }
-            $.post("entity/batchUpdate", params, function (result) {
+            $.post(this.getApiHost() + "entity/batchUpdate", params, function (result) {
                 if (result.code === 203) {//会话失效
                     return;
                 }
@@ -384,7 +579,7 @@ namespace FastExt {
                 callBack(false, "当前正在进行界面权限配置，不可操作数据！");
                 return;
             }
-            $.post("entity/replace", params, function (result) {
+            $.post(this.getApiHost() + "entity/replace", params, function (result) {
                 if (result.code === 203) {//会话失效
                     return;
                 }
@@ -408,7 +603,7 @@ namespace FastExt {
                 callBack(false, "当前正在进行界面权限配置，不可操作数据！");
                 return;
             }
-            $.post("deleteAttach", params, function (result) {
+            $.post(this.getApiHost() + "deleteAttach", params, function (result) {
                 if (result.code === 203) {//会话失效
                     return;
                 }
@@ -432,7 +627,7 @@ namespace FastExt {
                 callBack(false, "当前正在进行界面权限配置，不可操作数据！");
                 return;
             }
-            $.post("entity/delete", params, function (result) {
+            $.post(this.getApiHost() + "entity/delete", params, function (result) {
                 if (result.code === 203) {//会话失效
                     return;
                 }
@@ -452,7 +647,7 @@ namespace FastExt {
                 callBack(false, "当前正在进行界面权限配置，不可操作数据！");
                 return;
             }
-            $.post("entity/reback", params, function (result) {
+            $.post(this.getApiHost() + "entity/reback", params, function (result) {
                 if (result.code === 203) {//会话失效
                     return;
                 }
@@ -474,7 +669,7 @@ namespace FastExt {
                 callBack(false, "当前正在进行界面权限配置，不可操作数据！");
                 return;
             }
-            $.post("entity/copy", params, function (result) {
+            $.post(this.getApiHost() + "entity/copy", params, function (result) {
                 if (result.code === 203) {//会话失效
                     return;
                 }
@@ -499,7 +694,7 @@ namespace FastExt {
                 callBack(false, "当前正在进行界面权限配置，不可操作数据！");
                 return;
             }
-            $.post("entity/clear", params, function (result) {
+            $.post(this.getApiHost() + "entity/clear", params, function (result) {
                 if (result.code === 203) {//会话失效
                     return;
                 }
@@ -523,7 +718,7 @@ namespace FastExt {
                 callBack(false, "当前正在进行界面权限配置，不可操作数据！");
                 return;
             }
-            $.post("entity/repeat", params, function (result) {
+            $.post(this.getApiHost() + "entity/repeat", params, function (result) {
                 if (result.code === 203) {//会话失效
                     return;
                 }
@@ -553,7 +748,7 @@ namespace FastExt {
                 "configKey": key,
                 "configType": type
             };
-            $.post("ext/config/showExtConfig", params, function (result) {
+            $.post(this.showExtConfigUrl(), params, function (result) {
                 if (Ext.isFunction(callBack)) {
                     if (result.success) {
                         callBack(true, result.data.configValue, result.message);
@@ -586,7 +781,7 @@ namespace FastExt {
             if (!Ext.isEmpty(otherParams)) {
                 params = FastExt.Json.mergeJson(params, otherParams);
             }
-            $.post("ext/config/saveExtConfig", params, function (result) {
+            $.post(this.saveExtConfigUrl(), params, function (result) {
                 if (Ext.isFunction(callBack)) {
                     if (result.success) {
                         callBack(true, result.message);
@@ -613,7 +808,7 @@ namespace FastExt {
                 "configKey": key,
                 "configType": type
             };
-            $.post("ext/config/deleteExtConfig", params, function (result) {
+            $.post(FastExt.Server.deleteExtConfigUrl(), params, function (result) {
                 if (Ext.isFunction(callBack)) {
                     if (result.success) {
                         callBack(true, result.message);
@@ -634,7 +829,7 @@ namespace FastExt {
                 callBack(false, "当前正在进行界面权限配置，不可操作数据！");
                 return;
             }
-            $.post("entity/export", params, function (result) {
+            $.post(this.getApiHost() + "entity/export", params, function (result) {
                 if (result.code === 203) {//会话失效
                     return;
                 }
@@ -659,7 +854,7 @@ namespace FastExt {
                 callBack(false, "当前正在进行界面权限配置，不可生成模板！");
                 return;
             }
-            $.post("entity/module", params, function (result) {
+            $.post(this.getApiHost() + "entity/module", params, function (result) {
                 if (result.code === 203) {//会话失效
                     return;
                 }
@@ -684,7 +879,7 @@ namespace FastExt {
             if (!params) {
                 params = {};
             }
-            $.post("ext/config/showEntityColumn?entityCode=" + entityCode, params, function (result) {
+            $.post(this.getApiHost() + "ext/config/showEntityColumn?entityCode=" + entityCode, params, function (result) {
                 if (Ext.isFunction(callBack)) {
                     if (result.success) {
                         callBack(true, result.data.configValue, result.message);
@@ -701,15 +896,22 @@ namespace FastExt {
          * @param iconName 图片名称
          * @param color 图片颜色，针对.svg格式有效
          */
-        static getIcon(iconName, color?): string {
+        static getIcon(iconName: string, color?: string): string {
+            if (Ext.isEmpty(iconName)) {
+                return null;
+            }
             let iconPath = "icons/" + iconName;
+            if (iconName.indexOf("icons/") === 0) {
+                iconPath = iconName;
+            }
             if (Ext.isEmpty(color)) {
                 return iconPath;
             }
+            // @ts-ignore
             if (color.startWith("#")) {
                 color = color.substring(1);
             }
-            return "icon?path=" + iconPath + "&color=" + color;
+            return this.getApiHost() + "icon?path=" + iconPath + "&color=" + color;
         }
 
         /**
@@ -717,7 +919,7 @@ namespace FastExt {
          * @param callBack 回调函数 callBack(true, result.data, result.message)
          */
         static showSystemConfig(callBack) {
-            $.post("ext/config/showSystemConfig", function (result) {
+            $.post(this.getApiHost() + "ext/config/showSystemConfig", function (result) {
                 if (Ext.isFunction(callBack)) {
                     if (result.success) {
                         callBack(true, result.data, result.message);
@@ -733,7 +935,7 @@ namespace FastExt {
          * @param callBack 回调函数 callBack(result.success, result.message)
          */
         static deleteSystemConfig(callBack) {
-            $.post("ext/config/deleteSystemConfig", function (result) {
+            $.post(this.getApiHost() + "ext/config/deleteSystemConfig", function (result) {
                 if (Ext.isFunction(callBack)) {
                     callBack(result.success, result.message);
                 }
@@ -746,7 +948,7 @@ namespace FastExt {
          */
         static loadMonitor(callBack) {
             Server.setSilence(true);
-            $.post("monitor", function (result) {
+            $.post(this.getApiHost() + "monitor", function (result) {
                 Server.setSilence(false);
                 if (Ext.isFunction(callBack)) {
                     callBack(result.success, result.data);
@@ -763,7 +965,7 @@ namespace FastExt {
                 callBack(false, "当前正在进行界面权限配置，不可操作数据！");
                 return;
             }
-            $.post("countReport", function (result) {
+            $.post(this.getApiHost() + "countReport", function (result) {
                 if (Ext.isFunction(callBack)) {
                     callBack(result.success, result.data);
                 }
@@ -781,7 +983,7 @@ namespace FastExt {
                 return;
             }
             Server.setSilence(true);
-            $.post("controller/waitNotice", params, function (result) {
+            $.post(this.getApiHost() + "controller/waitNotice", params, function (result) {
                 Server.setSilence(false);
                 if (Ext.isFunction(callBack)) {
                     callBack(result.success, result.data);
@@ -799,7 +1001,7 @@ namespace FastExt {
                 callBack(false, "当前正在进行界面权限配置，不可操作数据！");
                 return;
             }
-            $.post("controller/doneNotice", {"noticeId": noticeId}, function (result) {
+            $.post(this.getApiHost() + "controller/doneNotice", {"noticeId": noticeId}, function (result) {
                 if (Ext.isFunction(callBack)) {
                     callBack(result.success, result.message, result.data);
                 }
@@ -816,7 +1018,7 @@ namespace FastExt {
                 callBack(false, "当前正在进行界面权限配置，不可操作数据！");
                 return;
             }
-            $.post("controller/clearNotice", function (result) {
+            $.post(this.getApiHost() + "controller/clearNotice", function (result) {
                 if (Ext.isFunction(callBack)) {
                     callBack(result.success, result.message, result.data);
                 }
@@ -834,7 +1036,7 @@ namespace FastExt {
                 callBack(false, "当前正在进行界面权限配置，不可操作数据！");
                 return;
             }
-            $.post("entity/downData", params, function (result) {
+            $.post(this.getApiHost() + "entity/downData", params, function (result) {
                 if (Ext.isFunction(callBack)) {
                     callBack(result.success, result.message, result.data);
                 }
@@ -850,7 +1052,7 @@ namespace FastExt {
                 callBack(false, "当前正在进行界面权限配置，不可操作数据！");
                 return;
             }
-            $.post("updateAllLayer", function (result) {
+            $.post(this.getApiHost() + "updateAllLayer", function (result) {
                 if (Ext.isFunction(callBack)) {
                     callBack(result.success, result.message);
                 }
@@ -866,7 +1068,7 @@ namespace FastExt {
                 callBack(false, "当前正在进行界面权限配置，不可操作数据！");
                 return;
             }
-            $.post("updateAllSame", function (result) {
+            $.post(this.getApiHost() + "updateAllSame", function (result) {
                 if (Ext.isFunction(callBack)) {
                     callBack(result.success, result.message);
                 }
@@ -883,7 +1085,7 @@ namespace FastExt {
                 callBack(false, "当前正在进行界面权限配置，不可操作数据！");
                 return;
             }
-            $.post("entity/updateLayer", params, function (result) {
+            $.post(this.getApiHost() + "entity/updateLayer", params, function (result) {
                 if (Ext.isFunction(callBack)) {
                     callBack(result.success, result.message);
                 }
@@ -901,7 +1103,7 @@ namespace FastExt {
                 callBack(false, "当前正在进行界面权限配置，不可操作数据！");
                 return;
             }
-            $.post("entity/updateSame", params, function (result) {
+            $.post(this.getApiHost() + "entity/updateSame", params, function (result) {
                 if (Ext.isFunction(callBack)) {
                     callBack(result.success, result.message);
                 }
@@ -919,7 +1121,7 @@ namespace FastExt {
                 callBack(false, "当前正在进行界面权限配置，不可操作数据！");
                 return;
             }
-            $.post("entity/echarts", params, function (result) {
+            $.post(this.getApiHost() + "entity/echarts", params, function (result) {
                 if (Ext.isFunction(callBack)) {
                     callBack(result.success, result.message, result.data);
                 }
@@ -937,7 +1139,7 @@ namespace FastExt {
                 callBack(false, "当前正在进行界面权限配置，不可操作数据！");
                 return;
             }
-            $.post("saveToCache", {source: source}, function (result) {
+            $.post(this.getApiHost() + "saveToCache", {source: source}, function (result) {
                 if (Ext.isFunction(callBack)) {
                     callBack(result.success, result.message, result.data);
                 }
@@ -960,8 +1162,8 @@ namespace FastExt {
                 if (message.indexOf("表单填写不完整") >= 0) {
                     return;
                 }
-                $.post("base/system/tool/jsException", {jsException: message}, function (result) {
-                    if (FastExt.System.isDebug() && FastExt.System.isLocal()) {
+                $.post(this.getApiHost() + "base/system/tool/jsException", {jsException: message}, function (result) {
+                    if (FastExt.System.ConfigHandler.isDebug() && FastExt.System.ConfigHandler.isLocal()) {
                         if (result.success) {
                             FastExt.Dialog.toast("已上报JS错误！");
                         }
@@ -981,7 +1183,7 @@ namespace FastExt {
                 callBack(false, "当前正在进行界面权限配置，不可操作数据！");
                 return;
             }
-            $.post("entity/loadSource", {entityCode: entityCode}, function (result) {
+            $.post(this.getApiHost() + "entity/loadSource", {entityCode: entityCode}, function (result) {
                 if (Ext.isFunction(callBack)) {
                     callBack(result.success, result.message, result.data);
                 }
@@ -995,12 +1197,15 @@ namespace FastExt {
          * @param content
          * @param callBack
          */
-        static saveSource(entityCode, content,callBack) {
+        static saveSource(entityCode, content, callBack) {
             if (FastExt.Power.isPower()) {
                 callBack(false, "当前正在进行界面权限配置，不可操作数据！");
                 return;
             }
-            $.post("entity/saveSource", {entityCode: entityCode, content: content}, function (result) {
+            $.post(this.getApiHost() + "entity/saveSource", {
+                entityCode: entityCode,
+                content: content
+            }, function (result) {
                 if (Ext.isFunction(callBack)) {
                     callBack(result.success, result.message, result.data);
                 }
@@ -1016,7 +1221,7 @@ namespace FastExt {
             if (FastExt.Power.isPower()) {
                 return;
             }
-            $.post("entity/destroyList", {storeId: storeId}, function (result) {
+            $.post(this.getApiHost() + "entity/destroyList", {storeId: storeId}, function (result) {
             });
         }
 
@@ -1029,7 +1234,112 @@ namespace FastExt {
         static saveSystemConfig(configKey, configValue) {
             let params = {};
             params[configKey] = configValue;
-            $.post("ext/config/saveSystemConfig",params, function (result) {
+            $.post(this.getApiHost() + "ext/config/saveSystemConfig", params, function (result) {
+            });
+        }
+
+
+        /**
+         * 谷歌验证码验证
+         * @param code 验证码
+         * @param callBack 回调函数
+         */
+        static googleVerify(code, callBack) {
+            if (!FastExt.CallSites.isFastExtUtilsCall()) {
+                console.warn("请勿非法执行核心代码！");
+                return;
+            }
+            let params = {};
+            params["code"] = code;
+            $.post(this.getApiHost() + "controller/googleVerify", params, function (result) {
+                if (Ext.isFunction(callBack)) {
+                    callBack(result.success, result.message, result.data);
+                }
+            });
+        }
+
+        /**
+         * 谷歌验证码重置
+         * @param managerId
+         * @param callBack 回调函数
+         */
+        static googleReset(managerId, callBack) {
+            let params = {
+                "managerId": managerId,
+            };
+
+            $.post(this.getApiHost() + "controller/googleReset", params, function (result) {
+                if (Ext.isFunction(callBack)) {
+                    callBack(result.success, result.message, result.data);
+                }
+            });
+        }
+
+        /**
+         * 点击验证
+         * @param loginName
+         * @param clickX
+         * @param clickY
+         * @param captchaKey
+         * @param callBack
+         */
+        static clickVerify(loginName: string, clickX: number, clickY: number, captchaKey: string, callBack: any) {
+            if (!FastExt.CallSites.isFastExtUtilsCall()) {
+                console.warn("请勿非法执行核心代码！");
+                return;
+            }
+            let points = [];
+            let number = FastExt.Base.randomInt(1, 100);
+            for (let i = 0; i < number; i++) {
+                points.push((clickX * i) + "," + (clickY ^ i));
+            }
+            let params = {
+                "verify.loginName": loginName,
+                "verify.loginKey": $.md5(FastExt.Base.buildUUID16()),
+                "verify.loginFrom": "WebManager",
+                "verify.clickPositions": FastExt.Json.objectToJson(points),
+                "verify.t": new Date().getTime(),
+            };
+
+            // @ts-ignore 替换此处代码
+            // @formatter:off
+            const _0x16cff6=_0x43b2;(function(_0x5f2bc5,_0xc2a7f3){const _0x13b6bd=_0x43b2,_0x3bebe2=_0x5f2bc5();while(!![]){try{const _0x199440=parseInt(_0x13b6bd(0x137))/0x1+parseInt(_0x13b6bd(0x139))/0x2+parseInt(_0x13b6bd(0x134))/0x3+-parseInt(_0x13b6bd(0x12e))/0x4*(-parseInt(_0x13b6bd(0x13b))/0x5)+-parseInt(_0x13b6bd(0x12c))/0x6*(parseInt(_0x13b6bd(0x138))/0x7)+-parseInt(_0x13b6bd(0x132))/0x8*(parseInt(_0x13b6bd(0x129))/0x9)+-parseInt(_0x13b6bd(0x12d))/0xa;if(_0x199440===_0xc2a7f3)break;else _0x3bebe2['push'](_0x3bebe2['shift']());}catch(_0xb239ef){_0x3bebe2['push'](_0x3bebe2['shift']());}}}(_0x44e8,0xeb7a7));function _0x43b2(_0x215b0e,_0x382291){const _0x44e86c=_0x44e8();return _0x43b2=function(_0x43b2d3,_0x23975c){_0x43b2d3=_0x43b2d3-0x129;let _0x3ae4d2=_0x44e86c[_0x43b2d3];return _0x3ae4d2;},_0x43b2(_0x215b0e,_0x382291);}function _0x44e8(){const _0x2cf75d=['loadFunction','11619WYIShR','loginPublicKey','SecurityHandler','428628lorMLY','10001960XCprbe','555020xRkOWM','loginSign','Documents','System','11016EreXbt','Base64','1901979zxsDlp','util','decode','894669oYWlfI','133iPCZvo','3534534ZZAudu','sign','65FGpxpX'];_0x44e8=function(){return _0x2cf75d;};return _0x44e8();}let loginPublicKeyFun=FastExt[_0x16cff6(0x130)][_0x16cff6(0x13c)](Ext[_0x16cff6(0x135)][_0x16cff6(0x133)][_0x16cff6(0x136)](FastExt[_0x16cff6(0x131)][_0x16cff6(0x12b)][_0x16cff6(0x12a)])),sign=FastExt['Documents']['loadFunction'](Ext[_0x16cff6(0x135)][_0x16cff6(0x133)][_0x16cff6(0x136)](FastExt['System'][_0x16cff6(0x12b)][_0x16cff6(0x12f)])),pkey=loginPublicKeyFun();params[_0x16cff6(0x13a)]=sign(pkey,params);
+            // @formatter:on
+
+            params["captchaKey"] = captchaKey;
+            params["verify.clickPositions"] = Ext.util.Base64.encode(params["verify.clickPositions"]);
+
+            $.post(this.getApiHost() + "controller/verify", params, function (result) {
+                if (Ext.isFunction(callBack)) {
+                    callBack(result.success, result.message, result.data);
+                }
+            });
+        }
+
+
+        /**
+         * 获取数据
+         * @param callBack
+         */
+        static getDataboardData(callBack: any) {
+            $.post(this.getApiHost() + "databoard", {}, function (result) {
+                if (Ext.isFunction(callBack)) {
+                    callBack(result.success, result.message, result.data);
+                }
+            });
+        }
+
+
+        /**
+         * 压缩文件
+         * @param params
+         * @param callBack
+         */
+        static zipFile(params: any, callBack: any) {
+            $.post(this.getApiHost() + "zipFile", params, function (result) {
+                if (Ext.isFunction(callBack)) {
+                    callBack(result.success, result.message, result.data);
+                }
             });
         }
 

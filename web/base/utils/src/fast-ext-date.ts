@@ -8,7 +8,8 @@ namespace FastExt {
         static dateFormatStore = {};
 
 
-        constructor() {
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
             Dates.initDateFormatStore();
         }
 
@@ -17,22 +18,22 @@ namespace FastExt {
          * @private
          */
         private static initDateFormatStore() {
-            Dates.dateFormatStore["[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}"]= "Y-m-d H:i:s";
-            Dates.dateFormatStore["[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}"]= "Y-m-d H:i";
-            Dates.dateFormatStore["[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}"]= "Y-m-d H";
-            Dates.dateFormatStore["[0-9]{4}-[0-9]{2}-[0-9]{2}"]= "Y-m-d";
+            Dates.dateFormatStore["[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}"] = "Y-m-d H:i:s";
+            Dates.dateFormatStore["[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}"] = "Y-m-d H:i";
+            Dates.dateFormatStore["[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}"] = "Y-m-d H";
+            Dates.dateFormatStore["[0-9]{4}-[0-9]{2}-[0-9]{2}"] = "Y-m-d";
 
-            Dates.dateFormatStore["[0-9]{4}/[0-9]{2}/[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}"]= "Y/m/d H:i:s";
-            Dates.dateFormatStore["[0-9]{4}/[0-9]{2}/[0-9]{2} [0-9]{2}:[0-9]{2}"]= "Y/m/d H:i";
-            Dates.dateFormatStore["[0-9]{4}/[0-9]{2}/[0-9]{2} [0-9]{2}"]= "Y/m/d H";
-            Dates.dateFormatStore["[0-9]{4}/[0-9]{2}/[0-9]{2}"]= "Y/m/d";
+            Dates.dateFormatStore["[0-9]{4}/[0-9]{2}/[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}"] = "Y/m/d H:i:s";
+            Dates.dateFormatStore["[0-9]{4}/[0-9]{2}/[0-9]{2} [0-9]{2}:[0-9]{2}"] = "Y/m/d H:i";
+            Dates.dateFormatStore["[0-9]{4}/[0-9]{2}/[0-9]{2} [0-9]{2}"] = "Y/m/d H";
+            Dates.dateFormatStore["[0-9]{4}/[0-9]{2}/[0-9]{2}"] = "Y/m/d";
 
 
-            Dates.dateFormatStore["[0-9]{4}年[0-9]{2}月[0-9]{2}日 [0-9]{2}:[0-9]{2}:[0-9]{2}"]= "Y年m月d日 H:i:s";
-            Dates.dateFormatStore["[0-9]{4}年[0-9]{2}月[0-9]{2}日 [0-9]{2}:[0-9]{2}"]= "Y年m月d日 H:i";
-            Dates.dateFormatStore["[0-9]{4}年[0-9]{2}月[0-9]{2}日 [0-9]{2}"]= "Y年m月d日 H";
-            Dates.dateFormatStore["[0-9]{4}年[0-9]{2}月[0-9]{2}日"]= "Y年m月d日";
-            
+            Dates.dateFormatStore["[0-9]{4}年[0-9]{2}月[0-9]{2}日 [0-9]{2}:[0-9]{2}:[0-9]{2}"] = "Y年m月d日 H:i:s";
+            Dates.dateFormatStore["[0-9]{4}年[0-9]{2}月[0-9]{2}日 [0-9]{2}:[0-9]{2}"] = "Y年m月d日 H:i";
+            Dates.dateFormatStore["[0-9]{4}年[0-9]{2}月[0-9]{2}日 [0-9]{2}"] = "Y年m月d日 H";
+            Dates.dateFormatStore["[0-9]{4}年[0-9]{2}月[0-9]{2}日"] = "Y年m月d日";
+
         }
 
         /**
@@ -378,6 +379,21 @@ namespace FastExt {
             }
             return Ext.Date.format(sourceDate, dateFormat);
         }
+
+
+        /**
+         * 获取当期日期
+         * @param format 格式化日期
+         * @param diffDay 针对日期 加减
+         */
+        static getNowDateString(format: string, diffDay?: number): string {
+            if (Ext.isEmpty(diffDay)) {
+                diffDay = 0;
+            }
+            let nowDate = Ext.Date.add(new Date(), Ext.Date.DAY, diffDay);
+            return Ext.Date.format(nowDate, format);
+        }
+
     }
 
 }

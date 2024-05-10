@@ -90,7 +90,7 @@ public class FastEChartsBean {
         }
 
         FastJsonWrap echartsJsonMap = new FastJsonWrap(echartsJson);
-        echartsJsonMap.setValue("title.text", chartTitle);
+        echartsJsonMap.getEditor("title.text").setValue(chartTitle);
 
         Set<String> legends = new LinkedHashSet<>();
         Set<String> xAxis = new LinkedHashSet<>();
@@ -102,7 +102,7 @@ public class FastEChartsBean {
         List<Object> seriesList = new ArrayList<>();
         for (String legend : legends) {
             FastJsonWrap series = new FastJsonWrap(seriesJson);
-            series.setValue("name", legend);
+            series.getEditor("name").setValue(legend);
             String seriesType = "line";
             String stack = null;
             List<Object> data = new ArrayList<>();
@@ -117,16 +117,16 @@ public class FastEChartsBean {
                 }
                 data.add(value);
             }
-            series.setValue("data", data);
-            series.setValue("type", seriesType);
+            series.getEditor("data").setValue( data);
+            series.getEditor("type").setValue(seriesType);
             if (FastStringUtils.isNotEmpty(stack)) {
-                series.addKeyValue("stack", stack);
+                series.getEditor().addValue("stack", stack);
             }
             seriesList.add(series.getJsonObject());
         }
-        echartsJsonMap.setValue("legend.data", legends);
-        echartsJsonMap.setValue("xAxis[0].data", xAxis);
-        echartsJsonMap.setValue("series", seriesList);
+        echartsJsonMap.getEditor("legend.data").setValue( legends);
+        echartsJsonMap.getEditor("xAxis[0].data").setValue(xAxis);
+        echartsJsonMap.getEditor("series").setValue(seriesList);
 
         return echartsJsonMap.getJsonObject();
     }

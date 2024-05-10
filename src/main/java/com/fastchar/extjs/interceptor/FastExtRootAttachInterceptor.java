@@ -37,7 +37,7 @@ public class FastExtRootAttachInterceptor implements IFastRootInterceptor {
                 dispatcher.setContentUrl("/attach?disposition=" + disposition + "&path=" + path);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(this.getClass(), e);
         }
         dispatcher.invoke();
     }

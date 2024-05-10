@@ -12,4 +12,7 @@ import java.lang.annotation.Target;
 @Target({ElementType.METHOD, ElementType.TYPE})
 public @interface AFastSession {
     boolean value() default true;
+
+    boolean token() default false;
+
 }

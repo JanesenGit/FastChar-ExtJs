@@ -21,6 +21,20 @@ namespace FastExt {
         }
 
         /**
+         * 异步提交表单
+         * @param url
+         * @param paramsJson
+         */
+        static asyncForm(url: string, paramsJson: any):ExtPromise {
+            return new Ext.Promise((resolve) => {
+                let buildForm = FastExt.Form.buildForm(url, paramsJson);
+                buildForm.submit();
+                $(buildForm).remove();
+                resolve();
+            });
+        }
+
+        /**
          * 动态构建表单form对象
          * @param url 提交的路径
          * @param paramsJson 提交的JSON参数

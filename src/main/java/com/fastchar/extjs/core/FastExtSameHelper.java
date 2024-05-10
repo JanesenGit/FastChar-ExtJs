@@ -22,10 +22,14 @@ public class FastExtSameHelper {
     public static void setSameValue(FastEntity<?> entity) {
         if (entity instanceof FastExtEntity) {
             FastExtEntity<?> extEntity = (FastExtEntity<?>) entity;
-            FastExtColumnInfo sameLinkColumn = extEntity.getSameLinkColumn();
+            FastExtColumnInfo sameLinkColumn = extEntity.getBindSameColumn();
             if (sameLinkColumn != null) {
                 FastExtLinkInfo linkInfo = sameLinkColumn.getLinkInfo();
                 if (linkInfo != null) {
+                    if (entity.isEmpty(sameLinkColumn.getName())) {
+                        //关联表格的属性key值为空
+                        return;
+                    }
                     List<String> columns = new ArrayList<>();
                     Collection<FastColumnInfo<?>> columnList = entity.getColumns();
                     for (FastColumnInfo<?> columnInfo : columnList) {
@@ -62,7 +66,7 @@ public class FastExtSameHelper {
         }
     }
 
-    
+
     /**
      * 构建更新相同字段的sql语句
      *
@@ -70,19 +74,19 @@ public class FastExtSameHelper {
      * @return sql语句集合
      */
     public static String buildUpdateSameColumnSql(FastExtEntity<?> entity) {
-        FastExtColumnInfo sameLinkColumn = entity.getSameLinkColumn();
+        FastExtColumnInfo sameLinkColumn = entity.getBindSameColumn();
         if (sameLinkColumn == null) {
             return null;
         }
         FastExtLinkInfo linkInfo = sameLinkColumn.getLinkInfo();
         if (linkInfo != null) {
             List<String> setColumns = new ArrayList<>();
-            Collection<FastColumnInfo<?>> columnList = entity.getColumns();
-            for (FastColumnInfo<?> columnInfo : columnList) {
+            Collection<FastExtColumnInfo> columnList = entity.getColumns();
+            for (FastExtColumnInfo columnInfo : columnList) {
                 if (columnInfo.getName().equals(linkInfo.getKeyColumnName())) {
                     continue;
                 }
-                if (!columnInfo.getMapWrap().getBoolean("same", false)) {
+                if (!columnInfo.isSame()) {
                     //列必须配置了same=true 属性
                     continue;
                 }
@@ -90,10 +94,13 @@ public class FastExtSameHelper {
                     setColumns.add("t." + columnInfo.getName() + " = a." + columnInfo.getName());
                 }
             }
-            return "update " + entity.getTableName() + " as t " +
-                    " inner join " + linkInfo.getTableName() + " as a" +
-                    " on t." + linkInfo.getKeyColumnName() + " = a." + linkInfo.getKeyColumnName() +
-                    " set " + FastStringUtils.join(setColumns, ",");
+            if (setColumns.size() > 0) {
+
+                return "update " + entity.getTableName() + " as t " +
+                        " inner join " + linkInfo.getTableName() + " as a" +
+                        " on t." + linkInfo.getKeyColumnName() + " = a." + linkInfo.getKeyColumnName() +
+                        " set " + FastStringUtils.join(setColumns, ",");
+            }
         }
         return null;
     }

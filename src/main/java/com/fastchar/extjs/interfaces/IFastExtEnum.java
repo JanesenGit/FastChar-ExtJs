@@ -4,7 +4,7 @@ import com.fastchar.extjs.core.enums.FastEnumInfo;
 
 import java.util.List;
 
-public interface IFastExtEnum {
+public interface IFastExtEnum  {
 
     List<FastEnumInfo> getEnums() throws Exception;
 

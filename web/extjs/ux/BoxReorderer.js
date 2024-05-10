@@ -292,6 +292,7 @@ Ext.define('Ext.ux.BoxReorderer', {
      * @param {Number} newIndex The initial drop index.
      */
     doSwap: function(newIndex) {
+
         var me = this,
             items = me.container.items,
             container = me.container,
@@ -303,7 +304,8 @@ Ext.define('Ext.ux.BoxReorderer', {
         // The remainder of this method will adjust when attempting to make a swap
         // with a non reorderable tab.
         if (Math.abs(me.curIndex - newIndex) > 1) {
-            me.doSwap(me.curIndex + direction);
+            // 此处代码做了删减
+            // me.doSwap(me.curIndex + direction);
 
             return;
         }

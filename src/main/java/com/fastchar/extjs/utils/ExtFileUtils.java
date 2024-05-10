@@ -1,15 +1,16 @@
 package com.fastchar.extjs.utils;
 
+import com.fastchar.core.FastChar;
+import com.fastchar.core.FastMapWrap;
 import com.fastchar.utils.FastFileUtils;
 import com.fastchar.utils.FastStringUtils;
 
 import java.io.File;
 import java.io.FilenameFilter;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class ExtFileUtils {
 
@@ -44,7 +45,7 @@ public class ExtFileUtils {
                 return o2.compareTo(o1);
             }
         });
-        if (list.size() > 0) {
+        if (!list.isEmpty()) {
             return list.get(0);
         }
         return null;
@@ -64,7 +65,7 @@ public class ExtFileUtils {
             }
             FastFileUtils.writeStringToFile(targetFile, builder.toString(), StandardCharsets.UTF_8);
         } catch (Exception e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(ExtFileUtils.class, e);
         }
     }
 
@@ -109,5 +110,38 @@ public class ExtFileUtils {
         }
         return null;
     }
+
+
+    /**
+     * 替换占位符 ${.*}
+     *
+     * @param placeholders 属性值
+     * @param content      需要替换的内容
+     * @return 替换后的内容
+     */
+    public static String replacePlaceholder(Map<String, Object> placeholders, String content) {
+        if (FastStringUtils.isEmpty(content)) {
+            return content;
+        }
+        Pattern compile = Pattern.compile("(\\$[{\\[][^{}\\[\\]]+[}\\]])");
+        Matcher matcher = compile.matcher(content);
+        FastMapWrap fastMapWrap = FastMapWrap.newInstance(placeholders);
+
+        Map<String, String> keyValue = new HashMap<>();
+        while (matcher.find()) {
+            String realKey = matcher.group(1);
+            String runKey = realKey.replace("[", "{").replace("]", "}");
+            String value = fastMapWrap.getString(runKey, "");
+            keyValue.put(realKey, value);
+        }
+        for (String key : keyValue.keySet()) {
+            content = content.replace(key, keyValue.get(key));
+        }
+        return content;
+    }
+
+
+
+
 
 }

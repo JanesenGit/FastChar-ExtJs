@@ -1,6 +1,7 @@
 package com.fastchar.extjs.interceptor;
 
 import com.fastchar.core.FastAction;
+import com.fastchar.core.FastChar;
 import com.fastchar.core.FastFile;
 import com.fastchar.interfaces.IFastInterceptor;
 import com.fastchar.utils.FastFileUtils;
@@ -44,7 +45,7 @@ public class FastExtFileInterceptor implements IFastInterceptor {
                 }
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(this.getClass(), e);
         }
         fastAction.invoke();
     }

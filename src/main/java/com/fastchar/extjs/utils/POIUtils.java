@@ -248,7 +248,7 @@ public class POIUtils {
 
         DataFormat format = sheet.getWorkbook().createDataFormat();
 
-        CellStyle columnStyle = defaultCellStyle;
+        CellStyle columnStyle = poiHelper.getCellStyle("text");
 
         Row row = sheet.getRow(titleRowIndex);
 
@@ -262,13 +262,15 @@ public class POIUtils {
             CellRangeAddressList cellRegions = new CellRangeAddressList(titleRowIndex + 1, MAX_ROW_NUMBER, cellIndex, cellIndex);
 
             DataValidationConstraint constraint = helper.createNumericConstraint(
-                    DataValidationConstraint.ValidationType.DECIMAL, DataValidationConstraint.OperatorType.BETWEEN, "-" + Integer.MAX_VALUE, String.valueOf(Integer.MAX_VALUE));
+                    DataValidationConstraint.ValidationType.DECIMAL, DataValidationConstraint.OperatorType.BETWEEN,
+                    String.valueOf(-Integer.MAX_VALUE), String.valueOf(Integer.MAX_VALUE));
+
 
             DataValidation dataValidate = helper.createValidation(constraint, cellRegions);
             dataValidate.setShowErrorBox(true);
             dataValidate.setSuppressDropDownArrow(true);
             dataValidate.setShowPromptBox(true);
-            dataValidate.createErrorBox("输入不合法", "请输入有效的" + column.get("text"));
+            dataValidate.createErrorBox("数字输入不合法", "请输入有效的" + column.get("text"));
             sheet.addValidationData(dataValidate);
 
             columnStyle = poiHelper.getCellStyle("number");
@@ -297,11 +299,14 @@ public class POIUtils {
             dataValidate.setShowErrorBox(true);
             dataValidate.setSuppressDropDownArrow(true);
             dataValidate.setShowPromptBox(true);
-            dataValidate.createErrorBox("输入不合法", "请按照" + convertDateFormat + "日期格式输入！");
+            dataValidate.createErrorBox("日期输入不合法", "请按照" + convertDateFormat + "日期格式输入！");
             sheet.addValidationData(dataValidate);
 
             columnStyle.setDataFormat(format.getFormat(convertDateFormat));
             POIUtils.setCellComment(sheet, row.getCell(cellIndex), "请按照 " + convertDateFormat + " 日期格式输入");
+        }else{
+            columnStyle.cloneStyleFrom(defaultCellStyle);
+            columnStyle.setDataFormat(format.getFormat("text"));
         }
         return columnStyle;
     }

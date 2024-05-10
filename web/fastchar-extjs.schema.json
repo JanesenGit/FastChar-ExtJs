@@ -1,0 +1,366 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "type": "object",
+  "properties": {
+    "priority": {
+      "type": "integer",
+      "description": "配置文件的优先级，值最大优先级越高，反之越低",
+      "default": 0
+    },
+    "title": {
+      "type": "string",
+      "description": "项目标题"
+    },
+    "icon": {
+      "type": "string",
+      "description": "项目icon，用于浏览器上的小图标"
+    },
+    "version": {
+      "type": "object",
+      "description": "项目版本配置",
+      "properties": {
+        "value": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "版本号，整型数字"
+        },
+        "desc": {
+          "type": "string",
+          "description": "版本描述，例如：V1.0.0"
+        }
+      }
+    },
+    "copyright": {
+      "type": "object",
+      "description": "项目版权描述",
+      "properties": {
+        "value": {
+          "type": "string",
+          "minimum": 0,
+          "description": "版权持有人"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "版权网址"
+        }
+      }
+    },
+    "developer": {
+      "type": "object",
+      "description": "项目开发者描述",
+      "properties": {
+        "value": {
+          "type": "string",
+          "minimum": 0,
+          "description": "项目开发者"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "开发者网址"
+        }
+      }
+    },
+    "restart": {
+      "type": "boolean",
+      "description": "项目是否正在重启中，如果为true 此时前端会弹窗阻止功能操作。"
+    },
+    "init": {
+      "type": "integer",
+      "description": "前端初始的标识，当标识值不一致时，前端会提示进行初始化。"
+    },
+    "theme": {
+      "type": "string",
+      "enum": [
+        "extjs/theme/fast-theme-wrap",
+        "extjs/theme/fast-theme-flat"
+      ],
+      "description": "系统主题文件"
+    },
+    "appjs_dir": {
+      "type": "array",
+      "description": "实体类的js文件所在目录。默认：/app "
+    },
+    "appjs_bin": {
+      "type": "string",
+      "description": "将appjs进行合并压缩后保存的文件位置，默认：bin/app.js"
+    },
+    "appjs_bin_enable": {
+      "type": "boolean",
+      "description": "是否进行appjs的压缩合并，默认：false"
+    },
+    "theme_color": {
+      "type": "string",
+      "format": "color",
+      "description": "系统主题色"
+    },
+    "front_color": {
+      "type": "string",
+      "format": "color",
+      "description": "系统前景色"
+    },
+    "system_logo": {
+      "type": "string",
+      "description": "系统LOGO，用于首页导航栏中的LOGO"
+    },
+    "login_logo": {
+      "type": "string",
+      "description": "系统LOGO，用于登录界面中的LOGO"
+    },
+    "system_layout": {
+      "type": "string",
+      "enum": [
+        "normal",
+        "desktop"
+      ],
+      "description": "系统布局方式，默认：normal"
+    },
+    "desktop_menu_record": {
+      "type": "boolean",
+      "description": "当系统布局方式为：desktop时，是否记忆打开的菜单"
+    },
+    "desktop_bg_images": {
+      "type": "array",
+      "description": "桌面布局的背景图片集合"
+    },
+    "window_anim": {
+      "type": "boolean",
+      "description": "是否运行系统window动画打开和关闭，默认：true"
+    },
+    "tab_theme": {
+      "type": "boolean",
+      "description": "是否开启菜单主题色切换，默认：true"
+    },
+    "login_type": {
+      "type": "string",
+      "enum": [
+        "normal",
+        "security"
+      ],
+      "description": "系统登录方式，默认：security 需要安全验证"
+    },
+    "login_background": {
+      "type": "string",
+      "description": "系统界面中的背景网页，默认：base/login/background/index.html"
+    },
+    "login_lottie_json": {
+      "type": "string",
+      "description": "系统界面中的动画文件，默认：base/login/animation/default.json"
+    },
+    "amap_key": {
+      "type": "string",
+      "description": "高德地图的key"
+    },
+    "amap_security": {
+      "type": "string",
+      "description": "高德地图的秘钥"
+    },
+    "amap_version": {
+      "type": "string",
+      "description": "高德地图的版本号，默认：2.0"
+    },
+    "amap_default_lnglat": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "地图显示默认位置，例如：110.568434,32.377389"
+    },
+    "doc_extjs": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "uri",
+      "description": "系统后台的操作文档，默认：https://www.fastchar.com/doc_extjs"
+    },
+    "font_size": {
+      "type": "string",
+      "description": "系统全局字体大小，默认：14px"
+    },
+    "front_radius": {
+      "type": "string",
+      "description": "系统全局圆角大小，默认：8px"
+    },
+    "grid_row_height": {
+      "type": "string",
+      "description": "系统Grid组件的行高，默认：45px"
+    },
+    "script": {
+      "type": "array",
+      "description": "系统引用的其他js的脚本文件地址"
+    },
+    "style": {
+      "type": "array",
+      "description": "系统引用的其他css的文件地址",
+      "examples": [
+        "body{padding:0;}",
+        {
+          "href": "css/user.css"
+        }
+      ],
+      "items": {
+        "type": [
+          "object",
+          "string"
+        ],
+        "properties": {
+          "href": {
+            "type": "string",
+            "description": "文件地址"
+          }
+        },
+        "description": "css代码内容"
+      }
+    },
+    "google_authentication": {
+      "type": "boolean",
+      "description": "系统登录账户是否启用Google双向验证器"
+    },
+    "google_authentication_title": {
+      "type": "string",
+      "description": "在系统弹出Google双向验证器时的标题,默认：Google双向验证器"
+    },
+    "google_authentication_app_url": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "提供给用户下载Google双向验证器的下载链接"
+    },
+    "only_office_js": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "启用onlyoffice的前端js文件链接"
+    },
+    "only_office_secret": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "onlyoffice的安全秘钥"
+    },
+    "changelog": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "系统更新日志的markdown文件"
+    },
+    "menu": {
+      "type": "array",
+      "description": "系统菜单配置",
+      "items": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "菜单标题"
+          },
+          "icon": {
+            "type": "string",
+            "description": "菜单图标"
+          },
+          "color": {
+            "type": "string",
+            "description": "菜单主题色"
+          },
+          "index": {
+            "type": "integer",
+            "description": "菜单排序顺序"
+          },
+          "method": {
+            "type": "string",
+            "description": "点击菜单执行的js函数，例如：alert('hello')"
+          },
+          "children": {
+            "type": "array",
+            "description": "子菜单集合",
+            "items": {
+              "$ref": "#/properties/menu/items"
+            }
+          }
+        }
+      }
+    },
+    "databoard": {
+      "type": "object",
+      "description": "数据看板配置，数据统计的总览",
+      "properties": {
+        "enable": {
+          "type": "boolean",
+          "description": "是否启用，默认：false"
+        },
+        "title": {
+          "type": "string",
+          "description": "面板的标题，默认：数据看板"
+        },
+        "data": {
+          "type": "array",
+          "description": "统计的数据配置",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "description": "统计显示的类型",
+                "enum": [
+                  "data_text_v",
+                  "data_text_h",
+                  "data_chart_pie"
+                ]
+              },
+              "items": {
+                "type": "array",
+                "description": "统计选项",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "数据ID，通过ID与后台返回的ID匹配并展示数据"
+                    },
+                    "chart_title": {
+                      "type": "string",
+                      "description": "图表标题，默认系统会自动记录每天的统计数据，当点击统计数据时，会弹出图表趋势图"
+                    },
+                    "render_title": {
+                      "type": "string",
+                      "description": "统计显示的标题"
+                    },
+                    "render_icon": {
+                      "type": "string",
+                      "description": "统计显示的图标"
+                    },
+                    "render_icon_color": {
+                      "type": "string",
+                      "description": "统计显示图标的颜色，当图标为svg文件时有效"
+                    },
+                    "render_click": {
+                      "type": [
+                        "string",
+                        "boolean"
+                      ],
+                      "description": "统计选项的点击函数，配置false将禁用点击功能"
+                    }
+                  }
+                }
+              },
+              "title": {
+                "type": "string",
+                "description": "显示标题，当类型为：data_chart_pie时有效"
+              },
+              "groupId": {
+                "type": "string",
+                "description": "分组ID，当类型为：data_chart_pie时有效"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

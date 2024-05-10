@@ -1,5 +1,6 @@
 package com.fastchar.extjs.core;
 
+import com.fastchar.core.FastAction;
 import com.fastchar.core.FastChar;
 import com.fastchar.core.FastEntity;
 import com.fastchar.database.FastPage;
@@ -15,6 +16,8 @@ import com.fastchar.extjs.core.database.FastExtTableInfo;
 import com.fastchar.extjs.core.database.FastSqlTool;
 import com.fastchar.extjs.entity.ExtManagerEntity;
 import com.fastchar.extjs.entity.ExtManagerRoleEntity;
+import com.fastchar.extjs.entity.ExtSystemDataLogEntity;
+import com.fastchar.extjs.exception.FastExtEntityException;
 import com.fastchar.extjs.interfaces.IFastLayerListener;
 import com.fastchar.utils.FastMD5Utils;
 import com.fastchar.utils.FastStringUtils;
@@ -72,6 +75,7 @@ public abstract class FastExtEntity<E extends FastEntity<?>> extends FastEntity<
 
     /**
      * 是否为有效的FastExtEntity
+     *
      * @return 布尔值
      */
     public boolean isValidExtEntity() {
@@ -97,7 +101,7 @@ public abstract class FastExtEntity<E extends FastEntity<?>> extends FastEntity<
                 List<String> layerValues = managerEntity.getLayerValues(this);
                 if (layerValues != null) {
                     for (int i = 0; i < layerValues.size(); i++) {
-                        put("@999||" + getLayerColumn().getName() + "?%:index"+i, layerValues.get(i));
+                        put("@999||" + getLayerColumn().getName() + "?%:index" + i, layerValues.get(i));
                     }
                 } else {
                     //此处修改去除'@'符号，包含了自己的数据
@@ -136,44 +140,25 @@ public abstract class FastExtEntity<E extends FastEntity<?>> extends FastEntity<
         return FastSqlTool.buildSelectSql(FastSql.getInstance(getDatabaseType()), sqlStr, this);
     }
 
-    @Override
-    public boolean update() {
-        boolean modifyLayerColumn = isModifyLayerColumn();
-        boolean modifySameLinkColumn = isModifySameLinkColumn();
-
-        boolean update = super.update();
-        if (update && modifyLayerColumn && isAutoUpdateLayerValue()) {
-            this.autoUpdateLayerCode();
-        }
-        if (update && modifySameLinkColumn && isAutoUpdateSameValue()) {
-            this.autoUpdateSameValue();
-        }
-        return update;
-    }
 
     @Override
     public boolean update(String... checks) {
+        //判断是否修改，必须在执行update方法之前
         boolean modifyLayerColumn = isModifyLayerColumn();
-        boolean modifySameLinkColumn = isModifySameLinkColumn();
+        boolean modifyBindSameColumn = isModifyBindSameColumn();
+        boolean modifySameColumn = isModifySameColumn();
 
         boolean update = super.update(checks);
         if (update && isAutoUpdateLayerValue() && modifyLayerColumn) {
             this.autoUpdateLayerCode(checks);
         }
-        if (update && isAutoUpdateSameValue() && modifySameLinkColumn) {
+        if (update && isAutoUpdateSameValue() && modifyBindSameColumn) {
             this.autoUpdateSameValue(checks);
         }
-        return update;
-    }
-
-
-    @Override
-    public boolean delete() {
-        if (isRecycle()) {
-            FastExtData<E> fastData = (FastExtData<E>) getFastData();
-            fastData.copyToRecycle();
+        if (update && modifySameColumn && isAutoUpdateSameValue()) {
+            this.autoUpdateChildrenSameValue(checks);
         }
-        return super.delete();
+        return update;
     }
 
 
@@ -195,14 +180,29 @@ public abstract class FastExtEntity<E extends FastEntity<?>> extends FastEntity<
         return false;
     }
 
-    private boolean isModifySameLinkColumn() {
-        FastExtColumnInfo sameLinkColumn = getSameLinkColumn();
-        if (sameLinkColumn != null) {
-            return isModified(sameLinkColumn.getName());
+    private boolean isModifyBindSameColumn() {
+        FastExtColumnInfo bindSameColumn = getBindSameColumn();
+        if (bindSameColumn != null) {
+            return isModified(bindSameColumn.getName());
         }
         return false;
     }
 
+
+    private boolean isModifySameColumn() {
+        List<FastExtColumnInfo> sameColumns = getSameColumns();
+        for (FastExtColumnInfo sameColumn : sameColumns) {
+            if (isModified(sameColumn.getName())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+
+    /**
+     * 更新当前表格权限字段，查询link绑定的上级表格的权限字段
+     */
     public void autoUpdateLayerCode(String... checks) {
         try {
             FastExtColumnInfo layerLinkColumn = getBindLayerColumn();
@@ -214,13 +214,28 @@ public abstract class FastExtEntity<E extends FastEntity<?>> extends FastEntity<
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            FastChar.getLogger().error(this.getClass(), e);
         }
     }
 
+
+    /**
+     * 更新当前表格设置same=true的字段，查询link绑定的上级表格的相同的字段
+     */
     public void autoUpdateSameValue(String... checks) {
         ((FastExtData<E>) getFastData()).updateSameValue(checks);
     }
+
+    /**
+     * 更新当前表格所有子级设置same=true的字段，查询link绑定的上级表格的相同的字段
+     */
+    public void autoUpdateChildrenSameValue(String... checks) {
+        FastExtLayerHelper.LayerMap layerMap = getLayerMap();
+        if (layerMap != null) {
+            FastExtSameHelper.updateSameColumn(layerMap);
+        }
+    }
+
 
     /**
      * 获得层级编号
@@ -395,6 +410,20 @@ public abstract class FastExtEntity<E extends FastEntity<?>> extends FastEntity<
     }
 
 
+    /**
+     * 是否开启数据操作日志
+     *
+     * @return boolean
+     */
+    public boolean isDataLog() {
+        FastExtTableInfo table = getTable();
+        if (table == null) {
+            return false;
+        }
+        return table.isDataLog();
+    }
+
+
     public FastExtColumnInfo getLayerColumn() {
         FastTableInfo<?> tableInfo = getTable();
         if (tableInfo instanceof FastExtTableInfo) {
@@ -406,7 +435,7 @@ public abstract class FastExtEntity<E extends FastEntity<?>> extends FastEntity<
 
 
     public FastExtColumnInfo getBindLayerColumn() {
-        FastTableInfo<?> tableInfo =  getTable();
+        FastTableInfo<?> tableInfo = getTable();
         if (tableInfo instanceof FastExtTableInfo) {
             FastExtTableInfo extTableInfo = (FastExtTableInfo) tableInfo;
             return extTableInfo.getBindLayerColumn();
@@ -414,13 +443,27 @@ public abstract class FastExtEntity<E extends FastEntity<?>> extends FastEntity<
         return null;
     }
 
-    public FastExtColumnInfo getSameLinkColumn() {
-        FastTableInfo<?> tableInfo =  getTable();
+    public FastExtColumnInfo getBindSameColumn() {
+        FastTableInfo<?> tableInfo = getTable();
         if (tableInfo instanceof FastExtTableInfo) {
             FastExtTableInfo extTableInfo = (FastExtTableInfo) tableInfo;
-            return extTableInfo.getSameLinkColumn();
+            return extTableInfo.getBindSameColumn();
         }
         return null;
+    }
+
+    public List<FastExtColumnInfo> getSameColumns() {
+        List<FastExtColumnInfo> sameColumns = new ArrayList<>();
+        FastTableInfo<?> tableInfo = getTable();
+        if (tableInfo instanceof FastExtTableInfo) {
+            Collection<FastExtColumnInfo> columns = tableInfo.getColumns();
+            for (FastExtColumnInfo column : columns) {
+                if (column.isSame()) {
+                    sameColumns.add(column);
+                }
+            }
+        }
+        return sameColumns;
     }
 
 
@@ -464,7 +507,7 @@ public abstract class FastExtEntity<E extends FastEntity<?>> extends FastEntity<
      */
     public void updateLayerValue(String oldLayerValue, String newLayerValue) throws Exception {
         List<String> sqlList = FastExtLayerHelper.buildUpdateLayerValueSql(this, oldLayerValue, newLayerValue);
-        if (sqlList != null && sqlList.size() > 0) {
+        if (sqlList != null && !sqlList.isEmpty()) {
             FastChar.getDB().setLog(false).batch(sqlList, sqlList.size());
         }
     }
@@ -541,6 +584,7 @@ public abstract class FastExtEntity<E extends FastEntity<?>> extends FastEntity<
 
     /**
      * 判断是否是否为数字类的列
+     *
      * @param attr 属性名
      * @return 布尔值
      */
@@ -550,6 +594,168 @@ public abstract class FastExtEntity<E extends FastEntity<?>> extends FastEntity<
             return FastType.isNumberType(column.getType());
         }
         return false;
+    }
+
+
+
+    /**
+     * 添加当前数据的操作日志【表格配置 data_log 属性为true有效】【默认以当前线程中的FastAction对象 获取当前登录的管理员信息】
+     *
+     * @param logType    操作类型
+     * @param logContent 操作内容
+     */
+    public void addLog(String logType, String logContent) {
+        this.addLog(logType, logContent, FastChar.getThreadLocalAction());
+    }
+
+    /**
+     * 添加当前数据的操作日志【表格配置 data_log 属性为true有效】【默认以当前线程中的FastAction对象 获取当前登录的管理员信息】
+     *
+     * @param logType    操作类型
+     * @param logContent 操作内容
+     */
+    public void addLog(String logType, String logContent, String dataJson) {
+        this.addLog(logType, logContent, FastChar.getThreadLocalAction(), dataJson);
+    }
+
+    /**
+     * 添加当前数据的操作日志【表格配置 data_log 属性为true有效】【操作人默认是当前登录的管理员信息】
+     *
+     * @param logType    操作类型
+     * @param logContent 操作内容
+     * @param fromAction 控制器
+     */
+    public void addLog(String logType, String logContent, FastAction fromAction) {
+        ExtManagerEntity session = ExtManagerEntity.getSession(fromAction);
+        if (session == null) {
+            return;
+        }
+        this.addLog(session.getManagerId(), session.getManagerName(), logType, logContent, fromAction.getRemoteIp(), fromAction.getUserAgent(), null);
+    }
+
+    /**
+     * 添加当前数据的操作日志【表格配置 data_log 属性为true有效】【操作人默认是当前登录的管理员信息】
+     *
+     * @param logType    操作类型
+     * @param logContent 操作内容
+     * @param fromAction 控制器
+     */
+    public void addLog(String logType, String logContent, FastAction fromAction, String dataJson) {
+        ExtManagerEntity session = ExtManagerEntity.getSession(fromAction);
+        if (session == null) {
+            return;
+        }
+        this.addLog(session.getManagerId(), session.getManagerName(), logType, logContent, fromAction.getRemoteIp(), fromAction.getUserAgent(), dataJson);
+    }
+
+
+    /**
+     * 添加当前数据的操作日志【表格配置 data_log 属性为true有效】
+     *
+     * @param fromUserId   操作人ID
+     * @param fromUserName 操作人名称
+     * @param logType      操作类型
+     * @param logContent   操作内容
+     * @param fromAction   控制器
+     */
+    public void addLog(int fromUserId, String fromUserName, String logType, String logContent, FastAction fromAction) {
+        this.addLog(fromUserId, fromUserName, logType, logContent, fromAction.getRemoteIp(), fromAction.getUserAgent(), null);
+    }
+
+
+    /**
+     * 添加当前数据的操作日志【表格配置 data_log 属性为true有效】
+     *
+     * @param fromUserId   操作人ID
+     * @param fromUserName 操作人名称
+     * @param logType      操作类型
+     * @param logContent   操作内容
+     * @param fromAction   控制器
+     */
+    public void addLog(int fromUserId, String fromUserName, String logType, String logContent, FastAction fromAction, String dataJson) {
+        this.addLog(fromUserId, fromUserName, logType, logContent, fromAction.getRemoteIp(), fromAction.getUserAgent(), dataJson);
+    }
+
+
+    /**
+     * 添加当前数据的操作日志【表格配置 data_log 属性为true有效】
+     *
+     * @param fromUserId   操作人ID
+     * @param fromUserName 操作人名称
+     * @param logType      操作类型
+     * @param logContent   操作内容
+     * @param logIP        客户端IP
+     * @param logClient    客户端信息
+     */
+    public void addLog(int fromUserId, String fromUserName, String logType, String logContent, String logIP, String logClient) {
+        this.addLog(fromUserId, fromUserName, logType, logContent, logIP, logClient, null);
+
+    }
+
+    /**
+     * 添加当前数据的操作日志【表格配置 data_log 属性为true有效】
+     *
+     * @param fromUserId   操作人ID
+     * @param fromUserName 操作人名称
+     * @param logType      操作类型
+     * @param logContent   操作内容
+     * @param logIP        客户端IP
+     * @param logClient    客户端信息
+     */
+    public void addLog(int fromUserId, String fromUserName, String logType, String logContent, String logIP, String logClient, String dataJson) {
+        int id = getId();
+        if (id <= 0) {
+            return;
+        }
+        this.addLog(id, fromUserId, fromUserName, logType, logContent, logIP, logClient, dataJson);
+    }
+
+
+    /**
+     * 添加当前数据的操作日志【表格配置 data_log 属性为true有效】
+     *
+     * @param dataId       被操作数据的ID
+     * @param fromUserId   操作人ID
+     * @param fromUserName 操作人名称
+     * @param logType      操作类型
+     * @param logContent   操作内容
+     * @param logIP        客户端IP
+     * @param logClient    客户端信息
+     * @param dataJson     被操作的数据json
+     */
+    public void addLog(int dataId, int fromUserId, String fromUserName, String logType, String logContent, String logIP, String logClient, String dataJson) {
+        if (!isDataLog()) {
+            return;
+        }
+
+        ExtSystemDataLogEntity logEntity = ExtSystemDataLogEntity.newInstance();
+        logEntity.set("dataUserId", fromUserId);
+        logEntity.set("dataUser", fromUserName);
+        logEntity.set("dataLogContent", logContent);
+        logEntity.set("dataLogIp", logIP);
+        logEntity.set("dataLogClient", logClient);
+        logEntity.set("dataLogType", logType);
+        logEntity.set("dataId", dataId);
+        logEntity.set("dataLogData", dataJson);
+        logEntity.set("dataType", getTableName());
+        logEntity.save();
+    }
+
+    /**
+     * 清除当前数据的所有操作日志【表格配置 data_log 属性为true有效】
+     */
+    public void clearLog() {
+        if (!isDataLog()) {
+            return;
+        }
+        int id = getId();
+        if (id <= 0) {
+            return;
+        }
+        ExtSystemDataLogEntity logEntity = ExtSystemDataLogEntity.newInstance();
+        logEntity.set("dataId", id);
+        logEntity.set("dataType", getTableName());
+        logEntity.delete("dataType", "dataId");
     }
 
 

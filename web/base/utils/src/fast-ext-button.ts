@@ -17,8 +17,11 @@ namespace FastExt {
                 icon: button.icon,
                 iconCls: button.iconCls,
                 text: button.text,
+                sourceBtn: button,
                 subtext: button.subtext,
-                handler: button.handler,
+                handler: function () {
+                    this.sourceBtn.handler.apply(this.sourceBtn);
+                },
                 disabled: button.disabled
             };
             if (button.getMenu() != null) {
@@ -41,14 +44,19 @@ namespace FastExt {
         static checkGridToolbarButton(button) {
             let grid = button.up('grid,treepanel');
             if (grid) {
-                if (!Ext.isEmpty(button.text) && FastExt.Base.toBool(button.contextMenu, true)) {
-                    //需要配置右键菜单
-                    let buttonMenu = FastExt.Button.buttonToMenuItem(button);
-                    FastExt.Grid.addGridContextMenu(grid, buttonMenu);
-                }
+                // if (!Ext.isEmpty(button.text) && FastExt.Base.toBool(button.contextMenu, true)) {
+                //
+                //     //如果所在的toolbar中
+                //     let toolbar = button.up('toolbar');
+                //     if (toolbar && !FastExt.Base.toBool(toolbar.contextMenu, true)) {
+                //         return;
+                //     }
+                //     //需要配置右键菜单
+                //     let buttonMenu = FastExt.Button.buttonToMenuItem(button);
+                //     FastExt.Grid.addGridContextMenu(grid, buttonMenu);
+                // }
                 //需要检测grid选中项
                 FastExt.Button.buttonToBind(grid, button);
-
             }
         }
 
@@ -75,7 +83,7 @@ namespace FastExt {
          * @param button
          * @param disabled
          */
-        static setDisabled(button,disabled) {
+        static setDisabled(button, disabled) {
             if (button) {
                 button.setDisabled(disabled);
                 if (button.overflowClone) {
@@ -112,27 +120,27 @@ namespace FastExt {
             if (FastExt.Base.toBool(button.hiddenValid)) {
                 buttonHidden = false;
             }
-            
+
             if (button.checkSelect && !buttonHidden) {
                 FastExt.Button.setDisabled(button, true);
                 if (!FastExt.Button.checkButtonBind(grid.selectButtons, button)) {
                     grid.selectButtons.push(button);
                 }
             }
-            if ((button.checkUpdate || button.entityUpdateButton) && !buttonHidden) {
+            if ((button.checkUpdate || button.entityUpdateButton || button.text === "提交修改") && !buttonHidden) {
                 FastExt.Button.setDisabled(button, true);
                 if (!FastExt.Button.checkButtonBind(grid.updateButtons, button)) {
                     grid.updateButtons.push(button);
                 }
             }
 
-            if (button.entityAddButton && !buttonHidden) {
+            if ((button.entityAddButton) && !buttonHidden) {
                 if (!FastExt.Button.checkButtonBind(grid.addButtons, button)) {
                     grid.addButtons.push(button);
                 }
             }
 
-            if (button.entityDeleteButton && !buttonHidden) {
+            if ((button.entityDeleteButton) && !buttonHidden) {
                 if (!FastExt.Button.checkButtonBind(grid.deleteButtons, button)) {
                     grid.deleteButtons.push(button);
                 }

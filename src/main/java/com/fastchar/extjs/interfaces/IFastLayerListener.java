@@ -8,7 +8,7 @@ import com.fastchar.extjs.entity.ExtManagerEntity;
  * @author 沈建（Janesen）
  * @date 2020/12/23 10:59
  */
-public interface IFastLayerListener {
+public interface IFastLayerListener  {
 
     /**
      * 填充权限筛选

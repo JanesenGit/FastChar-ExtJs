@@ -4,9 +4,6 @@ namespace FastExt {
      * 颜色处理的功能
      */
     export class Color {
-        private constructor() {
-
-        }
 
         /**
          * pickr.es5.min.js文件的路径 https://github.com/Simonwep/pickr
@@ -16,12 +13,7 @@ namespace FastExt {
         /**
          * pickr主题文件的路径 https://github.com/Simonwep/pickr
          */
-        static pickrThemePath: string = "base/colorpicker/monolith.min.css";
-
-        /**
-         * 是否已加载了lottie.min.js文件
-         */
-        static loadedPickrJs: boolean;
+        static pickrStylePath: string = "base/colorpicker/monolith.min.css";
 
 
         /**
@@ -63,7 +55,6 @@ namespace FastExt {
             }
             return new Ext.Promise(function (resolve, reject) {
                 let doShowPicker = function () {
-                    FastExt.Color.loadedPickrJs = true;
                     let menu = Ext.create('Ext.menu.Menu', {
                         showSeparator: false,
                         layout: 'border',
@@ -134,17 +125,75 @@ namespace FastExt {
                     menu.showBy(obj);
                 };
 
-                if (!FastExt.Color.loadedPickrJs) {
-                    FastExt.System.addScript({src: FastExt.Color.pickrJsPath}, function () {
-                        FastExt.System.addStylesheet({href: FastExt.Color.pickrThemePath}, doShowPicker);
-                    });
-                } else {
-                    doShowPicker();
-                }
-
+                FastExt.PluginLoader.loadPlugins("ColorPicker", [FastExt.Color.pickrJsPath, FastExt.Color.pickrStylePath], doShowPicker);
             });
         }
 
+
+
+        /**
+         * 将颜色进行高亮
+         * @param color 颜色值
+         * @param level 高亮级别0-255
+         */
+        static colorToLight(color: string, level: number) {
+            let newColor = "#";
+
+            let regStr = /([0-9a-f]{2})/g;
+            color = color.replace("#", "").toLowerCase();
+            let result = color.match(regStr);
+            if (!result) {
+                return undefined;
+            }
+            for (let resultElement of result) {
+                let intValue = parseInt(resultElement, 16);
+                let fixIntValue = (Math.floor((255 - intValue) * level) + intValue);
+                newColor += fixIntValue.toString(16);
+            }
+            return newColor;
+        }
+
+        /**
+         * 将颜色进行调暗
+         * @param color 颜色值
+         * @param level 调暗级别0-255
+         */
+        static colorToDarken(color: string, level: number) {
+            let rgb = tinycolor(color).toRgb();
+            let red = rgb.r;
+            let green = rgb.g;
+            let blue = rgb.b;
+            let maxColor = "red";
+            if (green >= red && green >= blue) {
+                maxColor = "green";
+            } else if (blue >= red) {
+                maxColor = "blue";
+            }
+            switch (maxColor) {
+                case "red":
+                    red -= level;
+                    break;
+                case "green":
+                    green -= level;
+                    break;
+                case "blue":
+                    blue -= level;
+                    break;
+            }
+
+            if (red < 0) {
+                red = 0;
+            }
+
+            if (green < 0) {
+                green = 0;
+            }
+
+            if (blue < 0) {
+                blue = 0;
+            }
+            return tinycolor({r: red, g: green, b: blue}).toHexString();
+        }
 
     }
 

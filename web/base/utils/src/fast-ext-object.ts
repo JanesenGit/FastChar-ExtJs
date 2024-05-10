@@ -31,6 +31,18 @@ namespace FastExt{
         }
 
 
+        /**
+         * 将根据参数返回第一个不为空的值
+         * @param values
+         */
+        static pickValue(...values: any[]): any {
+            for (let value of values) {
+                if (!Ext.isEmpty(value)) {
+                    return value;
+                }
+            }
+            return undefined;
+        }
 
     }
 

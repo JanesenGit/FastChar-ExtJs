@@ -2,6 +2,8 @@
  * @private
  */
 Ext.define('Ext.ux.colorpick.ColorUtils', function(ColorUtils) {
+    var oldIE = Ext.isIE && Ext.ieVersion < 10;
+
     return {
         singleton: true,
 
@@ -9,34 +11,60 @@ Ext.define('Ext.ux.colorpick.ColorUtils', function(ColorUtils) {
             ColorUtils = this;
         },
 
-        backgroundTpl: 'background: {rgba};',
+        backgroundTpl: oldIE
+            ? 'filter: progid:DXImageTransform.Microsoft.gradient(GradientType=0, ' +
+                'startColorstr=\'#{alpha}{hex}\', endColorstr=\'#{alpha}{hex}\');'
+            : 'background: {rgba};',
 
-        setBackground: function(el, color) {
-            var tpl, data, bgStyle;
+        setBackground: oldIE
+            ? function(el, color) {
+                var tpl, data, bgStyle;
 
-            if (el) {
-                tpl = Ext.XTemplate.getTpl(ColorUtils, 'backgroundTpl');
-                data = {
-                    rgba: ColorUtils.getRGBAString(color)
-                };
-                bgStyle = tpl.apply(data);
+                if (el) {
+                    tpl = Ext.XTemplate.getTpl(ColorUtils, 'backgroundTpl');
+                    data = {
+                        hex: ColorUtils.rgb2hex(color.r, color.g, color.b),
+                        alpha: Math.floor(color.a * 255).toString(16)
+                    };
 
-                el.applyStyles(bgStyle);
+                    bgStyle = tpl.apply(data);
+                    el.applyStyles(bgStyle);
+                }
             }
-        },
+            : function(el, color) {
+                var tpl, data, bgStyle;
+
+                if (el) {
+                    tpl = Ext.XTemplate.getTpl(ColorUtils, 'backgroundTpl');
+                    data = {
+                        rgba: ColorUtils.getRGBAString(color)
+                    };
+
+                    bgStyle = tpl.apply(data);
+                    el.applyStyles(bgStyle);
+                }
+            },
 
         // parse and format functions under objects that match supported format config
-        // values of the color picker; parse() methods recieve the supplied color value
+        // values of the color picker; parse() methods receive the supplied color value
         // as a string (i.e "FFAAAA") and return an object form, just like the one
         // ColorPickerModel vm "selectedColor" uses. That same object form is used as a
         // parameter to the format() methods, where the appropriate string form is expected
         // for the return result
         formats: {
+            // "RGB(100,100,100)"
+            RGB: function(colorO) {
+                return ColorUtils.getRGBString(colorO).toUpperCase();
+            },
+
+            // "RGBA(100,100,100,0.5)"
+            RGBA: function(colorO) {
+                return ColorUtils.getRGBAString(colorO).toUpperCase();
+            },
+
             // "FFAA00"
             HEX6: function(colorO) {
-                return ColorUtils.rgb2hex(
-                    colorO && colorO.r, colorO && colorO.g, colorO && colorO.b
-                );
+                return ColorUtils.rgb2hex(colorO.r, colorO.g, colorO.b);
             },
 
             // "FFAA00FF" (last 2 are opacity)
@@ -51,21 +79,15 @@ Ext.define('Ext.ux.colorpick.ColorUtils', function(ColorUtils) {
                 hex += opacityHex.toUpperCase();
 
                 return hex;
-            },
-
-            rgb: function(color) {
-                return ColorUtils.getRGBString(color);
-            },
-
-            rgba: function(color) {
-                return ColorUtils.getRGBAString(color);
             }
         },
 
-        hexRe: /^#?([0-9a-f]{3,8})/i,
-        rgbaAltRe: /rgba\(\s*([\w#\d]+)\s*,\s*([\d\.]+)\s*\)/, // eslint-disable-line no-useless-escape
-        rgbaRe: /rgba\(\s*([\d\.]+)\s*,\s*([\d\.]+)\s*,\s*([\d\.]+)\s*,\s*([\d\.]+)\s*\)/, // eslint-disable-line no-useless-escape
-        rgbRe: /rgb\(\s*([\d\.]+)\s*,\s*([\d\.]+)\s*,\s*([\d\.]+)\s*\)/, // eslint-disable-line no-useless-escape
+        /* eslint-disable no-useless-escape */
+        hexRe: /^#?(([0-9a-f]{8})|((?:[0-9a-f]{3}){1,2}))$/i,
+        rgbaAltRe: /^rgba\(\s*([\w#\d]+)\s*,\s*([\d\.]+)\s*\)$/i,
+        rgbaRe: /^rgba\(\s*([\d\.]+)\s*,\s*([\d\.]+)\s*,\s*([\d\.]+)\s*,\s*([\d\.]+)\s*\)$/i,
+        rgbRe: /^rgb\(\s*([\d\.]+)\s*,\s*([\d\.]+)\s*,\s*([\d\.]+)\s*\)$/i,
+        /* eslint-enable no-useless-escape */
 
         /**
          * Turn a string to a color object. Supports these formats:
@@ -73,7 +95,7 @@ Ext.define('Ext.ux.colorpick.ColorUtils', function(ColorUtils) {
          * - "#ABC" (HEX short)
          * - "#ABCDEF" (HEX)
          * - "#ABCDEFDD" (HEX with opacity)
-         * - "red" (named colors - see
+         * - "red" (named colors - see 
          * [Web Colors](http://en.wikipedia.org/wiki/Web_colors) for a full list)
          * - "rgba(r,g,b,a)" i.e "rgba(255,0,0,1)" (a == alpha == 0-1)
          * - "rgba(red, 0.4)"
@@ -92,14 +114,14 @@ Ext.define('Ext.ux.colorpick.ColorUtils', function(ColorUtils) {
          * @return {Number} return.v The value component (0-1).
          */
         parseColor: function(color, alphaFormat) {
-            var me = this,
-                rgb, match, ret, hsv;
-
             if (!color) {
                 return null;
             }
 
-            rgb = me.colorMap[color];
+            // eslint-disable-next-line vars-on-top
+            var me = this,
+                rgb = me.colorMap[color],
+                match, ret, hsv;
 
             if (rgb) {
                 ret = {
@@ -164,9 +186,9 @@ Ext.define('Ext.ux.colorpick.ColorUtils', function(ColorUtils) {
                         match = me.rgbaAltRe.exec(color);
 
                         if (match) {
-                            // scss shorthands =?
-                            // rgba(red, 0.4),rgba(#222, 0.9), rgba(#444433, 0.8)
+                            // scss shorthands = rgba(red, 0.4), rgba(#222, 0.9), rgba(#444433, 0.8)
                             ret = me.parseColor(match[1]);
+
                             // we have HSV filled in, so poke on "a" and we're done
                             ret.a = parseFloat(match[2]);
 
@@ -210,9 +232,6 @@ Ext.define('Ext.ux.colorpick.ColorUtils', function(ColorUtils) {
          * @return {String}
          */
         getRGBAString: function(rgba) {
-            // set default value if selected color is set to null
-            rgba = rgba === null ? { r: 0, g: 0, b: 0, h: 1, s: 1, v: 1, a: "1" } : rgba;
-
             return "rgba(" + rgba.r + "," + rgba.g + "," + rgba.b + "," + rgba.a + ")";
         },
 
@@ -236,47 +255,44 @@ Ext.define('Ext.ux.colorpick.ColorUtils', function(ColorUtils) {
          * @return {Object} An object with "r", "g" and "b" color properties.
          */
         hsv2rgb: function(h, s, v) {
-            var c, hprime, x, rgb, m;
-
-            h = h > 1 ? 1 : h;
-            s = s > 1 ? 1 : s;
-            v = v > 1 ? 1 : v;
-
-            h = h === undefined ? 1 : h;
-
             h = h * 360;
 
             if (h === 360) {
                 h = 0;
             }
 
-            c = v * s;
-
-            hprime = h / 60;
-
-            x = c * (1 - Math.abs(hprime % 2 - 1));
-
-            rgb = [0, 0, 0];
+            // eslint-disable-next-line vars-on-top
+            var c = v * s,
+                hprime = h / 60,
+                x = c * (1 - Math.abs(hprime % 2 - 1)),
+                rgb = [0, 0, 0],
+                m;
 
             switch (Math.floor(hprime)) {
                 case 0:
                     rgb = [c, x, 0];
                     break;
+
                 case 1:
                     rgb = [x, c, 0];
                     break;
+
                 case 2:
                     rgb = [0, c, x];
                     break;
+
                 case 3:
                     rgb = [0, x, c];
                     break;
+
                 case 4:
                     rgb = [x, 0, c];
                     break;
+
                 case 5:
                     rgb = [c, 0, x];
                     break;
+
                 default:
                     //<debug>
                     console.error("unknown color " + h + ' ' + s + " " + v);
@@ -309,17 +325,17 @@ Ext.define('Ext.ux.colorpick.ColorUtils', function(ColorUtils) {
          * @return {Object} An object with "h", "s" and "v" color properties.
          */
         rgb2hsv: function(r, g, b) {
-            var M, m, c, hprime, h, v, s;
-
             r = r / 255;
             g = g / 255;
             b = b / 255;
 
-            M = Math.max(r, g, b);
-            m = Math.min(r, g, b);
-            c = M - m;
-
-            hprime = 0;
+            // eslint-disable-next-line vars-on-top
+            var M = Math.max(r, g, b),
+                m = Math.min(r, g, b),
+                c = M - m,
+                hprime = 0,
+                s = 0,
+                h, v;
 
             if (c !== 0) {
                 if (M === r) {
@@ -340,8 +356,6 @@ Ext.define('Ext.ux.colorpick.ColorUtils', function(ColorUtils) {
             }
 
             v = M;
-
-            s = 0;
 
             if (c !== 0) {
                 s = c / v;
@@ -368,32 +382,20 @@ Ext.define('Ext.ux.colorpick.ColorUtils', function(ColorUtils) {
          * @return {String}
          */
         rgb2hex: function(r, g, b) {
-            r = r === null ? r : r.toString(16);
-            g = g === null ? g : g.toString(16);
-            b = b === null ? b : b.toString(16);
+            r = r.toString(16);
+            g = g.toString(16);
+            b = b.toString(16);
 
-            if (r === null || r.length < 2) {
-                r = '0' + r || '0';
+            if (r.length < 2) {
+                r = '0' + r;
             }
 
-            if (g === null || g.length < 2) {
-                g = '0' + g || '0';
+            if (g.length < 2) {
+                g = '0' + g;
             }
 
-            if (b === null || b.length < 2) {
-                b = '0' + b || '0';
-            }
-
-            if (r === null || r.length > 2) {
-                r = 'ff';
-            }
-
-            if (g === null || g.length > 2) {
-                g = 'ff';
-            }
-
-            if (b === null || b.length > 2) {
-                b = 'ff';
+            if (b.length < 2) {
+                b = '0' + b;
             }
 
             return (r + g + b).toUpperCase();

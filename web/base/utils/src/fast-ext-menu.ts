@@ -51,13 +51,23 @@ namespace FastExt {
          * 判断菜单集合中，最后一个是不是分割线
          * @param menus
          */
-        static isSplitLineLast(menus): boolean {
+        static isSplitLineLast(menus: any): boolean {
             if (menus) {
-                if (menus.items && menus.items.length > 0) {
-                    return menus.items[menus.items.length - 1] === "-";
+                if (menus.items ) {
+                    if (menus.items.length === 0) {
+                        return true;
+                    }
+                    if (menus.items.length > 0) {
+                        return menus.items[menus.items.length - 1] === "-";
+                    }
                 }
-                if (Ext.isArray(menus) && menus.length > 0) {
-                    return menus[menus.length - 1] === "-";
+                if (Ext.isArray(menus)) {
+                    if (menus.length === 0) {
+                        return true;
+                    }
+                    if (menus.length > 0) {
+                        return menus[menus.length - 1] === "-";
+                    }
                 }
             }
             return false;
@@ -67,8 +77,9 @@ namespace FastExt {
         /**
          * 刷新菜单的选项，避免出现分割线连在一起的情况
          * @param menu
+         * @param item
          */
-        static refreshItem(menu: any) {
+        static refreshItem(menu: any,item?:any) {
             if (menu && menu.items) {
                 let visibleItem = [];
                 menu.items.each(function (item, index) {
@@ -83,15 +94,23 @@ namespace FastExt {
                         visibleItem.push(item);
                     }
                     if (Ext.isFunction(item.getMenu)) {
-                        FastExt.Menu.refreshItem(item.getMenu());
+                        FastExt.Menu.refreshItem(item.getMenu(), item);
                     }
                 });
                 if (visibleItem.length > 0 && visibleItem[visibleItem.length - 1].xtype === "menuseparator") {
                     visibleItem[visibleItem.length - 1].hide();
                 }
+                if (item) {
+                    if (visibleItem.length === 0 ) {
+                        item.fromVisibleItem = true;
+                        item.hide();
+                    }else if (item.fromVisibleItem) {
+                        item.show();
+                        item.fromVisibleItem = false;
+                    }
+                }
             }
         }
-
     }
 
 }

@@ -1,9 +1,18 @@
-.headPanel{
+.fast-progress-container{
+    height:3px !important;
+    background:${color} !important;
+    overflow: hidden;
+    box-shadow: 0 1px 3px 0px #bcbcbc;
+}
+
+.fast-progress{
+}
+
+.fast-system-login-head-container{
     text-shadow: 0px 0px 8px #dadada;
 }
 
-.loginLogo{
-    margin-top: 20px;
+.fast-system-login_logo{
     -moz-box-shadow: 0 0 8px ${color};
     -webkit-box-shadow: 0 0 8px ${color};
     box-shadow: 0 0 8px ${color};
@@ -14,67 +23,105 @@
     -o-transition:  box-shadow 500ms ease; /* Opera */
     background:#ffffff;
     -webkit-user-drag: none;
-    user-select: none;
-    pointer-events: none;
+    margin-top:10px;
 }
-.loginLogo:hover {
+
+.fast-system-login_logo:hover{
     -moz-box-shadow: 0 0 20px ${color};
     -webkit-box-shadow: 0 0 20px ${color};
     box-shadow: 0 0 20px ${color};
 }
 
-.headContainer{
-     background: linear-gradient(0deg, $[color], $[color7]) !important;
-     /*background-image: linear-gradient(45deg, $[color] 80%, $[color5] 20%) !important;*/
-}
-
-.headButton{
-    border-radius:88px !important;
-    box-shadow:0 0 4px #fefefe !important;
-}
-
-.headButton:hover{
-    box-shadow:0 0 18px #fefefe !important;
-}
-
-.headLogo {
-  box-shadow:0 0 4px #fefefe !important;
-  -moz-box-shadow: 0 0 4px #fefefe;
-  -webkit-box-shadow: 0 0 4px #fefefe;
-  background:#ffffff;
-  -webkit-user-drag: none;
-  user-select: none;
-  pointer-events: none;
-}
-
-.headLogo:hover{
-  box-shadow:0 0 18px #fefefe !important;
-  -moz-box-shadow: 0 0 18px #fefefe;
-  -webkit-box-shadow: 0 0 18px #fefefe;
-}
-
-.headTitle{
-    background-image:-webkit-linear-gradient(160deg, $[color1] 20%, $[frontColor] 80%);
-   -webkit-background-clip:text;
-   -webkit-text-fill-color:transparent;
-   font-size: $[fontSize6] !important;
-   line-height: $[fontSize6] !important;
-   font-weight: 700;
-   -webkit-user-drag: none;
-   user-select: none;
-   pointer-events: none;
-}
-.headTitle:hover{
-    text-shadow:0 0 18px #fefefe !important;
-}
-.leftBottom{
-    background: linear-gradient(0deg, #32404e, #425365) !important;
-    cursor: pointer;
-}
-.validCodeImg{
+.fast-system-valid-code-img{
     border-width: 1px;
     border-style: solid;
     border-color: #d0d0d0;
     border-radius: 3px;
     box-shadow:0 0 3px #cccccc;
+}
+
+.fast-system-head-container{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background:#f0f0f0;
+}
+
+.fast-system-head-info-container{
+    display: flex;
+    align-items: center;
+    height: 100%;
+    width: 100%;
+    padding: 8px;
+}
+
+.fast-system-head-logo {
+  box-shadow:0 0 4px #fefefe !important;
+  -moz-box-shadow: 0 0 4px #fefefe;
+  -webkit-box-shadow: 0 0 4px #fefefe;
+  background:#ffffff;
+  -webkit-user-drag: none;
+  border-radius: 10px;
+  height: 100%;
+}
+
+.fast-system-head-logo:hover{
+  box-shadow:0 0 18px #fefefe !important;
+  -moz-box-shadow: 0 0 18px #fefefe;
+  -webkit-box-shadow: 0 0 18px #fefefe;
+}
+
+.fast-system-head-logo-mini{
+    width: 100% !important;
+    height:unset;
+}
+
+
+.fast-system-head-button{
+    border-radius:88px !important;
+    box-shadow:0 0 4px #fefefe !important;
+}
+
+.fast-system-head-button:hover{
+    box-shadow:0 0 18px #fefefe !important;
+}
+
+
+.fast-system-head-title {
+   background-image:-webkit-linear-gradient(160deg, ${color1} 20%, ${frontColor} 80%);
+   -webkit-background-clip:text;
+   -webkit-text-fill-color:transparent;
+   font-size: calc(${fontSize} + 6px) !important;
+   line-height: calc(${fontSize} + 6px) !important;
+   font-weight: 700;
+   -webkit-user-drag: none;
+   user-select: none;
+   pointer-events: none;
+}
+
+.fast-system-head-title:hover{
+    text-shadow:0 0 18px #fefefe !important;
+}
+
+.fast-system-head-title-single-line{
+    text-wrap: nowrap;
+}
+
+
+.fast-system-menu-container{
+    box-shadow: 0px 0px 3px 3px #b3b3b3;
+}
+
+.fast-system-menu-header-container{
+    background:linear-gradient(0deg, ${color}, ${color7}) !important;
+    padding-top: 3px;
+}
+
+.fast-ext-menu-closer{
+    color: #cccccc;
+    font-size: 14px;
+}
+
+.fast-ext-menu-closer:hover{
+    color: #d81e06;
 }

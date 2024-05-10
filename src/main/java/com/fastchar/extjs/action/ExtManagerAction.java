@@ -3,19 +3,27 @@ package com.fastchar.extjs.action;
 import com.fastchar.annotation.AFastRoute;
 import com.fastchar.core.FastAction;
 import com.fastchar.core.FastChar;
-import com.fastchar.core.FastEntity;
 import com.fastchar.core.FastHandler;
 import com.fastchar.extjs.FastExtConfig;
 import com.fastchar.extjs.annotation.AFastLog;
+import com.fastchar.extjs.annotation.AFastSecurityResponse;
 import com.fastchar.extjs.annotation.AFastSession;
-import com.fastchar.extjs.core.heads.FastHeadExtInfo;
-import com.fastchar.extjs.entity.*;
+import com.fastchar.extjs.annotation.AFastToken;
+import com.fastchar.extjs.core.configjson.FastExtConfigJson;
+import com.fastchar.extjs.entity.ExtManagerEntity;
+import com.fastchar.extjs.entity.ExtManagerErrorEntity;
+import com.fastchar.extjs.entity.ExtManagerRoleEntity;
+import com.fastchar.extjs.goole.authentication.core.GoogleAuthentication;
 import com.fastchar.extjs.interfaces.IFastManagerListener;
-import com.fastchar.utils.FastDateUtils;
-import com.fastchar.utils.FastMD5Utils;
-import com.fastchar.utils.FastStringUtils;
+import com.fastchar.extjs.out.FastExtOutCaptcha;
+import com.fastchar.extjs.utils.ZXingUtils;
+import com.fastchar.utils.*;
 
+import java.awt.image.BufferedImage;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 
 @AFastRoute({"/controller"})
@@ -34,16 +42,23 @@ public class ExtManagerAction extends FastAction {
      * loginPassword 登录密码【MD5加密后提交】 {String}
      */
     @AFastLog(value = "${managerRole}【${managerName}】进行了登录！", type = "管理员登录")
-    public void login() {
+    @AFastSecurityResponse
+    public void login() throws Exception {
         String loginName = getParam("loginName", true);
 
         setRequestAttr("managerName", loginName);
         setRequestAttr("managerRole", "后台管理员");
 
+        boolean isLoginByName = false;
+        //存在超级管理员的会话信息，调用了登录接口，以登录名查询
+        ExtManagerEntity session = ExtManagerEntity.getSession(this);
+        if (session != null) {
+            isLoginByName = true;
+        }
+
         FastExtConfig extConfig = FastExtConfig.getInstance();
-        FastHeadExtInfo extInfo = extConfig.getExtInfo("login-type");
-        if (extInfo != null) {
-            if (!extInfo.getValue().equalsIgnoreCase("normal")) {
+        if (!isLoginByName) {
+            if (!FastExtConfigJson.getInstance().getLoginType().equalsIgnoreCase("normal")) {
                 String validateCode = FastStringUtils.defaultValue(getSession("validateCode"), FastStringUtils.buildUUID());
                 if (!validateCaptcha(validateCode) && !validateCaptcha(getParam("validateCode", true))) {
                     resetCaptcha();
@@ -52,9 +67,14 @@ public class ExtManagerAction extends FastAction {
                 }
             }
         }
+
         String loginPassword = getParam("loginPassword", true);
 
         ExtManagerEntity managerEntity = ExtManagerEntity.getInstance().login(loginName, loginPassword);
+
+        if (isLoginByName) {
+            managerEntity = ExtManagerEntity.getInstance().getByLoginName(loginName);
+        }
 
         String errorInfo = "";
         if (extConfig.isManagerLoginErrorLimit()) {
@@ -67,8 +87,8 @@ public class ExtManagerAction extends FastAction {
             }
         }
 
-        ExtManagerErrorEntity payErrorEntity = new ExtManagerErrorEntity();
-        payErrorEntity.set("managerLoginName", loginName);
+        ExtManagerErrorEntity loginError = new ExtManagerErrorEntity();
+        loginError.set("managerLoginName", loginName);
         if (managerEntity != null) {
 
             if (managerEntity.getManagerRole() == null || managerEntity.getManagerRole().getRoleId() <= 0) {
@@ -78,7 +98,6 @@ public class ExtManagerAction extends FastAction {
             if (managerEntity.getManagerRole().getInt("roleType", -1) < 0) {
                 responseJson(-1, "登录失败！您的账户角色的类型异常！");
             }
-
 
             if (managerEntity.getInt("managerState") == ExtManagerEntity.ManagerStateEnum.禁用.ordinal()) {
                 responseJson(-1, "登录失败！您的账号已被禁用！");
@@ -102,8 +121,6 @@ public class ExtManagerAction extends FastAction {
             managerEntity.set("lastLoginTime", FastDateUtils.getDateString());
             managerEntity.update();
 
-            ExtManagerEntity.setSession(this, managerEntity);
-
             String loginCode = FastStringUtils.buildOnlyCode("EXT");
             setSession("loginCode", loginCode);
             if (managerEntity.getInt("onlineType") == ExtManagerEntity.OnlineTypeEnum.单个终端.ordinal()) {
@@ -111,15 +128,199 @@ public class ExtManagerAction extends FastAction {
             } else {
                 MANAGER_SINGLE_LOGIN_CODE.remove(managerEntity.getManagerId());
             }
-            payErrorEntity.delete("managerLoginName");
+            loginError.delete("managerLoginName");
 
             resetCaptcha();
-            responseJson(0, "登录成功！");
+
+            if (FastExtConfigJson.getInstance().getGoogleAuthentication()) {
+                setSession("Google_Id", managerEntity.getManagerId());
+                if (managerEntity.isEmpty("googleSecretKey")) {
+                    responseJson(-4, "登录成功！需要绑定并进行安全验证！");
+                } else {
+                    responseJson(-3, "登录成功！请进行安全验证！");
+                }
+            } else {
+                ExtManagerEntity.setSession(this, managerEntity);
+                responseJson(0, "登录成功！");
+            }
         } else {
-            payErrorEntity.save();
-            resetCaptcha();
+            loginError.save();
             responseJson(-2, "登录失败，用户名或密码错误！" + errorInfo);
         }
+    }
+
+
+    @AFastLog(value = "${managerRole}【${managerName}】进行了安全验证！", type = "安全验证")
+    @AFastToken
+    public void verify() {
+        try {
+            String loginName = getParam("verify.loginName", true);
+            setRequestAttr("managerName", loginName);
+            setRequestAttr("managerRole", "后台管理员");
+
+            String loginKey = getParam("verify.loginKey", true);
+            Object verified = FastChar.getMemoryCache().get(loginKey);
+            if (verified != null) {
+                removeSession("validateCode");
+                responseJson(-1, "验证失败，请勿非法使用后台！");
+            }
+
+            Map<String, Object> dataMap = getParamToMap("verify");
+
+            TreeSet<String> keys = new TreeSet<>(dataMap.keySet());
+
+            List<String> param = new ArrayList<>();
+            for (String key : keys) {
+                if (key.startsWith("^")) {
+                    continue;
+                }
+                if (key.equalsIgnoreCase("clickPositions")) {
+                    param.add("verify." + key + "=" + FastMD5Utils.MD5(FastBase64Utils.decode(String.valueOf(dataMap.get(key)))));
+                } else {
+                    param.add("verify." + key + "=" + FastMD5Utils.MD5(dataMap.get(key)));
+                }
+
+            }
+            String base64String = FastBase64Utils.encode(FastStringUtils.join(param, "&"))
+                    .replace("\n", "").replace("\r", "");
+
+            String sign = FastMD5Utils.MD5(base64String + getSession("LoginApiKey"));
+
+
+            String paramSign = getParam("sign", "false");
+            if (paramSign.equalsIgnoreCase("false")) {
+                responseJson(-1, "验证失败，请勿非法使用后台！");
+            }
+
+            String loginPrivateKey = getSession("LoginPrivateKey");
+            if (FastStringUtils.isEmpty(loginPrivateKey)) {
+                responseJson(-1, "验证失败，请刷新后台重新尝试！");
+            }
+
+            String decryptSign = FastRSAUtils.decryptByPrivateKey(loginPrivateKey, paramSign);
+
+            if (decryptSign.equals(sign)) {
+                FastChar.getMemoryCache().put(loginKey, "true");
+
+                removeSession("LoginAPIKey");
+                removeSession("LoginPrivateKey");
+
+                String captchaKey = getParam("captchaKey", FastExtOutCaptcha.DEFAULT_CAPTCHA_KEY);
+                String value = FastMD5Utils.MD5(FastStringUtils.buildUUID());
+                setSession(captchaKey, value);
+                setSession("validateCode", value);
+                responseJson(0, "验证成功！");
+            }
+        } catch (Exception e) {
+            responseJson(-1, "验证失败，请刷新后台重新尝试！");
+        }
+        responseJson(-1, "验证失败，请刷新后台重新尝试！");
+    }
+
+
+    private boolean validateCaptcha(String code) {
+        return FastChar.getOverrides().newInstance(FastExtOutCaptcha.class).validateCaptcha(this, code);
+    }
+
+    private void resetCaptcha() {
+        FastChar.getOverrides().newInstance(FastExtOutCaptcha.class).resetCaptcha(this);
+    }
+
+
+    /**
+     * 获取谷歌验证绑定的二维码
+     */
+    @AFastLog(value = "${managerRole}【${managerName}】进行了谷歌身份验证器绑定！", type = "管理员登录")
+    @AFastToken
+    public void googleBind() throws Exception {
+        int id = getSession("Google_Id");
+        ExtManagerEntity managerEntity = ExtManagerEntity.dao().getById(FastNumberUtils.formatToInt(id));
+        if (managerEntity == null) {
+            responseJson(-1, "管理员未的登录！");
+            return;
+        }
+
+        setRequestAttr("managerName", managerEntity.getManagerName());
+        setRequestAttr("managerRole", managerEntity.getManagerRole().getRoleName());
+
+        String managerLoginName = managerEntity.getString("managerLoginName");
+
+        GoogleAuthentication googleAuthentication = new GoogleAuthentication();
+        String secretKey = googleAuthentication.buildSecretKey();
+        setSession("Google_SecretKey", secretKey);
+
+        String googleAuthenticationTitle = FastExtConfigJson.getInstance().getGoogleAuthenticationTitle();
+        String qrCodeContent = googleAuthentication.buildQRCodeContent(managerLoginName, secretKey, googleAuthenticationTitle);
+
+        BufferedImage qrImage = ZXingUtils.makeQRCode(qrCodeContent, 1, 500, 500);
+        if (qrImage == null) {
+            responseJson(-1, "生成失败！");
+            return;
+        }
+        responseImage(qrImage);
+    }
+
+    /**
+     * 谷歌验证
+     */
+    @AFastLog(value = "${managerRole}【${managerName}】进行了谷歌安全验证！", type = "管理员登录")
+    @AFastToken
+    public void googleVerify() {
+        int id = getSession("Google_Id");
+        String secretKey = getSession("Google_SecretKey");
+        String code = getParam("code", true);
+        ExtManagerEntity managerEntity = ExtManagerEntity.dao().getById(id);
+        if (managerEntity == null) {
+            responseJson(-1, "管理员未登录！");
+            return;
+        }
+
+        setRequestAttr("managerName", managerEntity.getManagerName());
+        setRequestAttr("managerRole", managerEntity.getManagerRole().getRoleName());
+
+        if (FastStringUtils.isEmpty(secretKey)) {
+            if (managerEntity.isEmpty("googleSecretKey")) {
+                responseJson(-1, "管理员未绑定谷歌验证器！");
+            }
+            secretKey = managerEntity.getString("googleSecretKey");
+        }
+
+        GoogleAuthentication googleAuthentication = new GoogleAuthentication();
+        if (googleAuthentication.verify(secretKey, code)) {
+            managerEntity.set("googleSecretKey", secretKey);
+            if (managerEntity.update()) {
+                removeSession("Google_Id");
+                removeSession("Google_SecretKey");
+                ExtManagerEntity.setSession(this, managerEntity);
+                responseJson(0, "验证成功！");
+            }
+            responseJson(-1, "验证失败！" + managerEntity.getError());
+        }
+        responseJson(-1, "验证失败！");
+    }
+
+
+    /**
+     * 重置谷歌身份验证器绑定
+     */
+    @AFastSession
+    @AFastToken
+    @AFastLog(value = "${managerRole}【${managerName}】重置了谷歌身份验证器！", type = "谷歌重置")
+    public void googleReset() {
+        int managerId = getParamToInt("managerId", true);
+        ExtManagerEntity managerEntity = ExtManagerEntity.dao().getById(managerId);
+        if (managerEntity == null) {
+            responseJson(-1, "重置失败！管理员信息不存在！");
+            return;
+        }
+        setRequestAttr("managerName", managerEntity.getManagerName());
+        setRequestAttr("managerRole", managerEntity.getManagerRole().getRoleName());
+
+        managerEntity.setNull("googleSecretKey");
+        if (managerEntity.update()) {
+            responseJson(0, "重置成功！");
+        }
+        responseJson(-1, "重置失败！" + managerEntity.getError());
     }
 
 
@@ -132,6 +333,7 @@ public class ExtManagerAction extends FastAction {
      * timeout 验证的有效期，单位秒 默认：24小时，
      */
     @AFastLog(value = "${managerRole}【${managerName}】进行了操作【${operate}】验证！", type = "安全验证")
+    @AFastToken
     public void valid() {
         String loginName = getParam("loginName", true);
         String operate = getParam("operate", "安全操作验证");
@@ -141,15 +343,14 @@ public class ExtManagerAction extends FastAction {
         setRequestAttr("managerRole", "后台管理员");
         setRequestAttr("operate", operate);
 
-        FastHeadExtInfo extInfo = FastExtConfig.getInstance().getExtInfo("login-type");
-        if (extInfo != null) {
-            if (!extInfo.getValue().equalsIgnoreCase("normal")) {
-                if (!validateCaptcha(getParam("validateCode", true))) {
-                    responseJson(-3, "验证失败，验证码错误！");
-                    return;
-                }
+
+        if (!FastExtConfigJson.getInstance().getLoginType().equalsIgnoreCase("normal")) {
+            if (!validateCaptcha(getParam("validateCode", true))) {
+                responseJson(-3, "验证失败，验证码错误！");
+                return;
             }
         }
+
         String loginPassword = getParam("loginPassword", true);
 
         ExtManagerEntity managerEntity = ExtManagerEntity.getInstance().login(loginName, loginPassword);
@@ -200,9 +401,11 @@ public class ExtManagerAction extends FastAction {
             ExtManagerRoleEntity extManagerRoleEntity = managerEntity.getObject("role");
             setRequestAttr("managerRole", extManagerRoleEntity.getRoleName());
         } else {
-            setRequestAttr("managerName", "会话失效账户");
+            setRequestAttr("managerName", getRemoteIp());
         }
         ExtManagerEntity.removeSession(this);
+        removeSession("Google_Id");
+        removeSession("Google_SecretKey");
         responseJson(0, "退出成功！");
     }
 
@@ -214,6 +417,7 @@ public class ExtManagerAction extends FastAction {
      * newPassword 新的登录密码【明文】
      */
     @AFastSession
+    @AFastToken
     @AFastLog(value = "${managerRole}【${managerName}】重置了登录密码！", type = "密码重置")
     public void resetPassword() {
         ExtManagerEntity sessionUser = ExtManagerEntity.getSession(this);
@@ -240,6 +444,7 @@ public class ExtManagerAction extends FastAction {
      * reNewPassword 确认新的登录密码【明文】
      */
     @AFastSession
+    @AFastToken
     @AFastLog(value = "${managerRole}【${managerName}】修改了登录密码！", type = "密码重置")
     public void modifyPassword() {
 
@@ -283,6 +488,7 @@ public class ExtManagerAction extends FastAction {
      * managerId 管理员Id
      */
     @AFastSession
+    @AFastToken
     @AFastLog(value = "${managerRole}【${managerName}】同步了管理的角色权限！", type = "权限同步")
     public void updatePower() {
         ExtManagerEntity sessionUser = ExtManagerEntity.getSession(this);
@@ -306,47 +512,6 @@ public class ExtManagerAction extends FastAction {
             }
         }
         responseJson(0, "同步成功！");
-    }
-
-
-    /**
-     * 获取系统待办事项
-     * 参数：
-     * noticeId 获取指定的noticeId之后的数据
-     */
-    @AFastSession
-    public void waitNotice() throws Exception {
-        setLog(false);
-        List<Integer> noticeId = getParamToIntList("noticeId");
-        ExtManagerEntity sessionUser = ExtManagerEntity.getSession(this);
-        List<FastEntity<?>> list = ExtSystemNoticeEntity.dao().getList(sessionUser.getLayerValue(), noticeId.toArray(new Integer[]{}));
-        responseJson(0, "获取成功！", list);
-    }
-
-
-    /**
-     * 更新待办事项
-     * 参数：
-     * noticeId 事务Id
-     */
-    @AFastSession
-    public void doneNotice() {
-        int noticeId = getParamToInt("noticeId", true);
-        ExtSystemNoticeEntity extSystemNoticeEntity = ExtSystemNoticeEntity.newInstance();
-        extSystemNoticeEntity.set("noticeId", noticeId);
-        extSystemNoticeEntity.set("noticeState", ExtSystemNoticeEntity.ExtSystemNoticeStateEnum.已处理.ordinal());
-        extSystemNoticeEntity.update();
-        responseJson(0, "标记成功！");
-    }
-
-    /**
-     * 清空待办事项
-     */
-    @AFastSession
-    public void clearNotice() {
-        ExtManagerEntity sessionUser = ExtManagerEntity.getSession(this);
-        ExtSystemNoticeEntity.dao().clearNotice(sessionUser.getLayerValue());
-        responseJson(0, "清空成功！");
     }
 
 

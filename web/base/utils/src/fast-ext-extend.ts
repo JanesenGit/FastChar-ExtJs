@@ -6,7 +6,8 @@ namespace FastExtend {
      * 'user.js'.endWidth('.js');
      */
     export abstract class StringExtend {
-        protected constructor() {
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
             // @ts-ignore
             String.prototype.endWith = function (suffix) {
                 if (!suffix || suffix === "" || this.length === 0 || suffix.length > this.length) return false;
@@ -55,7 +56,7 @@ namespace FastExtend {
 
             // @ts-ignore
             String.prototype.replaceAll = function (oldStr, newStr) {
-                return this.replace(new RegExp(oldStr, 'g'), newStr);
+                return this.replace(new RegExp(oldStr.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), 'g'), newStr);
             };
         }
 
@@ -113,7 +114,8 @@ namespace FastExtend {
      * userIds.exists(1);
      */
     export abstract class ArrayExtend {
-        protected constructor() {
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
 
             // @ts-ignore
             Array.prototype.exists = function (val) {
@@ -123,6 +125,19 @@ namespace FastExtend {
                     }
                 }
                 return false;
+            };
+
+            // @ts-ignore
+            Array.prototype.pushAt = function (index,val) {
+                this.splice(index, 0, val);
+            };
+
+            // @ts-ignore
+            Array.prototype.remove = function (val) {
+                let index = this.indexOf(val);
+                if (index >= 0) {
+                    this.splice(index, 1);
+                }
             };
         }
 
@@ -136,6 +151,25 @@ namespace FastExtend {
          */
         abstract exists(val): boolean;
 
+        /**
+         * 判断是否存在于数组中
+         * @param index 索引位置
+         * @param val
+         * @example
+         * let userIds=[1,2,3,4];
+         * userIds.pushAt(0,-1);
+         */
+        abstract pushAt(index, val): void;
+
+        /**
+         * 删除某个元素
+         * @param val
+         * @example
+         * let userIds=[1,2,3,4];
+         * userIds.remove(1);
+         */
+        abstract remove(val): void;
+
     }
 
 
@@ -145,7 +179,8 @@ namespace FastExtend {
      * @example button.help
      */
     export abstract class ComponentExtend {
-        protected constructor() {
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
             Ext.Component.prototype.getEditorMenu = function () {
                 try {
                     return this.up("menu[editorMenu=true]");
@@ -208,8 +243,6 @@ namespace FastExtend {
      * @example button.contextMenu
      */
     export abstract class ButtonExtend {
-        protected constructor() {
-        }
 
         /**
          * 如果button按钮放置在grid中的toolbar中，此属性表示是否自动将按钮添加到grid的右键菜单中，默认为：true
@@ -255,8 +288,6 @@ namespace FastExtend {
      */
     export abstract class GridExtend {
 
-        protected constructor() {
-        }
 
         /**
          * 标识是否为FastEntity列表
@@ -308,6 +339,22 @@ namespace FastExtend {
          * 是否显示修改数据的按钮
          */
         showUpdateButton: boolean = true;
+
+
+        /**
+         * 弹出导入窗口时需要配置到formpanel中的组件
+         */
+        importExcelItems: any;
+
+        /**
+         * 当前grid绑定的相关帮助文档地址
+         */
+        help: string;
+
+        /**
+         * 帮助文档按钮弹出框的标题。
+         */
+        helpTitle: string;
     }
 
 
@@ -317,11 +364,30 @@ namespace FastExtend {
      * @example formPanel.setFieldValue('loginName','admin')
      */
     export abstract class FormPanelExtend {
-        protected constructor() {
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
             Ext.form.FormPanel.prototype.setFieldValue = function (fieldName, value) {
                 let field = this.getForm().findField(fieldName);
                 if (field) {
                     field.setValue(value);
+                }
+            };
+
+            /**
+             * 设置表单值，如果表单不存在字段组件，则设置到扩展参数中
+             * @param fieldName
+             * @param value
+             */
+            Ext.form.FormPanel.prototype.justSetFieldValue = function (fieldName, value) {
+                let form = this.getForm();
+                let field = form.findField(fieldName);
+                if (field) {
+                    field.setValue(value);
+                } else {
+                    if (!form.extraParams) {
+                        form.extraParams = {};
+                    }
+                    form.extraParams[fieldName] = value;
                 }
             };
 
@@ -420,7 +486,7 @@ namespace FastExtend {
                     "configValue": Ext.encode(data)
                 };
                 FastExt.Dialog.showWait("暂存数据中……");
-                $.post("ext/config/saveExtConfig", params, function (result) {
+                $.post(FastExt.Server.saveExtConfigUrl(), params, function (result) {
                     FastExt.Dialog.hideWait();
                     if (result.success) {
                         FastExt.Dialog.toast("暂存成功！");
@@ -440,7 +506,7 @@ namespace FastExtend {
                     "configKey": key,
                     "configType": "FormPanelCache"
                 };
-                $.post("ext/config/showExtConfig", params, function (result) {
+                $.post(FastExt.Server.showExtConfigUrl(), params, function (result) {
                     if (result.success) {
                         let data = Ext.decode(result.data.configValue);
                         me.getForm().getFields().each(function (field, index) {
@@ -461,11 +527,9 @@ namespace FastExtend {
                     "configKey": key,
                     "configType": "FormPanelCache"
                 };
-                $.post("ext/config/deleteExtConfig", params, function (result) {
+                $.post(FastExt.Server.deleteExtConfigUrl(), params, function (result) {
                 });
             };
-
-
         }
 
         /**
@@ -522,6 +586,11 @@ namespace FastExtend {
          */
         abstract deleteCache(key) ;
 
+        /**
+         * 扩展参数
+         */
+        extraParams: any = {};
+
     }
 
     /**
@@ -530,8 +599,6 @@ namespace FastExtend {
      * @example file.multiple
      */
     export abstract class FileFieldExtend {
-        protected constructor() {
-        }
 
         /**
          * 标识是否允许上传多个文件
@@ -547,7 +614,8 @@ namespace FastExtend {
      * @example input.blur()
      */
     export abstract class FieldExtend {
-        protected constructor() {
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
             Ext.form.field.Base.prototype.blur = function () {
                 try {
                     if (this.inputEl) {
@@ -591,6 +659,17 @@ namespace FastExtend {
          * 是否来自Grid的头部列搜索
          */
         fromHeadSearch: boolean = false;
+
+        /**
+         * 扩展form表单参数
+         */
+        extraParams: any = {};
+
+
+        /**
+         * 将字段值转成数字格式提交的分隔符，例如值为：1，2，3 那么分隔符为：，则转成数组提交到后台
+         */
+        multiSplit: string = null;
     }
 
 
@@ -600,13 +679,17 @@ namespace FastExtend {
      * @example input.blur()
      */
     export abstract class TextFieldExtend {
-        protected constructor() {
-        }
 
         /**
          * 是否开启输入历史记录的功能，当调用validate方法是会触发记录，将数据保存到历史记录中
+         * 注意：当开启历史记录功能时，需要配置组件的code值，避免系统自动生成照成不一致
          */
         useHistory: boolean = false;
+
+        /**
+         * 输入框的说明信息
+         */
+        comment: string = "";
 
         /**
          * 显示输入框的历史记录菜单，当useHistory为true时有效
@@ -636,8 +719,6 @@ namespace FastExtend {
      * @example input.blur()
      */
     export abstract class ComboBoxFieldExtend {
-        protected constructor() {
-        }
 
         /**
          * 是否开启搜索下拉选项功能
@@ -652,8 +733,6 @@ namespace FastExtend {
      * @example column.toSearchKey()
      */
     export abstract class ColumnExtend {
-        protected constructor() {
-        }
 
         /**
          * 列首次配置的标题
@@ -733,6 +812,11 @@ namespace FastExtend {
         excelHeader: boolean = true;
 
         /**
+         * 列的说明信息
+         */
+        comment: string = "";
+
+        /**
          * 获取搜索列数据的条件属性名
          * @see {@link FastExt.Grid.configColumnProperty}
          */
@@ -768,8 +852,6 @@ namespace FastExtend {
      *
      */
     export abstract class MenuExtend {
-        protected constructor() {
-        }
 
         /**
          * 是否保持打开，设置true后，失去焦点后将无法自动关闭
@@ -788,9 +870,6 @@ namespace FastExtend {
      */
     export abstract class EntityExtend {
 
-        protected constructor() {
-        }
-
         /**
          * 是否允许自动配置清空数据按钮，默认 true
          */
@@ -808,11 +887,6 @@ namespace FastExtend {
     }
 
 
-    for (let subClass in FastExtend) {
-        if (Ext.isFunction(FastExtend[subClass])) {
-            FastExtend[subClass]();
-        }
-    }
 }
 
 

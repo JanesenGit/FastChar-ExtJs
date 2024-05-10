@@ -2,11 +2,13 @@
   "entryPoints": [
     "fast-ext-a.ts"
   ],
-  "out": "docs",
+  "out": "/Users/Janesen/工作/space_webstorm/fastchar-extjs-docs/src/api",
+  "cleanOutputDir": false,
   "name": "FastChar-ExtJs文档",
-  "theme": "minimal",
+  "plugin": ["typedoc-plugin-markdown"],
   "version": false,
   "excludePrivate": false,
-  "disableSources": false,
-  "hideGenerator": true
+  "disableSources": true,
+  "hideGenerator": true,
+  "sitemapBaseUrl": "https://www.fastchar.com/doc_extjs-web/"
 }

@@ -1,14 +1,6 @@
 package com.fastchar.extjs.provider;
 
-import com.fastchar.extjs.accepter.FastExtEnumAccepter;
-import com.fastchar.extjs.core.enums.FastEnumInfo;
-import com.fastchar.extjs.interfaces.IFastExtEnum;
-import com.fastchar.utils.FastEnumUtils;
-
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.List;
+import com.fastchar.extjs.acceptor.FastExtEnumAcceptor;
 
 public class FastExtEnum extends FastExtBaseEnum {
 
@@ -16,13 +8,13 @@ public class FastExtEnum extends FastExtBaseEnum {
         if (data == null) {
             return false;
         }
-        return FastExtEnumAccepter.ENUM_MAP.containsKey(data.toString());
+        return FastExtEnumAcceptor.ENUM_MAP.containsKey(data.toString());
     }
 
 
     private Class<? extends Enum<?>> enumClass;
     public FastExtEnum(String enumName) {
-        enumClass = FastExtEnumAccepter.ENUM_MAP.get(enumName);
+        enumClass = FastExtEnumAcceptor.ENUM_MAP.get(enumName);
     }
 
     @Override

@@ -143,4 +143,5 @@ public class ColorUtils {
         G = G.length() < 2 ? ('0' + G) : G;
         return '#' + R + G + B;
     }
+
 }

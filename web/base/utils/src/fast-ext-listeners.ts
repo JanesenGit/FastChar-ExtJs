@@ -3,33 +3,241 @@ namespace FastExt {
      * 系统部分功能全局事件监听
      */
     export class Listeners {
-        constructor() {
-            //兼容老版本
-            FastExt.Listeners.onInitLoginPanel = window["onInitLoginPanel"];
-            FastExt.Listeners.onAfterManagerLogin = window["onAfterLogin"] || window["onAfterManagerLogin"];
-            FastExt.Listeners.onBeforeManagerLogin = window["onBeforeLogin"] || window["onBeforeManagerLogin"];
-            FastExt.Listeners.onSystemNoticeShow = window["onSystemNoticeShow"];
-            FastExt.Listeners.onInitSystemWelcomeItems = window["initWelcomeItems"];
-            FastExt.Listeners.onInitLinkFieldDefaultValue = window["getLinkFieldDefaultValue"];
+
+        private static _listeners: SystemListener[] = [];
+
+        /**
+         * 添加系统事件监听
+         * @param listener
+         */
+        static addListener(listener: SystemListener) {
+            this._listeners.push(listener);
+        }
+
+        static getListeners() {
+            return this._listeners;
         }
 
         /**
-         * 系统初始化系统结束后
+         * 获取系统事件触发句柄
          */
-        static onAfterInitSystem: () => void;
+        static getFire(): ListenerFirer {
+            return new ListenerFirer();
+        }
+    }
 
+    /**
+     * 事件触发器
+     */
+    class ListenerFirer implements FastExt.SystemListener {
+
+        private getListeners() {
+            return FastExt.Listeners.getListeners();
+        }
+
+        private checkMethod(listener: any): boolean {
+            return typeof listener === 'function';
+        }
+
+        onAfterInitSystem(): void {
+            for (let listener of this.getListeners()) {
+                if (this.checkMethod(listener.onAfterInitSystem)) {
+                    listener.onAfterInitSystem();
+                }
+            }
+        }
+
+        onAfterManagerLogin(callback: any): void {
+            let realCallback = function () {
+                //避免重复回调
+                FastExt.Base.runCallBack(callback);
+            };
+            let runCount = 0;
+            for (let listener of this.getListeners()) {
+                if (this.checkMethod(listener.onAfterManagerLogin)) {
+                    runCount++;
+                    listener.onAfterManagerLogin(realCallback);
+                }
+            }
+            if (runCount === 0) {
+                callback();
+                return
+            }
+        }
+
+        onBeforeEditorField(field: any, record: any): boolean {
+            for (let listener of this.getListeners()) {
+                if (this.checkMethod(listener.onBeforeEditorField)) {
+                    let beforeEditorField = listener.onBeforeEditorField(field, record);
+                    if (!beforeEditorField) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        onBeforeManagerLogin(params: any, callback: any): void {
+
+            let realCallback = function () {
+                //避免重复回调
+                FastExt.Base.runCallBack(callback);
+            };
+            let count = 0;
+            for (let listener of this.getListeners()) {
+                if (this.checkMethod(listener.onBeforeManagerLogin)) {
+                    count++;
+                    listener.onBeforeManagerLogin(params, realCallback);
+                }
+            }
+            if (count === 0) {
+                callback();
+                return;
+            }
+        }
+
+        onSystemReady(): void {
+            for (let listener of this.getListeners()) {
+                if (this.checkMethod(listener.onSystemReady)) {
+                    listener.onSystemReady();
+                }
+            }
+        }
+
+        onInitLinkFieldDefaultValue(cmb: any): any {
+            for (let listener of this.getListeners()) {
+                if (this.checkMethod(listener.onInitLinkFieldDefaultValue)) {
+                    let onInitLinkFieldDefaultValue = listener.onInitLinkFieldDefaultValue(cmb);
+                    if (onInitLinkFieldDefaultValue) {
+                        return onInitLinkFieldDefaultValue;
+                    }
+                }
+            }
+        }
+
+        onInitLoginPanel(items: any, windowConfig: any): void {
+            for (let listener of this.getListeners()) {
+                if (this.checkMethod(listener.onInitLoginPanel)) {
+                    listener.onInitLoginPanel(items, windowConfig);
+                }
+            }
+        }
+
+        onInitSystemHeaderItems(headHandler: FastExt.EventHeadHandler): void {
+            for (let listener of this.getListeners()) {
+                if (this.checkMethod(listener.onInitSystemHeaderItems)) {
+                    listener.onInitSystemHeaderItems(headHandler);
+                }
+            }
+        }
+
+        onInitSystemWelcomeItems(indexHandler: EventWelcomeHandler): void {
+            for (let listener of this.getListeners()) {
+                if (this.checkMethod(listener.onInitSystemWelcomeItems)) {
+                    listener.onInitSystemWelcomeItems(indexHandler);
+                }
+            }
+        }
+
+        onShowManagerDataLayer(manager: any): void {
+            for (let listener of this.getListeners()) {
+                if (this.checkMethod(listener.onShowManagerDataLayer)) {
+                    listener.onShowManagerDataLayer(manager);
+                }
+            }
+        }
+
+        onShowManagerInfo(info: any): void {
+            for (let listener of this.getListeners()) {
+                if (this.checkMethod(listener.onShowManagerInfo)) {
+                    listener.onShowManagerInfo(info);
+                }
+            }
+        }
+
+        onShowRoleDataLayer(role: any): void {
+            for (let listener of this.getListeners()) {
+                if (this.checkMethod(listener.onShowRoleDataLayer)) {
+                    listener.onShowRoleDataLayer(role);
+                }
+            }
+        }
+
+        onSystemNoticeShow(): void {
+            for (let listener of this.getListeners()) {
+                if (this.checkMethod(listener.onSystemNoticeShow)) {
+                    listener.onSystemNoticeShow();
+                }
+            }
+        }
+
+        onExtCreateFilter(key: string, info: FastExt.ComponentInvokeInfo) {
+            for (let listener of this.getListeners()) {
+                if (this.checkMethod(listener.onExtCreateFilter)) {
+                    listener.onExtCreateFilter(key, info);
+                }
+            }
+        }
+
+        onEntityGetColumnRender(entity: any, attrName: string): any {
+            for (let listener of this.getListeners()) {
+                if (this.checkMethod(listener.onEntityGetColumnRender)) {
+                    let entityGetColumnRender = listener.onEntityGetColumnRender(entity, attrName);
+                    if (entityGetColumnRender) {
+                        return entityGetColumnRender;
+                    }
+                }
+            }
+            return undefined;
+        }
+
+        onEntityGetEditorField(entity: any, attrName: string): any {
+            for (let listener of this.getListeners()) {
+                if (this.checkMethod(listener.onEntityGetEditorField)) {
+                    let entityGetEditorField = listener.onEntityGetEditorField(entity, attrName);
+                    if (entityGetEditorField) {
+                        return entityGetEditorField;
+                    }
+                }
+            }
+            return undefined;
+        }
+
+        onSystemInitMenu(menu: any): boolean {
+            for (let listener of this.getListeners()) {
+                if (this.checkMethod(listener.onSystemInitMenu)) {
+                    let systemInitMenu = listener.onSystemInitMenu(menu);
+                    if (!systemInitMenu) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+    }
+
+
+    /**
+     * 系统事件接口
+     */
+    export interface SystemListener {
 
         /**
-         * 系统渲染完毕后
+         * 系统渲染完毕，准备就绪
          */
-        static onFinishSystem:() => void;
+        onSystemReady(): void;
+
+        /**
+         * 系统初始化系统结束后，注意：此系统初始化并不是系统布局完成
+         */
+        onAfterInitSystem(): void;
 
         /**
          * 当初始化后台登录面板时触发
          * @example
          * function(items,windowConfig){}
          */
-        static onInitLoginPanel: (items: any, windowConfig: any) => void;
+        onInitLoginPanel(items: any, windowConfig: any): void;
 
         /**
          * 当后台管理员登录前触发
@@ -40,7 +248,7 @@ namespace FastExt {
          *     callback();
          * }
          */
-        static onBeforeManagerLogin: (params: any, callback: any) => void;
+        onBeforeManagerLogin(params: any, callback: any): void;
 
         /**
          * 当后台管理员登录成功后触发
@@ -51,76 +259,116 @@ namespace FastExt {
          *     callback();
          * }
          */
-        static onAfterManagerLogin: (callback: any) => void
+        onAfterManagerLogin(callback: any): void;
 
 
         /**
          * 当在左下角弹出系统通知消息框时触发
          */
-        static onSystemNoticeShow: () => void
+        onSystemNoticeShow(): void;
 
 
         /**
          * 当初始化【首页】的欢迎面板的组件时触发
          */
-        static onInitSystemWelcomeItems: (items: any) => void
+        onInitSystemWelcomeItems(indexHandler: EventWelcomeHandler): void;
 
 
         /**
          * 当点击右上角管理员按钮查看管理员信息时触发
          */
-        static onShowManagerInfo: (info: any) => void
+        onShowManagerInfo(info: any): void;
+
+
+        /**
+         * 当点击管理员角色数据权限配置时触发
+         */
+        onShowRoleDataLayer(role: any): void;
+
+
+        /**
+         * 当点击管理员数据权限配置时触发
+         */
+        onShowManagerDataLayer(manager: any): void;
 
 
         /**
          * 当初始化linkfield组件的值时触发
+         * @return 默认值返回配置对象
          */
-        static onInitLinkFieldDefaultValue: (cmb: any) => any;
+        onInitLinkFieldDefaultValue(cmb: any): any;
 
 
         /**
          * 当初始化系统头部组件时触发
          */
-        static onInitSystemHeaderItems: (items: any) => void
-
+        onInitSystemHeaderItems(headHandler: EventHeadHandler): void;
 
         /**
          * 修改字段前 触发
+         * @return true允许修改，false拦截修改
          */
-        static onBeforeEditorField: (field: any, record: any) => boolean
-
+        onBeforeEditorField(field: any, record: any): boolean;
 
         /**
-         * 添加 Ext.create方法构建组件的过滤器
-         * @param key 监听的过滤器标识
-         * @param filterFunction 过滤函数，参数：info 组件信息
-         */
-        static addExtCreateFilter(key: string, filterFunction?: (info: ComponentInvokeInfo) => void) {
-            FastExt.System.addFilterByEntityCreate(key, filterFunction);
-        }
-
-        /**
-         * 触发Ext.create的过滤器
+         * 当执行Ext.create方法时触发
          * @param key
-         * @param method
-         * @param xtype
-         * @param config
+         * @param info
          */
-        static fireExtCreateFilter(key: string, method: string, xtype: string, config: any) {
-            let watchFunctions = FastExt.System.extCreateFilter[key];
-            if (watchFunctions) {
-                for (let j = 0; j < watchFunctions.length; j++) {
-                    let watchFunction = watchFunctions[j];
-                    if (Ext.isFunction(watchFunction)) {
-                        let info = new FastExt.ComponentInvokeInfo();
-                        info.method = method;
-                        info.xtype = xtype;
-                        info.config = config;
-                        watchFunction(info);
-                    }
-                }
-            }
-        }
+        onExtCreateFilter(key: string, info: ComponentInvokeInfo): void;
+
+
+        /**
+         * 当执行entity对象里的getColumnRender方法时触发【注意，此事件仅在调用 FastExt.Entity.getColumnRender】
+         * @param entity entity对象
+         * @param attrName 属性名
+         * @return 函数对象function【返回非null时，拦截entity的方法，反之不拦截】
+         */
+        onEntityGetColumnRender(entity: any, attrName: string): any;
+
+        /**
+         * 当执行entity对象里的getEditorField方法时触发【注意，此事件仅在调用 FastExt.Entity.getEditorField】
+         * @param entity entity对象
+         * @param attrName 属性名
+         * @return 字段对象【返回非null时，拦截entity的方法，反之不拦截】
+         */
+        onEntityGetEditorField(entity: any, attrName: string): any;
+
+        /**
+         * 当初始化系统菜单时触发
+         * @param menu
+         */
+        onSystemInitMenu(menu: any): boolean;
+
+    }
+
+    export interface EventHeadHandler {
+
+        /**
+         * 在系统导航栏右侧添加按钮
+         */
+        addRightButton(button: any): void;
+
+
+        /**
+         * 在系统导航栏左侧添加按钮
+         */
+        addLeftButton(button: any): void;
+
+    }
+
+    export interface EventWelcomeHandler {
+
+        /**
+         * 在首页右侧添加一个组件
+         */
+        addRightPanel(panel: any): void;
+
+
+        /**
+         * 在首页左侧添加一个组件
+         */
+        addLeftPanel(panel: any): void;
 
     }
 
@@ -141,7 +389,7 @@ namespace FastExt {
         /**
          * 是否开启过滤拦截
          */
-        enable:boolean=true;
+        enable: boolean = true;
 
         /**
          * 过滤器的唯一标识
@@ -151,7 +399,30 @@ namespace FastExt {
         /**
          * 执行Ext.Create所在的方法名称
          */
-        method:string;
+        method: string;
 
     }
+
+
+    /**
+     * 组件创建的信息
+     */
+    export class ComponentInvokeInfo {
+
+        /**
+         * 调用对象的方法名称
+         */
+        method: string;
+
+        /**
+         * 组件类型名称
+         */
+        xtype: string;
+        /**
+         * 组件创建的配置信息
+         */
+        config: any;
+    }
+
+
 }

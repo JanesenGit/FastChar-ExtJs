@@ -4,19 +4,28 @@ namespace FastOverrider {
      * 重写全局Ext的功能
      */
     export class ExtOverrider {
-        constructor() {
+        static cssScrollBarWidth: number = 0;//设置为0，解决grid点击单元格表头左右晃动问题。
+        static cssScrollBarHeight: number = 8;
+
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
+
             let oldCreate = Ext.create;
             Ext.create = function (...args) {
                 try {
                     if (args.length > 1) {
                         if (Ext.isObject(args[1]) && args[1].filter && args[1].filter.enable) {
                             let filterConfig = args[1].filter;
-                            FastExt.Listeners.fireExtCreateFilter(filterConfig.key, filterConfig.method, args[0], args[1]);
+                            let info = new FastExt.ComponentInvokeInfo();
+                            info.method = filterConfig.method;
+                            info.xtype = args[0];
+                            info.config = args[1];
+                            FastExt.Listeners.getFire().onExtCreateFilter(filterConfig.key, info);
                         }
                     }
                     return oldCreate.apply(this, args);
                 } catch (e) {
-                    if (FastExt.System.isDebug()) {
+                    if (FastExt.System.ConfigHandler.isDebug()) {
                         FastExt.Server.reportException(FastExt.ErrorHandler.geErrorInfo(e));
                     }
                     return null;
@@ -26,10 +35,32 @@ namespace FastOverrider {
             let oldGetScrollbarSize = Ext.scrollbar.size;
             Ext.scrollbar.size = function () {
                 let scrollbarSize = oldGetScrollbarSize.apply(this, arguments);
-                scrollbarSize.width = 8;//与css中的 ::-webkit-scrollbar 宽高一直
-                scrollbarSize.height = 8;//与css中的 ::-webkit-scrollbar 宽高一直
+                scrollbarSize.width = FastOverrider.ExtOverrider.cssScrollBarWidth;
+                scrollbarSize.height = FastOverrider.ExtOverrider.cssScrollBarHeight;
                 return scrollbarSize;
             };
+            Ext.scrollbar.width = function () {
+                return FastOverrider.ExtOverrider.cssScrollBarWidth;
+            };
+            Ext.scrollbar.height = function () {
+                return FastOverrider.ExtOverrider.cssScrollBarHeight;
+            };
+        }
+    }
+
+
+    /**
+     * 重写 Ext.data.proxy.Server 相关
+     */
+    export class ServerOverrider {
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
+            Ext.override(Ext.data.proxy.Ajax, {
+                constructor: function () {
+                    this.callParent(arguments);
+                    this.setTimeout(1000 * 60 * 3);//单位毫秒
+                },
+            });
         }
     }
 
@@ -38,7 +69,8 @@ namespace FastOverrider {
      * 重写组件的权限配置
      */
     export class PowerComponentOverride {
-        constructor() {
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
             Ext.override(Ext.Component, {
                 onFastPowerContextMenu: function (e, t, eOpts) {
                     e.stopEvent();
@@ -46,7 +78,7 @@ namespace FastOverrider {
                 },
                 afterRender: function () {
                     try {
-                        if (!FastExt.System.isInitSystem()) {
+                        if (!FastExt.System.InitHandler.isInit()) {
                             return;
                         }
                         let me = this;
@@ -114,7 +146,8 @@ namespace FastOverrider {
      * 重写Ext.Component相关的功能，
      */
     export class ComponentOverride {
-        constructor() {
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
             Ext.override(Ext.Component, {
                 constructor: function (config) {
                     this.callParent(arguments);
@@ -123,25 +156,28 @@ namespace FastOverrider {
                 setZIndex: function () {
                     let callIndex = this.callParent(arguments);
                     if (this.justTop || (this.cfg && this.cfg.justTop)) {
-                        this.el.setZIndex(FastExt.Component.pageMaxZIndex);
+                        this.el.setZIndex(FastExt.Component.maxZIndex);
                     }
                     return callIndex;
                 },
                 refreshAllowBlankTip: function () {
                     let me = this;
-                    if (!FastExt.Base.toBool(me.allowBlank, true) && !Ext.isEmpty(me.fieldLabel)
-                        && me.allowBlankTip) {
-                        me.setFieldLabel('<svg class="svgIcon fileIcon redColor fontSize8" aria-hidden="true"><use xlink:href="#extSnow"></use></svg>&nbsp;' + me.configFieldLabel);
+                    if (me.allowBlankTip && !Ext.isEmpty(me.fieldLabel) && Ext.isFunction(me.setFieldLabel)) {
+                        if (!FastExt.Base.toBool(me.allowBlank, true)) {
+                            me.setFieldLabel('<svg class="svgIcon fileIcon redColor fontSize8" aria-hidden="true"><use xlink:href="#extSnow"></use></svg>&nbsp;' + me.configFieldLabel);
+                        } else {
+                            me.setFieldLabel(me.configFieldLabel);
+                        }
                     }
                 },
                 show: function () {
                     try {
-                        if (FastExt.System.isInitSystem()) {
+                        if (FastExt.System.InitHandler.isInit()) {
                             if (this.getXType() === "window"
                                 || this.getXType() === "messagebox") {
                                 if (!FastExt.Base.toBool(this.sessionWin, false)) {
                                     //处理session弹窗
-                                    if (FastExt.System.sessionOutAlert) {
+                                    if (FastExt.LoginLayout.isShownSessionOutAlert()) {
                                         this.hide();
                                         return null;
                                     }
@@ -269,7 +305,7 @@ namespace FastOverrider {
                         if (FastExt.Power.isPower()) {
                             return;
                         }
-                        if (me.help) {
+                        if (me.help && FastExt.Base.toBool(me.tipHelp, true)) {
                             let targetEl = me.bodyEl;
                             if (!targetEl) {
                                 targetEl = me.el;
@@ -283,9 +319,27 @@ namespace FastOverrider {
                                 targetEl.on("contextmenu", me.onFastBodyElContextMenu, me);
 
                             } else if (me.helpType == FastEnum.HelpEnumType.mouse_in_out) {
+                                targetEl.on("contextmenu", me.onFastBodyElMouseLeave, me);
                                 targetEl.on("mouseover", me.onFastBodyElMouseOver, me);
                             }
                         }
+
+                        if (me.ripple) {
+                            let rippleConfig = {color: "#ffffff"};
+                            if (Ext.isObject(me.ripple)) {
+                                rippleConfig = me.ripple;
+                            }
+                            this.getEl().on("mousedown", (e: any) => {
+                                let doRipple = true;
+                                if (this.isDisabled && this.isDisabled()) {
+                                    doRipple = false;
+                                }
+                                if (doRipple) {
+                                    this.getEl().ripple(e, rippleConfig);
+                                }
+                            }, this);
+                        }
+
                     } catch (e) {
                         console.error(e);
                     }
@@ -329,18 +383,19 @@ namespace FastOverrider {
                         me.expandToolText = "展开";
                         if ((me.getXType() === "window" || me.getXType() === "panel")
                             && (!Ext.isEmpty(me.getTitle()) || !Ext.isEmpty(me.subtitle))
-                            && (me.resizable || me.split)) {
+                            && (me.resizable || me.split)
+                            && FastExt.Base.toBool(me.cacheUISize, true)) {
                             me.cacheUICode = $.md5(me.getTitle() + me.subtitle + $("title").text() + me.width + me.height);
 
                             let width = FastExt.Cache.getCache(me.cacheUICode + "Width");
                             let height = FastExt.Cache.getCache(me.cacheUICode + "Height");
                             let collapse = FastExt.Base.toBool(FastExt.Cache.getCache(me.cacheUICode + "Collapse"), me.collapsed);
                             if (width != null) {
-                                me.setWidth(width);
+                                me.setWidth(Math.round(width));
                                 me.setFlex(0);
                             }
                             if (height != null) {
-                                me.setHeight(height);
+                                me.setHeight(Math.round(height));
                                 me.setFlex(0);
                             }
                             me.collapsed = collapse;
@@ -373,6 +428,11 @@ namespace FastOverrider {
                         }
                     } catch (e) {
                     }
+                },
+                safeFocus: function (delay) {
+                    setTimeout(() => {
+                        this.focus(true);
+                    }, delay);
                 },
             });
 
@@ -535,7 +595,8 @@ namespace FastOverrider {
      * 重写Ext.panel.Panel相关的功能
      */
     export class PanelOverride {
-        constructor() {
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
             Ext.override(Ext.panel.Panel, {
                 collapse: function () {
                     this.callParent(arguments);
@@ -563,6 +624,22 @@ namespace FastOverrider {
                     this.callParent(arguments);
                 }
             });
+
+            Ext.override(Ext.panel.Tool, {
+                constructor: function () {
+                    this.callParent(arguments);
+                    this.ripple = {color: "#ffffff", bound: false, destroyTime: 300};
+                },
+            });
+
+
+            Ext.override(Ext.panel.Header, {
+                constructor: function () {
+                    this.callParent(arguments);
+                    this.ripple = {color: "#ffffff", destroyTime: 300};
+                },
+            });
+
         }
     }
 
@@ -570,7 +647,8 @@ namespace FastOverrider {
      * 重写Ext.LoadMask相关的功能，
      */
     export class LoadMaskOverride {
-        constructor() {
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
             Ext.override(Ext.LoadMask, {
                 constructor: function () {
                     this.callParent(arguments);
@@ -626,8 +704,26 @@ namespace FastOverrider {
      * 重写Ext.button.Button相关的功能，
      */
     export class ButtonOverride {
-        constructor() {
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
             Ext.override(Ext.button.Button, {
+                constructor: function () {
+                    this.callParent(arguments);
+                    this.ripple = {destroyTime: 300};
+
+                    if (this.animMinMax) {
+                        this.on("render", function () {
+                            FastExt.Animate.startMinButtonAnimateByWidth(this, 1000);
+                        });
+                        this.on("mouseout", function () {
+                            FastExt.Animate.startMinButtonAnimateByWidth(this, 0);
+                        });
+                        this.on("mouseover", function () {
+                            FastExt.Animate.startMaxButtonAnimateByWidth(this, 500);
+                        });
+                    }
+
+                },
                 afterRender: function () {
                     try {
                         let me = this;
@@ -643,7 +739,7 @@ namespace FastOverrider {
 
                         //是否只限本地按钮
                         if (FastExt.Base.toBool(me.local)) {
-                            if (!FastExt.System.isLocal()) {
+                            if (!FastExt.System.ConfigHandler.isLocal()) {
                                 me.setHidden(true);
                             }
                         }
@@ -663,7 +759,8 @@ namespace FastOverrider {
      * 重写Ext.grid.* 相关的功能
      */
     export class GridOverride {
-        constructor() {
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
             Ext.override(Ext.grid.Panel, {
                 initComponent: function () {
                     this.callParent(arguments);
@@ -714,6 +811,10 @@ namespace FastOverrider {
             });
 
             Ext.override(Ext.grid.column.Column, {
+                constructor: function () {
+                    this.callParent(arguments);
+                    this.ripple = {destroyTime: 300};
+                },
                 afterRender: function () {
                     try {
                         let me = this;
@@ -765,7 +866,9 @@ namespace FastOverrider {
                 selectAll: function () {
                     this.callParent(arguments);
                     //此处新增，7版本遗留问题
-                    this.selected.allSelected = true;
+                    if (this.selected) {
+                        this.selected.allSelected = true;
+                    }
                 },
                 getSelection: function (passHistory) {
                     if (!FastExt.Base.toBool(passHistory, false)) {
@@ -790,6 +893,19 @@ namespace FastOverrider {
                     }
                     config["configWidth"] = config["width"];
                     return config;
+                },
+                onStoreChanged: function () {
+                    if (!this.selected) {
+                        return;
+                    }
+                    if (!this.selected.selectedRecords) {
+                        return;
+                    }
+                    try {
+                        this.callParent(arguments);
+                    } catch (e) {
+                        console.error(e);
+                    }
                 },
                 // handleMouseDown: function (view, td, cellIndex, record, tr, rowIdx, e) {
                 //     try {
@@ -831,17 +947,39 @@ namespace FastOverrider {
 
     }
 
+
+    /**
+     * 重写 Ext.view.Table 相关功能
+     */
+    export class TableViewOverride {
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
+            Ext.override(Ext.view.Table, {
+                onCellMouseUp: function (cellEl: any, cellIndex: number, record: any, rowEl: any, rowIndex: number, e: any) {
+                    this.callParent(arguments);
+                    try {
+                        Ext.fly(rowEl.parentElement.parentElement).ripple(e, {color: "#afafaf", destroyTime: 300});
+                    } catch (e) {
+                    }
+                },
+            });
+        }
+    }
+
+
     /**
      * 重写Ext.data.Store相关的功能
      */
     export class StoreOverride {
-        constructor() {
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
             Ext.override(Ext.data.Store, {
                 constructor: function () {
                     this.callParent(arguments);
                     if (this.entity) {
                         this.autoDestroy = true;
                     }
+                    this.storeCode = $.md5(FastExt.Base.buildOnlyNumber("STR"));
                 },
                 destroy: function () {
                     try {
@@ -862,7 +1000,13 @@ namespace FastOverrider {
                     } catch (e) {
                     }
                     this.callParent(arguments);
-                }
+                },
+                getStoreCode: function () {
+                    if (Ext.isEmpty(this.storeCode)) {
+                        this.storeCode = $.md5(FastExt.Base.buildOnlyNumber("STR"));
+                    }
+                    return this.storeCode;
+                },
             });
         }
     }
@@ -872,8 +1016,8 @@ namespace FastOverrider {
      * 重写Ext.layout.* 相关的功能
      */
     export class LayoutOverride {
-        constructor() {
-
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
             Ext.override(Ext.layout.container.Accordion, {
                 nextCmp: function (cmp) {
                     let next = cmp.next();
@@ -936,7 +1080,8 @@ namespace FastOverrider {
      * 重写Ext.dom.* 相关的功能
      */
     export class DomOverride {
-        constructor() {
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
             Ext.override(Ext.dom.Element, {
                 syncContent: function (source) {
                     try {
@@ -977,7 +1122,8 @@ namespace FastOverrider {
      * 重写Ext.toolbar.* 相关的功能
      */
     export class ToolbarOverride {
-        constructor() {
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
             Ext.override(Ext.toolbar.Paging, {
                 initComponent: function () {
                     this.inputItemWidth = 70;
@@ -986,6 +1132,13 @@ namespace FastOverrider {
                     refreshBtn.setIconCls("extIcon extRefresh grayColor");
 
                     this.on("beforechange", this.onFastBeforeChange, this);
+                },
+                updateInfo: function () {
+                    this.callParent(arguments);
+                    let displayItem = this.child('#displayItem')
+                    if (displayItem && FastExt.Base.toInt(this.selectCount, 0) > 1) {
+                        displayItem.setText(displayItem.html + "，选中 " + this.selectCount + " 条");
+                    }
                 },
                 onFastBeforeChange: function (obj, page, eOpts) {
                     return obj.checkStoreUpdate(function () {
@@ -999,7 +1152,8 @@ namespace FastOverrider {
                     }
                     let records = me.store.getUpdatedRecords();
                     if (records.length > 0) {
-                        Ext.Msg.confirm("系统提醒", "当前页有未提交修改的数据，是否提交修改？", function (button, text) {
+
+                        FastExt.Dialog.showConfirm("系统提醒", "当前存在被修改的数据，是否立即提交修改？", function (button, text) {
                             if (button == "yes") {
                                 FastExt.Store.commitStoreUpdate(me.store).then(function () {
                                     callBack();
@@ -1007,7 +1161,7 @@ namespace FastOverrider {
                             } else {
                                 callBack();
                             }
-                        });
+                        }, {yes: "提交修改", no: "忽略修改"});
                         return false;
                     }
                     return true;
@@ -1020,7 +1174,8 @@ namespace FastOverrider {
      * 重写Ext.util.* 相关的功能
      */
     export class UtilOverride {
-        constructor() {
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
             Ext.override(Ext.util.Grouper, {
                 sortFn: function (item1, item2) {
                     //取消分组排名
@@ -1034,7 +1189,8 @@ namespace FastOverrider {
      * 重写Ext.resizer.* 相关的功能
      */
     export class ResizerOverride {
-        constructor() {
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
             Ext.override(Ext.resizer.Splitter, {
                 onRender: function () {
                     let me = this;
@@ -1050,7 +1206,8 @@ namespace FastOverrider {
      * 重写Ext.dd.* 相关的功能
      */
     export class DDOverride {
-        constructor() {
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
             Ext.override(Ext.dd.DragTracker, {
                 onMouseDown: function (e) {
                     this.callParent(arguments);
@@ -1094,7 +1251,8 @@ namespace FastOverrider {
      *  重写Ext.form.* 相关的功能
      */
     export class FormOverride {
-        constructor() {
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
             Ext.override(Ext.form.Basic, {
                 submit: function (options) {
                     options = options || {};
@@ -1107,6 +1265,7 @@ namespace FastOverrider {
                     } else {
                         action = me.api ? 'directsubmit' : 'submit';
                     }
+                    options.params = FastExt.Json.mergeJson(options.params, me.extraParams);
                     return me.doAction(action, options);
                 },
                 getValues: function (asString, dirtyOnly, includeEmptyText, useDataValues, isSubmitting) {
@@ -1161,6 +1320,16 @@ namespace FastOverrider {
                     } catch (e) {
                         FastExt.Dialog.showException(e);
                     }
+                }
+            });
+
+            Ext.override(Ext.form.FormPanel, {
+                getForm: function () {
+                    let form = this.callParent(arguments);
+                    if (form) {
+                        form.extraParams = FastExt.Json.mergeJson(this.extraParams, form.extraParams);
+                    }
+                    return form;
                 }
             });
 
@@ -1225,22 +1394,27 @@ namespace FastOverrider {
             Ext.override(Ext.form.field.Text, {
                 validate: function () {
                     let result = this.callParent(arguments);
-                    if (result && this.xtype === "textfield" && !this.disabled && !this.readOnly && this.useHistory) {
+                    if (result && this.isUseHistory()) {
                         this.saveHistory();
                     }
                     return result;
                 },
-
+                getComment: function () {
+                    return this.comment;
+                },
                 isUseHistory: function () {
-                    return this.xtype === "textfield" && !this.disabled && !this.readOnly && this.useHistory;
+                    return (this.xtype === "textfield" || this.xtype === "numberfield") && !this.disabled && !FastExt.Component.isRealReadOnly(this) && this.useHistory;
                 },
                 isUseLetterKeyboard: function () {
-                    return this.xtype === "textfield" && !this.disabled && !this.readOnly && this.letterKeyboard;
+                    return this.xtype === "textfield" && !this.disabled && !FastExt.Component.isRealReadOnly(this) && this.letterKeyboard;
                 },
                 onChange: function (newVal, oldVal) {
                     this.callParent(arguments);
                     if (this.isUseHistory()) {
                         this.checkHistory();
+                    }
+                    if (this.isShownHistory()) {
+                        this.hideHistory();
                     }
                     if (this.isUseLetterKeyboard()) {
                         document.getElementById(this.getInputId()).setAttribute("type", "text");
@@ -1249,6 +1423,7 @@ namespace FastOverrider {
                 finishRender: function () {
                     this.callParent(arguments);
                     if (this.isUseHistory()) {
+                        this.saveHistory();
                         this.checkHistory();
                         this.inputEl.on('click', this.onFastHistoryInputClick, this);
                     }
@@ -1257,7 +1432,7 @@ namespace FastOverrider {
                     }
                 },
                 onFastHistoryInputClick: function () {
-                    if (this.checkHistory()) {
+                    if (this.checkHistory() && this.isUseHistory()) {
                         if (this.historyShown) {
                             this.hideHistory();
                         } else {
@@ -1266,20 +1441,23 @@ namespace FastOverrider {
                     }
                 },
                 onFastHideHistoryMenu: function () {
-                    let editorMenu = this.getEditorMenu();
-                    if (editorMenu) {
-                        editorMenu.holdShow = false;
-                    }
+                    FastExt.Component.resumeEditorMenu(this);
                     if (this.hideHistoryTask) {
                         this.hideHistoryTask.delay(100);
                     }
-
+                },
+                onFastCommentClick: function () {
+                    let title = "查看【" + this.configFieldLabel + "】的说明";
+                    if (Ext.isEmpty(this.configFieldLabel)) {
+                        title = "查看说明";
+                    }
+                    FastExt.Dialog.showHtml(this, title, this.getComment(), false);
                 },
                 getHistory: function () {
                     if (!this.code) {
                         this.code = FastExt.Power.getPowerCode(this);
                     }
-                    let cacheHistory = FastExt.Cache.getCache(this.code + FastExt.System.getManagerId());
+                    let cacheHistory = FastExt.Cache.getCache(this.getHistoryCacheKey());
 
                     if (this.defaultHistory) {
                         if (Ext.isEmpty(cacheHistory)) {
@@ -1291,12 +1469,15 @@ namespace FastOverrider {
                 },
                 checkHistory: function () {
                     let cacheHistory = this.getHistory();
-
+                    let historyTrigger = this.getTrigger('history');
+                    if (!historyTrigger) {
+                        return false;
+                    }
                     if (cacheHistory && Object.keys(cacheHistory).length > 0) {
-                        this.getTrigger('history').show();
+                        historyTrigger.show();
                         return true;
                     } else {
-                        this.getTrigger('history').hide();
+                        historyTrigger.hide();
                         return false;
                     }
                 },
@@ -1304,7 +1485,7 @@ namespace FastOverrider {
                     if (!this.code) {
                         this.code = FastExt.Power.getPowerCode(this);
                     }
-                    FastExt.Cache.setCache(this.code + FastExt.System.getManagerId(), {});
+                    FastExt.Cache.setCache(this.code + FastExt.System.ManagerHandler.getManagerId(), {});
                     FastExt.Dialog.toast("已清空历史记录！");
                     this.checkHistory();
                 },
@@ -1320,15 +1501,13 @@ namespace FastOverrider {
                     }
 
                     let meField = this;
-                    let editorMenu = meField.getEditorMenu();
-                    if (editorMenu) {
-                        editorMenu.holdShow = true;
-                    }
+                    FastExt.Component.holdEditorMenu(meField);
+
                     this.historyMenu = new Ext.menu.Menu({
                         padding: '0 0 0 0',
                         power: false,
                         showSeparator: false,
-                        maxHeight: 300,
+                        minWidth: this.bodyEl.getWidth(),
                         style: {
                             background: "#ffffff"
                         },
@@ -1348,11 +1527,13 @@ namespace FastOverrider {
                     }
                     this.historyMenu.add({
                         text: "清空历史记录",
-                        iconCls: 'extIcon extClear',
+                        iconCls: 'extIcon extClear grayColor',
                         handler: function () {
                             meField.clearHistory();
                         }
                     });
+                    this.historyMenu.add("-");
+
                     let keys = Object.keys(cacheHistory);
 
                     keys.sort(function (a, b) {
@@ -1361,17 +1542,27 @@ namespace FastOverrider {
                         return FastExt.Dates.parseDate(date2).getTime() - FastExt.Dates.parseDate(date1).getTime();
                     });
 
+                    let newCacheHistory = {};
+                    let count = 1;
                     for (let key of keys) {
+                        if (key.toLowerCase() === "<null>") {
+                            continue;
+                        }
                         let cache = cacheHistory[key];
                         this.historyMenu.add({
-                            text: FastExt.Base.toMaxString(key, 15) + (cache.default ? "" : " [ " + cache.date + " ] "),
-                            iconCls: cache.default ? 'extIcon extColumn' : 'extIcon extHistory',
+                            text: FastExt.Base.toMaxString(Ext.util.Format.htmlEncode(key), 50),
+                            iconCls: cache.default ? 'extIcon extColumn searchColor' : 'extIcon extHistory searchColor',
                             realText: key,
                             handler: function () {
                                 meField.setValue(this.realText);
                                 meField.fireEvent("selectHistoryValue", meField, this.realText);
                             },
                         });
+                        if (count >= 20) {
+                            break;
+                        }
+                        count++;
+                        newCacheHistory[key] = cache;
                     }
                     this.historyMenu.showBy(this.bodyEl, "tl-bl?");
                     this.historyShown = true;
@@ -1381,26 +1572,35 @@ namespace FastOverrider {
                             this.historyShown = false;
                         }, this);
                     }
+                    //更新历史记录
+                    FastExt.Cache.setCache(this.getHistoryCacheKey(), newCacheHistory);
                 },
                 hideHistory: function () {
                     if (this.historyMenu) {
                         this.historyMenu.close();
                     }
+                    FastExt.Component.resumeEditorMenu(this);
                     this.historyShown = false;
+                },
+                isShownHistory: function (): boolean {
+                    return this.historyShown;
                 },
                 saveHistory: function () {
                     let value = this.getValue();
-                    let cacheHistory = FastExt.Cache.getCache(this.code + FastExt.System.getManagerId());
-                    if (!cacheHistory) {
-                        cacheHistory = {};
-                    }
                     if (Ext.isEmpty(value)) {
                         return;
+                    }
+                    let cacheHistory = FastExt.Cache.getCache(this.getHistoryCacheKey());
+                    if (!cacheHistory) {
+                        cacheHistory = {};
                     }
                     cacheHistory[value] = {
                         date: Ext.Date.format(new Date(), "Y-m-d H:i:s"),
                     };
-                    FastExt.Cache.setCache(this.code + FastExt.System.getManagerId(), cacheHistory);
+                    FastExt.Cache.setCache(this.getHistoryCacheKey(), cacheHistory);
+                },
+                getHistoryCacheKey() {
+                    return this.code + FastExt.System.ManagerHandler.getManagerId();
                 },
                 initComponent: function () {
                     try {
@@ -1447,12 +1647,26 @@ namespace FastOverrider {
                                     }
                                 }
                             });
-                        } else if (me.isUseHistory()) {
+                        }
+
+                        if (me.isUseHistory()) {
+                            console.log("历史记录！", this);
                             me.addTriggers({
                                 history: {
                                     cls: 'extIcon extHistory2',
                                     hidden: true,
+                                    weight: -1,
                                     handler: me.onFastHistoryInputClick,
+                                },
+                            });
+                        }
+
+                        if (!Ext.isEmpty(me.getComment())) {
+                            me.addTriggers({
+                                comment: {
+                                    cls: 'extIcon extQuestion2',
+                                    weight: -2,
+                                    handler: me.onFastCommentClick,
                                 },
                             });
                         }
@@ -1506,6 +1720,14 @@ namespace FastOverrider {
                     }
                 },
             });
+
+            Ext.override(Ext.form.trigger.Trigger, {
+                onMouseDown: function (e) {
+                    this.callParent(arguments);
+                    this.getEl().ripple(e, {destroyTime: 300});
+                },
+            });
+
         }
     }
 
@@ -1514,7 +1736,8 @@ namespace FastOverrider {
      * 重写Ext.menu.Menu相关的功能
      */
     export class MenuOverride {
-        constructor() {
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
             Ext.override(Ext.menu.Menu, {
                 hide: function () {
                     let me = this;
@@ -1539,6 +1762,10 @@ namespace FastOverrider {
                 },
             });
             Ext.override(Ext.menu.Item, {
+                constructor: function () {
+                    this.callParent(arguments);
+                    this.ripple = {color: "#ffffff", destroyTime: 300};
+                },
                 focus: function () {
                     if (this.isDisabled()) {
                         return;
@@ -1574,6 +1801,55 @@ namespace FastOverrider {
 
                 },
             });
+
+            //当容器溢出时，使用菜单收纳
+            Ext.override(Ext.layout.container.boxOverflow.Menu, {
+                handleOverflow: function () {
+                    let owner = this.layout.owner;
+                    if (owner.hasListeners.overflowbegin) {
+                        if (owner.fireEvent('overflowbegin')) {
+                            return this.callParent(arguments);
+                        }
+                        return {
+                            reservedSpace: 0,
+                        }
+                    } else {
+                        return this.callParent(arguments);
+                    }
+                },
+                showTrigger: function () {
+                    let owner = this.layout.owner;
+                    if (owner.hasListeners.overflowshow) {
+                        if (owner.fireEvent('overflowshow')) {
+                            this.callParent(arguments);
+                        }
+                    } else {
+                        this.callParent(arguments);
+                    }
+
+                },
+                hideTrigger: function () {
+                    let owner = this.layout.owner;
+                    if (owner.hasListeners.overflowshow) {
+                        if (owner.fireEvent('overflowhide')) {
+                            this.callParent(arguments);
+                        }
+                    } else {
+                        this.callParent(arguments);
+                    }
+                },
+                createMenuConfig: function () {
+                    let config = this.callParent(arguments);
+                    if (config) {
+                        //删除复用过来的cls，统一使用menu的cls
+                        delete config.cls;
+                        delete config.userCls;
+                        delete config.bodyCls;
+                    }
+                    return config;
+                },
+            });
+
         }
     }
 
@@ -1581,7 +1857,8 @@ namespace FastOverrider {
      * 重写Ext.Window相关的功能
      */
     export class WindowOverride {
-        constructor() {
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
             Ext.override(Ext.Window, {
                 setIcon: function (value) {
                     this.callParent(arguments);
@@ -1646,11 +1923,17 @@ namespace FastOverrider {
                                     || item.xtype === "contentfield"
                                     || item.xtype === "textareafield"
                                     || item.xtype === "htmlcontentfield") {
-                                    item.focus(true, 100);
+                                    item.safeFocus(100);
                                     return false;
                                 }
                             });
                         }
+                    }
+
+                    //刷新grid的选择状态，避免出现弹出window后grid未触发selection事件
+                    let gridPanels = Ext.ComponentQuery.query('grid');
+                    for (let gridPanel of gridPanels) {
+                        FastExt.GridEvent.onFastSelectionChange.apply(gridPanel);
                     }
                 },
                 initComponent: function () {
@@ -1658,6 +1941,7 @@ namespace FastOverrider {
                         if (Ext.isEmpty(this.tools)) {
                             this.tools = [];
                         }
+
                         if ((!this.modal && this.id.indexOf("messagebox") < 0 && FastExt.Base.toBool(this.unpin, true))
                             || FastExt.Base.toBool(this.unpin, false)) {
                             this.tools.push({
@@ -1669,10 +1953,12 @@ namespace FastOverrider {
                                         tool.setType("pin");
                                         tool.setTooltip("取消固定窗口");
                                         owner.canClose = false;
+                                        owner.justTop = true;
                                     } else {
                                         tool.setType("unpin");
                                         tool.setTooltip("固定窗口");
                                         owner.canClose = true;
+                                        owner.justTop = false;
                                     }
 
                                     for (let i = 0; i < currTools.length; i++) {
@@ -1695,13 +1981,13 @@ namespace FastOverrider {
                         }
 
                         if (!this.animateTarget) {
-                            this.animateTarget = FastExt.Base.getTargetElement(FastExt.System.currClickTarget);
+                            this.animateTarget = FastExt.Base.getTargetElement(FastExt.SystemLayout.getCurrClickTarget());
                         }
                         if (this.getId().indexOf("ghost") >= 0) {
                             this.animateTarget = null;
                         }
 
-                        if (!FastExt.Base.toBool(FastExt.System.getExt("window-anim").value, true)) {
+                        if (!FastExt.System.ConfigHandler.isEnableWindowAnim()) {
                             this.animateTarget = null;
                         }
 
@@ -1730,7 +2016,8 @@ namespace FastOverrider {
      * 重写Ext.window.MessageBox相关的功能
      */
     export class MessageBoxOverride {
-        constructor() {
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
             Ext.override(Ext.window.MessageBox, {
                 confirm: function (cfg, message, fn, scope) {
                     FastExt.Dialog.showConfirm(cfg, message, fn);
@@ -1744,19 +2031,38 @@ namespace FastOverrider {
                     FastExt.Dialog.showAlert(title, message, fn);
                     return this
                 },
+                updateProgress: function () {
+                    if (arguments[2]) {
+                        arguments[2] = "<div class='fast-messagebox-message-progress'>" + arguments[2] + "</div>";
+                    }
+                    return this.callParent(arguments);
+                },
                 show: function (cfg) {
                     let me = this;
                     me.closeToolText = null;
                     cfg = cfg || {};
+
+                    let type = "";
+                    if (cfg.progress) {
+                        type = "-progress";
+                    }
+
+                    if (!Ext.isEmpty(cfg.msg)) {
+                        cfg.msg = "<div class='fast-messagebox-message" + type + "'>" + cfg.msg + "</div>";
+                    }
+
+                    if (!Ext.isEmpty(cfg.message)) {
+                        cfg.message = "<div class='fast-messagebox-message" + type + "'>" + cfg.message + "</div>";
+                    }
 
                     if (FastExt.Base.toBool(cfg.progress, false)
                         || FastExt.Base.toBool(cfg.wait, false)) {
                         cfg.animateTarget = null;
                     } else {
                         if (Ext.isEmpty(cfg.animateTarget)) {
-                            cfg.animateTarget = FastExt.Base.getTargetElement(FastExt.System.currClickTarget);
+                            cfg.animateTarget = FastExt.Base.getTargetElement(FastExt.SystemLayout.getCurrClickTarget());
                         }
-                        if (!FastExt.Base.toBool(FastExt.System.getExt("window-anim").value, true)) {
+                        if (!FastExt.System.ConfigHandler.isEnableWindowAnim()) {
                             cfg.animateTarget = null;
                         }
                     }
@@ -1779,15 +2085,9 @@ namespace FastOverrider {
     // export class ScrollerOverride {
     //     constructor() {
     //         Ext.override(Ext.scroll.Scroller, {
-    //             fireScrollStart: function () {
-    //                 let me = this;
-    //                 me.callParent(arguments);
-    //                 if (me.component && me.component.xtype == "tableview") {
-    //                     let menuCmpArray = Ext.ComponentQuery.query("menu[scrollToHidden=true]");
-    //                     for (let i = 0; i < menuCmpArray.length; i++) {
-    //                         menuCmpArray[i].hide();
-    //                     }
-    //                 }
+    //             restoreState: function () {
+    //                 // console.log(this.trackingScrollLeft);
+    //                 this.callParent(arguments);
     //             }
     //         });
     //     }
@@ -1798,7 +2098,8 @@ namespace FastOverrider {
      * 重写Ext.tip.ToolTip 相关的功能
      */
     export class TooltipOverride {
-        constructor() {
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
             Ext.override(Ext.tip.ToolTip, {
                 show: function () {
                     if (BoxReordererOverrider.DRAGGING) {
@@ -1825,41 +2126,12 @@ namespace FastOverrider {
 
 
     /**
-     * 重写与Ext.tab.Panel相关的功能
-     */
-    export class TabPanelOverrider {
-
-        constructor() {
-            // Ext.override(Ext.layout.container.boxOverflow.Menu, {
-            //     handleOverflow: function () {
-            //         if (FastOverrider.TabPanelOverrider.BoxReordereBeginDrag) {
-            //             //当拖拽时阻止 收入到菜单中
-            //             return null;
-            //         }
-            //         return this.callParent(arguments);
-            //     },
-            // });
-
-            // Ext.override(Ext.ux.BoxReorderer, {
-            //     startDrag: function () {
-            //         FastOverrider.TabPanelOverrider.BoxReordereBeginDrag = true;
-            //         this.callParent(arguments);
-            //     },
-            //     endDrag: function () {
-            //         FastOverrider.TabPanelOverrider.BoxReordereBeginDrag = false;
-            //         this.callParent(arguments);
-            //     },
-            // });
-        }
-    }
-
-
-    /**
      * 重写与Ext.list.Tree相关的功能
      */
     export class TreeListOverrider {
 
-        constructor() {
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
             Ext.override(Ext.list.Tree, {
                 constructor: function () {
                     this.callParent(arguments);
@@ -1890,7 +2162,8 @@ namespace FastOverrider {
          */
         static DRAGGING: boolean;
 
-        constructor() {
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
             Ext.override(Ext.ux.BoxReorderer, {
                 startDrag: function () {
                     this.callParent(arguments);
@@ -1903,10 +2176,5 @@ namespace FastOverrider {
             });
         }
     }
-
-    for (let subClass in FastOverrider) {
-        FastOverrider[subClass]();
-    }
-
 
 }

@@ -5,19 +5,22 @@
      transition:color 450ms !important;
 }
 .x-form-trigger-wrap-focus {
-	border-color: $[color] !important;
+	border-color: ${color} !important;
 }
 
 .x-form-trigger-wrap-default{
-    border-radius: $[inputRadius];
+    border-radius: ${inputRadius};
     overflow: hidden;
 }
 
+.x-form-file-wrap .x-form-trigger-wrap .x-form-text{
+    border-radius: ${inputRadius};
+}
 
 .x-form-trigger-default{
    background: #f6f6f6;
-   padding-top: 1px;
    color: #000;
+   vertical-align: middle;
 }
 
 .x-form-spinner-default{
@@ -25,7 +28,7 @@
 }
 
 .x-form-trigger-default:hover{
-     background: #ececec;
+    background: #ececec;
 }
 
 .fast-combo  .x-form-trigger-focus,.fast-combobox .x-form-trigger-focus,.fast-enumcombo .x-form-trigger-focus{
@@ -35,11 +38,11 @@
 
 
 .x-form-cb-checked .x-form-checkbox-default {
-    color: $[color] !important;
+    color: ${color} !important;
 }
 
 .x-form-rd-checked .x-form-radio-default {
-    color: $[color] !important;
+    color: ${color} !important;
 }
 
 .x-form-checkbox-focus.x-form-radio-default {
@@ -51,14 +54,38 @@
 }
 
 .x-form-item-label-default{
-     color:#000000;
+     color:black;
 }
 
 .x-field-focus .x-form-item-label {
-    color: $[color] !important;
+    color: ${color} !important;
     font-weight:bold !important;
+}
+
+.x-fieldset-header-default{
+    padding:0px 5px;
 }
 
 .x-fieldset-header-default>.x-fieldset-header-text {
     position: unset;
+}
+
+.x-fieldset .x-fieldset-collapsed{
+    border-radius: 0px !important;
+}
+
+
+.x-form-text-default{
+     min-height: 38px;
+     color:black;
+}
+
+.x-fieldset-default{
+    border-radius: ${inputRadius};
+}
+
+.x-form-item-label-default{
+    padding-top: 0px;
+    height: 100%;
+    line-height: 38px;
 }

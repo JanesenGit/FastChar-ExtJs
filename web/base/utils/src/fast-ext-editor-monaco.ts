@@ -1,7 +1,7 @@
 namespace FastExt {
 
     /**
-     * MonacoEditor 操作类 https://microsoft.github.io/monaco-editor/api/index.html
+     * MonacoEditor 操作类 https://microsoft.github.io/monaco-editor/
      */
     export class MonacoEditor {
 
@@ -27,7 +27,7 @@ namespace FastExt {
                             me.setValue(content, language);
                             me.setLoading(false);
                         };
-                        let url = FastExt.System.formatUrlVersion('base/monaco-editor/index.html',
+                        let url = FastExt.Base.formatUrlVersion('base/monaco-editor/index.html',
                             {});
                         this.update("<iframe name='" + this.iframeName + "'  src='" + url + "' width='100%' height='100%' frameborder='0' scrolling='no' />");
                     },
@@ -133,7 +133,7 @@ namespace FastExt {
                             me.setValue(content1, content2, language);
                             me.setLoading(false);
                         };
-                        let url = FastExt.System.formatUrlVersion('base/monaco-editor/index.html',
+                        let url = FastExt.Base.formatUrlVersion('base/monaco-editor/index.html',
                             {});
                         this.update("<iframe name='" + this.iframeName + "'  src='" + url + "' width='100%' height='100%' frameborder='0' scrolling='no' />");
                     },

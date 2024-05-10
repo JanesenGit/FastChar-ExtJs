@@ -10,8 +10,13 @@ namespace FastExt {
          */
         static showAllRelationImage: boolean = true;
 
-        private constructor() {
 
+        /**
+         * 获取真实的url地址
+         * @param url
+         */
+        static getRealUrl(url: string) {
+            return url.split("@")[0];
         }
 
         /**
@@ -37,18 +42,61 @@ namespace FastExt {
         /**
          * 获取oss缩略图
          * @param imgUrl
+         * @param size
          */
-        static smallOSSImgUrl(imgUrl) {
+        static smallOSSImgUrl(imgUrl:string, size?) {
+            if (Ext.isEmpty(size)) {
+                size = 20;
+            }
+            size = size.replace("px", "");
             if (!Ext.isEmpty(imgUrl)) {
                 let split = imgUrl.split("/");
                 let imgName = split[split.length - 1];
+                // @ts-ignore
                 if (imgName.startWith("svg-")) {
                     return imgUrl;
                 }
-                if (imgUrl.toString().indexOf("?") >= 0) {
-                    return imgUrl + "&x-oss-process=image/resize,h_20,m_lfit";
+
+                //亚马逊的图片链接 https://m.media-amazon.com/images/I/81bVxZ1FX9L._SL1500_.jpg
+                if (imgUrl.indexOf("media-amazon.com/images") >= 0) {
+                    let urlItems = imgUrl.split("/");
+                    let nameItems = urlItems[urlItems.length - 1].split(".");
+
+                    //亚马逊设置的图片尺寸
+                    nameItems[1] = "_SL" + size + "_";
+                    urlItems[urlItems.length - 1] = nameItems.join(".");
+                    return urlItems.join("/");
                 }
-                return imgUrl + "?x-oss-process=image/resize,h_20,m_lfit";
+
+
+                let isOSSUrl = false;
+                let ossHosts = FastExt.System.ConfigHandler.getOSSHosts();
+                for (let ossHost of ossHosts) {
+                    if (imgUrl.indexOf(ossHost)=== 0) {
+                        isOSSUrl = true;
+                        break;
+                    }
+                }
+                if (!isOSSUrl) {
+                    return imgUrl;
+                }
+
+                if (imgUrl.toString().indexOf("?") < 0) {
+                    imgUrl = imgUrl + "?__v=1";
+                }
+
+                let ossType = FastExt.System.ConfigHandler.getOSSType();
+                let appendParam = "";
+                if (ossType === "ali") {//阿里云oss
+                    appendParam = "&x-oss-process=image/resize,h_" + size + ",m_lfit";
+                } else if (ossType === "tencent") {//腾讯云oss
+                    appendParam = "&imageMogr2/thumbnail/!" + size + "x" + size + "r";
+                } else if (ossType === "ctyun") {//天翼云经典I版
+                    appendParam = "&__t=ctyun";
+                    let split = imgUrl.split("?");
+                    imgUrl = split[0] + "@oosImage|" + size + "w" + "?" + split[1];
+                }
+                return imgUrl + appendParam;
             }
             return imgUrl;
         }
@@ -150,14 +198,7 @@ namespace FastExt {
                     dataIndex: 'url',
                     flex: 1,
                     align: 'center',
-                    renderer: function (val) {
-                        if (Ext.isEmpty(val)) {
-                            return "<span style='color: #ccc;'>无</span>";
-                        }
-                        let arrayInfo = val.split("@");
-                        let url = arrayInfo[0];
-                        return "<img width='30px' onerror=\"javascript:this.src='images/default_img.png';\" src='" + url + "'/>";
-                    }
+                    renderer: FastExt.Renders.image(14, -1, false, false),
                 }],
                 tbar: [{
                     xtype: 'button',
@@ -165,17 +206,23 @@ namespace FastExt {
                     text: '打包下载',
                     iconCls: 'extIcon extDownload',
                     handler: function (obj) {
+                        FastExt.Dialog.showWait("正在打包中，请稍候……");
                         let params = {};
                         imageStore.each(function (record, index) {
-                            params["path" + index] = record.get("url");
+                            params["path" + index] = FastExt.Image.getRealUrl(record.get("url"));
                         });
-                        var buildForm = FastExt.Form.buildForm("zipFile", params);
-                        buildForm.submit();
-                        $(buildForm).remove();
+                        FastExt.Server.zipFile(params, (success: boolean, message: string, data: any) => {
+                            FastExt.Dialog.hideWait();
+                            if (success) {
+                                FastExt.Base.openUrl(data, FastEnum.Target._blank);
+                            } else {
+                                FastExt.Dialog.showAlert("系统提醒", message);
+                            }
+                        });
                     }
                 }],
                 listeners: {
-                    selectionchange: function (obj,selected) {
+                    selectionchange: function (obj, selected) {
                         try {
                             let time = 0;
                             let store = this.getStore();
@@ -185,9 +232,11 @@ namespace FastExt {
                                 this.setHidden(false);
                                 time = 120;
                                 if (arrowRightBtn) {
+                                    arrowRightBtn.setHidden(false);
                                     arrowRightBtn.setDisabled(store.count() - 1 === store.indexOf(selected[0]));
                                 }
                                 if (arrowLeftBtn) {
+                                    arrowLeftBtn.setHidden(false);
                                     arrowLeftBtn.setDisabled(store.indexOf(selected[0]) === 0);
                                 }
                             } else {
@@ -202,7 +251,7 @@ namespace FastExt {
 
                             setTimeout(function () {
                                 if (window["imgViewFrame"] && Ext.isFunction(window["imgViewFrame"].window.showImage)) {
-                                    window["imgViewFrame"].window.showImage(FastExt.System.formatUrl(selected[0].get("url")), FastExt.System.http);
+                                    window["imgViewFrame"].window.showImage(FastExt.Base.formatUrl(selected[0].get("url")), FastExt.System.ConfigHandler.getSystemHttp());
                                 }
                             }, time);
                         } catch (e) {
@@ -240,7 +289,7 @@ namespace FastExt {
                             dataGridImages.setHidden(false);
                         }
                         obj.update("<iframe style='background: #000000;width: 100%;height: 100%;' name='imgViewFrame' " +
-                            " src='" + FastExt.System.formatUrlVersion("base/image-view/index.html") + "' width='100%' height='100%' frameborder='0' scrolling='no' />");
+                            " src='" + FastExt.Base.formatUrlVersion("base/image-view/index.html") + "' width='100%' height='100%' frameborder='0' scrolling='no' />");
                         obj.getEl().on("mouseleave", function (obj) {
                             const targetElement = window["imgViewFrame"].window.document.getElementsByTagName("div")[0];
                             FastExt.Base.dispatchTargetEvent(window["imgViewFrame"].window.document, targetElement, "pointerup");
@@ -341,7 +390,7 @@ namespace FastExt {
                             iconCls: 'extIcon extDownload2',
                             handler: function () {
                                 let data = dataGridImages.getSelectionModel().getSelection();
-                                FastExt.Base.download(data[0].get("url"));
+                                FastExt.Base.download(FastExt.Image.getRealUrl(data[0].get("url")));
                             }
                         }
                     ]
@@ -349,6 +398,7 @@ namespace FastExt {
             });
             let winWidth = parseInt((document.body.clientWidth * 0.6).toFixed(0));
             let winHeight = parseInt((document.body.clientHeight * 0.7).toFixed(0));
+
             let newWin = Ext.create('Ext.window.Window', {
                 title: "查看图片",
                 height: winHeight,

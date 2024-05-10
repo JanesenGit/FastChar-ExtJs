@@ -1,0 +1,481 @@
+// FastExt.Grid.addGridContextMenu(grid, {
+//     iconCls: 'extIcon extLink',
+//     text: "单元格搜索链",
+//     onBeforeShow: function () {
+//         this.show();
+//         let menu = this.ownerCt;
+//         if (!Ext.isObject(menu.cellContext.column.searchLink) || grid.getSelection().length !== 1) {
+//             this.hide();
+//         } else {
+//             let linkMenu = Ext.create('Ext.menu.Menu', {
+//                 items: []
+//             });
+//             let record = menu.record;
+//             let fieldName = menu.cellContext.column.dataIndex;
+//             let columns = menu.cellContext.column.searchLink.columns;
+//             for (let i = 0; i < columns.length; i++) {
+//                 let column = columns[i];
+//                 let child = {
+//                     icon: column.parent.icon,
+//                     text: column.parent.text + "【" + column.text + "】",
+//                     column: column,
+//                     value: record.get(fieldName),
+//                     handler: function () {
+//                         let where = {};
+//                         where[this.column.dataIndex] = this.value;
+//                         FastExt.SystemLayout.showByMethod(this.column.parent.method,
+//                             $.md5(this.column.id + this.value),
+//                             "搜索：" + this.text,
+//                             this.icon, where);
+//                     }
+//                 };
+//                 linkMenu.add(child);
+//             }
+//             this.setMenu(linkMenu);
+//         }
+//     },
+//     menu: []
+// }, index++);
+
+
+
+
+
+/**
+ * 配置指定列的搜索链
+ * @param column
+ */
+static configColumnSearchLink(column: any) {
+    let checked = "";
+    if (column.searchLink) {
+        checked = column.searchLink.checked;
+    }
+    FastExt.SystemLayout.showMenuColumns(column, checked).then(function (data) {
+        if (data.columns.length > 0) {
+            column.searchLink = data;
+            FastExt.Dialog.toast("配置成功！");
+        } else {
+            column.searchLink = null;
+            FastExt.Dialog.toast("已清空搜索链！");
+        }
+    });
+}
+
+
+
+
+ /**
+ * 显示全局搜索弹框
+ * @param obj
+ * @param entityCodes 指定entityCode
+ * @param parentContainerCmp 父容器
+ * @param extraParams 扩展参数
+ */
+static showGlobalSearch(obj, entityCodes?: any, parentContainerCmp?: any, extraParams?: any) {
+    if (Ext.isEmpty(entityCodes)) {
+        entityCodes = [];
+    }
+    if (Ext.isEmpty(obj.code)) {
+        obj.code = "GlobalSearchWin";
+    }
+    if (Ext.isEmpty(extraParams)) {
+        extraParams = {};
+    }
+
+    let searchWinTitle = "系统全局搜索";
+    let targetSearchWinId = "GlobalSearchWin" + $.md5(obj.code + entityCodes.join(","));
+    let targetSearchWin = Ext.getCmp(targetSearchWinId);
+
+
+    if (entityCodes.length > 0) {
+        searchWinTitle = "全列搜索";
+    }
+
+    if (targetSearchWin) {
+        if (targetSearchWin.isVisible()) {
+            FastExt.Component.shakeComment(targetSearchWin);
+            return;
+        }
+        targetSearchWin.show();
+        return;
+    }
+
+
+    let dataStore = Ext.create('Ext.data.Store', {
+        autoLoad: false,
+        pageSize: 40,
+        fields: [],
+        entityCodes: entityCodes,
+        searchType: entityCodes.length > 0 ? 1 : -1,
+        proxy: {
+            type: 'ajax',
+            url: FastExt.Server.globalSearchUrl(),
+            actionMethods: {
+                create: 'POST',
+                read: 'POST',
+                update: 'POST',
+                destroy: 'POST'
+            },
+            listeners: {
+                exception: function (obj, request, operation, eOpts) {
+                    try {
+                        let data = eval("(" + request.responseText + ")");
+                        if (!data.success) {
+                            FastExt.Dialog.showAlert("数据获取失败", data.message, null, true, true);
+                        }
+                    } catch (e) {
+                        FastExt.Dialog.showAlert("数据获取失败", FastExt.ErrorHandler.geErrorInfo(e), null, true, true);
+                    }
+                }
+            },
+            reader: {
+                type: 'json',
+                root: 'list',
+                totalProperty: 'totalRow'
+            }
+        },
+        listeners: {
+            beforeload: function (store, options, eOpts) {
+                let params = store.proxy.extraParams;
+                let newParams = {
+                    "key": store.searchKey,
+                    "type": store.searchType,
+                    "entityCode": store.entityCodes,
+                };
+                newParams = FastExt.Json.mergeJson(newParams, extraParams);
+                store.getProxy().setExtraParams(FastExt.Json.mergeJson(params, newParams));
+                return true;
+            }
+        },
+    });
+
+    let grid = Ext.create('Ext.grid.Panel', {
+        border: 0,
+        scrollable: 'y',
+        store: dataStore,
+        hideHeaders: true,
+        deferRowRender: false,
+        dataList: true,
+        region: 'center',
+        columns: [
+            {
+                header: '值',
+                dataIndex: 'searchKey',
+                flex: 1,
+                renderer: function (val, m, record) {
+                    m.style = 'overflow:hidden;align-items: center; display:flex;line-height:24px;';
+
+                    let clickFun = "";
+                    let headText = "";
+                    let type = parseInt(record.get("type"));
+                    if (type === 0) {
+                        clickFun = " FastExt.SystemLayout.selectMenu(\"" + record.get("id") + "\",true,true)";
+                        headText = "<img alt='' height='20' src='icons/icon_system.svg'/>&nbsp;" + "系统菜单";
+                    } else if (type === 1) {
+                        clickFun = "new " + record.get("entityCode") + "().showDetails(this,{\"" + record.get("dataIdName") + "\":\"" + record.get("dataId") + "\"})";
+                        headText = "<img alt='' height='20' src='" + record.get("menuIcon") + "'/>&nbsp;" + record.get("entityInfo");
+                    }
+
+                    let tagHeadText = "<span style='" +
+                        "display: inline-flex;" +
+                        "background: #e3e3e3;" +
+                        "color: black;" +
+                        "border-radius: 3px;" +
+                        "font-size:small;" +
+                        "margin-right: 5px;" +
+                        "padding: 2px 4px;" +
+                        "align-items: center;" +
+                        "justify-content: center;" +
+                        "'>" + headText + "</span>";
+                    return tagHeadText + "<a style='display: inline-flex;align-items: center;' href='javascript:" + clickFun + ";'>" + val + "</a>";
+
+                }
+            }, {xtype: 'rowplaceholder', minWidth: 30}
+        ],
+        emptyConfig: {
+            lottie: "base/lottie/global_search.json",
+            opacity: 1,
+            width: "70%",
+            height: "70%",
+            filter: "",
+        },
+        tbar: {
+            xtype: 'toolbar',
+            flex: 1,
+            style: {
+                background: "#ececec",
+            },
+            items: [
+                {
+                    xtype: 'combo',
+                    displayField: 'text',
+                    valueField: 'id',
+                    editable: false,
+                    width: 120,
+                    value: -1,
+                    hidden: entityCodes.length > 0,
+                    store: Ext.create('Ext.data.Store', {
+                        data: [
+                            {
+                                id: -1,
+                                text: '全部'
+                            },
+                            {
+                                id: 0,
+                                text: '系统菜单'
+                            },
+                            {
+                                id: 1,
+                                text: '系统数据',
+                            }
+                        ]
+                    }),
+                    listeners: {
+                        change: function (obj, newValue, oldValue) {
+                            grid.getStore().searchType = newValue;
+                        }
+                    }
+                },
+                {
+                    emptyText: '输入关键字，' + searchWinTitle + '（轻敲回车键）',
+                    region: 'center',
+                    flex: 1,
+                    xtype: 'textfield',
+                    itemId: 'searchInput',
+                    name: 'searchInput',
+                    code: 'searchInput' + $.md5(obj.code + entityCodes.join(",")),
+                    useHistory: true,
+                    doSearch: function () {
+                        this.validate();
+                        grid.getStore().loadPage(1);
+                    },
+                    listeners: {
+                        render: function (obj, eOpts) {
+                            try {
+                                new Ext.util.KeyMap({
+                                    target: obj.getEl(),
+                                    key: 13,
+                                    fn: function (keyCode, e) {
+                                        this.doSearch();
+                                    },
+                                    scope: this
+                                });
+                            } catch (e) {
+                                console.error(e);
+                            }
+                        },
+                        change: function (obj, newValue, oldValue) {
+                            grid.getStore().searchKey = newValue;
+                        },
+                        selectHistoryValue: function (obj, history) {
+                            obj.doSearch();
+                        },
+                    },
+                    triggers: {
+                        search: {
+                            cls: 'text-search',
+                            handler: function () {
+                                this.doSearch();
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        viewConfig: {
+            loadingText: '正在努力搜索中…'
+        }
+    });
+
+    let winWidth = parseInt((document.body.clientWidth * 0.5).toFixed(0));
+    let winHeight = parseInt((document.body.clientHeight * 0.7).toFixed(0));
+
+    let searchWin = Ext.create('Ext.window.Window', {
+        title: searchWinTitle,
+        id: targetSearchWinId,
+        height: winHeight,
+        width: winWidth,
+        iconCls: 'extIcon extSearch',
+        layout: 'border',
+        resizable: true,
+        constrain: true,
+        maximizable: true,
+        animateTarget: obj,
+        items: [grid],
+        modal: false,
+        firstShow: true,
+        listeners: {
+            close: function (winObj, eOpts) {
+            },
+            show: function (winObj) {
+                setTimeout(function () {
+                    winObj.down("#searchInput").focus();
+                }, 200);
+                grid.showEmptyTip();
+            },
+            hide: function () {
+                grid.hideEmptyTip();
+            },
+        }
+    });
+    if (parentContainerCmp) {
+        parentContainerCmp.add(searchWin);
+    }
+    searchWin.show();
+}
+
+
+/**
+ * 显示功能菜单和功能列
+ * @param obj
+ * @param checked
+ */
+static showMenuColumns(obj, checked) {
+    return new Ext.Promise(function (resolve, reject) {
+        let dataStore = Ext.create('Ext.data.TreeStore', {
+            proxy: {
+                type: 'ajax',
+                url: FastExt.Server.showMenuColumnUrl(),
+                actionMethods: {
+                    create: 'POST',
+                    read: 'POST',
+                    update: 'POST',
+                    destroy: 'POST'
+                },
+                listeners: {
+                    exception: function (obj, request, operation, eOpts) {
+                        let data = eval("(" + request.responseText + ")");
+                        if (!data.success) {
+                            FastExt.Dialog.showAlert("数据获取失败", data.message, null, true, true);
+                        }
+                    }
+                },
+                reader: {
+                    type: 'json'
+                }
+            },
+            root: {
+                expanded: true
+            },
+            listeners: {
+                load: function (obj, records, successful) {
+                    //treePanel.expandAll();
+                },
+                beforeload: function (store, operation) {
+                    Ext.apply(store.proxy.extraParams, {
+                        "checked": checked
+                    });
+                }
+            }
+        });
+
+        let treePanel = Ext.create('Ext.tree.Panel', {
+            store: dataStore,
+            rootVisible: false,
+            bufferedRenderer: false,
+            animate: true,
+            containerScroll: true,
+            autoScroll: true,
+            lastCheckNode: null,
+            viewConfig: {
+                loadMask: {
+                    msg: '加载功能菜单中，请稍后……'
+                }
+            },
+            listeners: {
+                checkchange: function (currNode, checked, e, eOpts) {
+                    if (checked) {
+                        currNode.bubble(function (parentNode) {
+                            parentNode.set('checked', true);
+                            //parentNode.expand(false, true);
+                        });
+                        currNode.cascadeBy(function (node) {
+                            node.set('checked', true);
+                            //node.expand(false, true);
+                        });
+                    } else {
+                        currNode.cascadeBy(function (node) {
+                            node.set('checked', false);
+                        });
+                    }
+                }
+            }
+        });
+
+        let win = Ext.create('Ext.window.Window', {
+            title: '搜索链配置',
+            width: 400,
+            height: 470,
+            layout: 'fit',
+            iconCls: 'extIcon extLink',
+            resizable: true,
+            animateTarget: obj,
+            maximizable: true,
+            constrain: true,
+            items: [treePanel],
+            modal: true,
+            buttons: [
+                {
+                    text: '重置',
+                    iconCls: 'extIcon extReset',
+                    handler: function () {
+                        dataStore.reload();
+                    }
+                },
+                {
+                    text: '确定',
+                    iconCls: 'extIcon extOk',
+                    handler: function () {
+                        let checkedArray = treePanel.getChecked();
+                        let treeData = [];
+                        let menuIds = "";
+                        for (let i = 0; i < checkedArray.length; i++) {
+                            if (checkedArray[i].isLeaf()) {
+                                let data: any = {};
+                                data.text = checkedArray[i].data.text;
+                                data.id = checkedArray[i].data.id;
+                                data.dataIndex = checkedArray[i].data.dataIndex;
+                                data.parentId = checkedArray[i].data.parentId;
+
+                                let findRecord = treePanel.getStore().findNode("id", data.parentId, 0, false, false, true);
+                                if (findRecord) {
+                                    let parent: any = {};
+                                    let parentData = findRecord.data;
+                                    parent.text = parentData.text;
+                                    parent.id = parentData.id;
+                                    parent.method = parentData.method;
+                                    parent.icon = parentData.icon;
+                                    data.parent = parent;
+                                    treeData.push(data);
+                                }
+                            }
+                            menuIds += "," + checkedArray[i].data.id;
+                        }
+                        resolve({checked: menuIds, columns: treeData});
+                        win.close();
+                    }
+                }]
+        });
+        win.show();
+    });
+}
+
+
+ if (FastExt.Base.toBool(grid.operate.globalSearch, true) && grid.getStore().entity
+    && FastExt.System.ManagerHandler.isSuperRole()) {
+    moreBtn.menu.push(
+        {
+            iconCls: 'extIcon extSearch searchColor',
+            text: '全列搜索',
+            handler: function () {
+                FastExt.SystemLayout.showGlobalSearch(this, [grid.getStore().entity.entityCode], grid.ownerCt);
+            }
+        }
+    );
+}
+
+
+
+
+
+

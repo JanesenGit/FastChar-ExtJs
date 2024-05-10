@@ -12,7 +12,7 @@ namespace FastExt {
         static onFastAfterTabActive() {
             try {
                 let grid = <any>this;
-                if (grid.operate.refreshData || FastExt.System.gridRefreshData) {
+                if (grid.operate.refreshData || FastExt.System.ConfigHandler.isGridRefreshData()) {
                     grid.getStore().reload();
                 }
             } catch (e) {
@@ -184,6 +184,7 @@ namespace FastExt {
                     return false;
                 }
             }
+            //注意，此处的column.field通过 FastExt.Entity.wrapConfigs 统一配置，由appjs中的代码调用
             let editorField = context.column.field;
             if (!editorField) {
                 FastExt.Dialog.toast("无编辑权限（E-3）！");
@@ -193,6 +194,7 @@ namespace FastExt {
             editorField.labelTitle = context.column.text;
             editorField.record = context.record;
             editorField.fromColumn = true;
+            editorField.height = FastExt.Grid.getRowMinHeight();
 
             if (editorField.hasListener("beforeedit")) {
                 if (!editorField.fireEvent("beforeedit", editorField)) {
@@ -200,10 +202,8 @@ namespace FastExt {
                 }
             }
 
-            if (FastExt.Listeners.onBeforeEditorField) {
-                if (!FastExt.Listeners.onBeforeEditorField(editorField, context.record)) {
-                    return false;
-                }
+            if (!FastExt.Listeners.getFire().onBeforeEditorField(editorField, context.record)) {
+                return false;
             }
 
             if (Ext.isFunction(editorField.setValue) && !FastExt.Base.toBool(context.column.password, false)) {
@@ -238,6 +238,7 @@ namespace FastExt {
                             xtype: 'container',
                             layout: 'fit',
                             width: cell.getWidth(),
+                            height: cell.getHeight(),
                             style: {
                                 background: "#ffffff",
                                 borderWidth: 1,
@@ -310,6 +311,7 @@ namespace FastExt {
             }
 
             context.column.editMenu.setWidth(Math.max(context.column.getWidth(), 120 + triggersCount * 30));
+            context.column.editMenu.setHeight(FastExt.Grid.getRowMinHeight());
             context.column.editMenu.context = context;
 
             // let yOffset = ((FastExt.Form.getFieldMinHeight(true) + 2) - FastExt.Grid.getRowMinHeight()) / 2;
@@ -324,11 +326,19 @@ namespace FastExt {
             try {
                 let grid = <any>this;
                 if (selected && !grid.fromStoreChange) {
-                    grid.recordSelect();
+                    if (Ext.isFunction(grid.recordSelect)) {
+                        grid.recordSelect();
+                    }
                 }
-
-                grid.refreshSelect();
-                grid.refreshDetailsPanel();
+                if (Ext.isFunction(grid.refreshSelect)) {
+                    grid.refreshSelect();
+                }
+                if (Ext.isFunction(grid.refreshDetailsPanel)) {
+                    grid.refreshDetailsPanel();
+                }
+                if (Ext.isFunction(grid.refreshToolPaging)) {
+                    grid.refreshToolPaging();
+                }
             } catch (e) {
                 FastExt.Dialog.showException(e, "按钮选中检测！[selectionchange]");
             }
@@ -382,6 +392,10 @@ namespace FastExt {
                 grid.fireLoadResotreSelect = true;
                 grid.restoreSelect();
             }
+            // // //刷新列表，避免出现滚动条大于实际内容高度的情况
+            // setTimeout(() => {
+            //     grid.updateLayout();
+            // }, 500);
         }
 
         /**
@@ -391,7 +405,6 @@ namespace FastExt {
             let grid = <any>this;
             grid.hideEmptyTip();
         }
-
 
         /**
          * 事件：headermenu:beforeshow
@@ -422,22 +435,29 @@ namespace FastExt {
                 menu.configHeadMenu = true;
 
                 let menus = [];
-                menus.push({
-                    text: '查看说明',
-                    iconCls: 'extIcon extConvertCode',
-                    onBeforeShow: function () {
-                        if (Ext.isEmpty(menu.activeHeader.comment)) {
-                            this.hide();
-                        } else {
-                            this.show();
-                        }
-                    },
-                    handler: function () {
-                        FastExt.Dialog.showHtml(this, "查看【" + menu.activeHeader.text + "】的说明", menu.activeHeader.comment, false);
-                    }
-                });
 
-                if (FastExt.Base.toBool(grid.columnMenu.lookField, true) && FastExt.System.isSuperRole()) {
+                if (!Ext.isEmpty(menu.activeHeader.comment)) {
+                    menus.push({
+                        text: '查看说明',
+                        iconCls: 'extIcon extQuestion2',
+                        onBeforeShow: function () {
+                            if (Ext.isEmpty(menu.activeHeader.comment)) {
+                                this.hide();
+                            } else {
+                                this.show();
+                            }
+                        },
+                        handler: function () {
+                            FastExt.Dialog.showHtml(this, "查看【" + menu.activeHeader.text + "】的说明", menu.activeHeader.comment, false);
+                        }
+                    });
+                }
+
+                if (!FastExt.Menu.isSplitLineLast(menus)) {
+                    menus.push("-");
+                }
+
+                if (FastExt.Base.toBool(grid.columnMenu.lookField, true) && FastExt.System.ManagerHandler.isSuperRole()) {
                     menus.push({
                         text: '查看列信息',
                         iconCls: 'extIcon extField',
@@ -454,19 +474,21 @@ namespace FastExt {
                                 text: menu.activeHeader.text,
                                 width: menu.activeHeader.getWidth()
                             };
-                            let result = new JSONFormat(FastExt.Json.objectToJson(info), 4).toString();
-                            FastExt.Dialog.showAlert("查看列信息", result);
+                            FastExt.Json.toFormatJsonHtml(FastExt.Json.objectToJson(info), false, (result) => {
+                                FastExt.Dialog.showAlert("查看列信息", result);
+                            });
                         }
                     });
                 }
 
-                if (FastExt.System.isSuperRole() && FastExt.System.isDebug() && !FastExt.Base.toBool(grid.entitySelect, false)) {
+                if (FastExt.System.ManagerHandler.isSuperRole() && FastExt.System.ConfigHandler.isDebug() && !FastExt.Base.toBool(grid.entitySelect, false)) {
                     menus.push({
                         text: '查看列编辑器',
                         iconCls: 'extIcon extField',
                         handler: function () {
-                            let result = new JSONFormat(FastExt.Json.objectToJson(menu.activeHeader.configField), 4).toString();
-                            FastExt.Dialog.showAlert("查看列编辑器", result);
+                            FastExt.Json.toFormatJsonHtml(FastExt.Json.objectToJson(menu.activeHeader.configField), false, (result) => {
+                                FastExt.Dialog.showAlert("查看列编辑器", result);
+                            });
                         }
                     });
                 }
@@ -475,8 +497,104 @@ namespace FastExt {
                     menus.push("-");
                 }
 
+                let modifyType={
+                    text: '数据修改',
+                    iconCls: 'extIcon extEdit grayColor',
+                    menu: []
+                };
+
+                if (FastExt.Base.toBool(grid.columnMenu.batchUpdate, true)) {
+                    modifyType.menu.push({
+                        text: '批量修改当前页面数据',
+                        iconCls: 'extIcon extEdit',
+                        onBeforeShow: function () {
+                            let columnGrid = FastExt.Grid.getColumnGrid(menu.activeHeader);
+                            if (!columnGrid.checkEditor()) {
+                                this.hide();
+                                return;
+                            }
+                            if (!FastExt.Base.toBool(menu.activeHeader.editable, true)) {
+                                this.hide();
+                                return;
+                            }
+                            if (FastExt.Base.toBool(menu.activeHeader.batchUpdate, true)) {
+                                this.show();
+                            } else {
+                                this.hide();
+                            }
+                        },
+                        handler: function () {
+                            FastExt.Grid.showBatchEditColumnMenu(menu.activeHeader);
+                        }
+                    });
+                }
+
+                if (FastExt.Base.toBool(grid.columnMenu.batchUpdateDB, true)) {
+                    modifyType.menu.push({
+                        text: '批量更新当前所有数据',
+                        iconCls: 'extIcon extEdit',
+                        onBeforeShow: function () {
+                            let columnGrid = FastExt.Grid.getColumnGrid(menu.activeHeader);
+                            if (!columnGrid.checkEditor()) {
+                                this.hide();
+                                return;
+                            }
+                            if (!FastExt.Base.toBool(menu.activeHeader.editable, true)) {
+                                this.hide();
+                                return;
+                            }
+                            if (FastExt.Base.toBool(menu.activeHeader.batchUpdateDB, true)) {
+                                this.show();
+                            } else {
+                                this.hide();
+                            }
+                        },
+                        handler: function () {
+                            FastExt.Grid.showBatchUpdateColumnWindow(menu.activeHeader);
+                        }
+                    });
+                }
+
+                if (FastExt.Base.toBool(grid.columnMenu.batchReplaceDB, true)) {
+                    modifyType.menu.push({
+                        text: '批量替换当前所有数据',
+                        iconCls: 'extIcon extEdit',
+                        onBeforeShow: function () {
+                            let columnGrid = FastExt.Grid.getColumnGrid(menu.activeHeader);
+                            if (!columnGrid.checkEditor()) {
+                                this.hide();
+                                return;
+                            }
+                            if (!FastExt.Base.toBool(menu.activeHeader.editable, true)) {
+                                this.hide();
+                                return;
+                            }
+                            if (FastExt.Base.toBool(menu.activeHeader.batchReplaceDB, true)) {
+                                this.show();
+                            } else {
+                                this.hide();
+                            }
+
+                        },
+                        handler: function () {
+                            FastExt.Grid.showBatchReplaceColumnWindow(menu.activeHeader);
+                        }
+                    });
+                }
+
+
+                if (modifyType.menu.length > 0) {
+                    menus.push(modifyType);
+                }
+
+                let clearType = {
+                    text: '数据清除',
+                    iconCls: 'extIcon extClear grayColor',
+                    menu: []
+                };
+
                 if (FastExt.Base.toBool(menu.activeHeader.batchClear, true)) {
-                    menus.push({
+                    clearType.menu.push({
                         text: '清除无效数据',
                         iconCls: 'extIcon extClear grayColor',
                         onBeforeShow: function () {
@@ -500,7 +618,7 @@ namespace FastExt {
                                     "entityCode": columnGrid.getStore().entity.entityCode,
                                     "field": menu.activeHeader.dataIndex,
                                     "menu": FastExt.Store.getStoreMenuText(columnGrid.getStore()),
-                                    "storeId": columnGrid.getStore().getId(),
+                                    "storeId": columnGrid.getStore().getStoreCode(),
                                 };
                                 FastExt.Server.clearEntity(params, function (success, message) {
                                     FastExt.Dialog.hideWait();
@@ -515,7 +633,7 @@ namespace FastExt {
                 }
 
                 if (FastExt.Base.toBool(menu.activeHeader.batchClearRepeat, true)) {
-                    menus.push({
+                    clearType.menu.push({
                         text: '清除重复数据-保留最新',
                         iconCls: 'extIcon extDelRepeat grayColor',
                         onBeforeShow: function () {
@@ -540,7 +658,7 @@ namespace FastExt {
                                     "field": menu.activeHeader.dataIndex,
                                     "type": 1,
                                     "menu": FastExt.Store.getStoreMenuText(columnGrid.getStore()),
-                                    "storeId": columnGrid.getStore().getId()
+                                    "storeId": columnGrid.getStore().getStoreCode()
                                 };
 
                                 FastExt.Server.clearRepeatEntity(params, function (success, message) {
@@ -555,7 +673,7 @@ namespace FastExt {
                         }
                     });
 
-                    menus.push({
+                    clearType.menu.push({
                         text: '清除重复数据-保留最早',
                         iconCls: 'extIcon extDelRepeat grayColor',
                         onBeforeShow: function () {
@@ -580,7 +698,7 @@ namespace FastExt {
                                     "field": menu.activeHeader.dataIndex,
                                     "type": 0,
                                     "menu": FastExt.Store.getStoreMenuText(columnGrid.getStore()),
-                                    "storeId": columnGrid.getStore().getId()
+                                    "storeId": columnGrid.getStore().getStoreCode()
                                 };
 
                                 FastExt.Server.clearRepeatEntity(params, function (success, message) {
@@ -595,63 +713,78 @@ namespace FastExt {
                     });
                 }
 
-                if (!FastExt.Menu.isSplitLineLast(menus)) {
-                    menus.push("-");
+                if (clearType.menu.length > 0) {
+                    menus.push(clearType);
                 }
 
-
                 menus.push({
-                    text: '数据左对齐',
-                    iconCls: 'extIcon extAlignLeft grayColor',
-                    handler: function () {
-                        menu.activeHeader.setAlignContent("left");
-                    }
+                    text: "数据对齐",
+                    iconCls: 'extIcon extColumn grayColor',
+                    menu: [
+                        {
+                            text: '向左对齐',
+                            iconCls: 'extIcon extAlignLeft grayColor',
+                            handler: function () {
+                                menu.activeHeader.setAlignContent("left");
+                            }
+                        },
+                        {
+                            text: '居中对齐',
+                            iconCls: 'extIcon extAlignCenter grayColor',
+                            handler: function () {
+                                menu.activeHeader.setAlignContent("center");
+                            }
+                        },
+                        {
+                            text: '向右对齐',
+                            iconCls: 'extIcon extAlignRight grayColor',
+                            handler: function () {
+                                menu.activeHeader.setAlignContent("right");
+                            }
+                        }
+                    ]
+                });
 
-                });
-                menus.push({
-                    text: '数据居中对齐',
-                    iconCls: 'extIcon extAlignCenter grayColor',
-                    handler: function () {
-                        menu.activeHeader.setAlignContent("center");
-                    }
-                });
-                menus.push({
-                    text: '数据右对齐',
-                    iconCls: 'extIcon extAlignRight grayColor',
-                    handler: function () {
-                        menu.activeHeader.setAlignContent("right");
-                    }
-                });
+                let dataBuild={
+                    text: '数据生成',
+                    iconCls: 'extIcon extAnim grayColor',
+                    menu: []
+                };
 
-                if (!FastExt.Menu.isSplitLineLast(menus)) {
-                    menus.push("-");
+                if (FastExt.Base.toBool(grid.columnMenu.batchRandom, true) && FastExt.System.ManagerHandler.isSuperRole()) {
+                    dataBuild.menu.push({
+                        text: '生成随机数据',
+                        iconCls: 'extIcon extRandom',
+                        onBeforeShow: function () {
+                            let columnGrid = FastExt.Grid.getColumnGrid(menu.activeHeader);
+                            if (!columnGrid.checkEditor()) {
+                                this.hide();
+                                return;
+                            }
+                            if (!FastExt.Base.toBool(menu.activeHeader.editable, true)) {
+                                this.hide();
+                                return;
+                            }
+                            if (FastExt.Base.toBool(menu.activeHeader.batchRandom, true)) {
+                                this.show();
+                            } else {
+                                this.hide();
+                            }
+                        },
+                        handler: function () {
+                            FastExt.Grid.showBatchEditColumnRandomWindow(menu.activeHeader);
+                        }
+                    });
+                }
+
+                if (dataBuild.menu.length > 0) {
+                    menus.push(dataBuild);
                 }
 
                 if (grid.getStore().entity) {
-                    if (FastExt.Base.toBool(grid.columnMenu.searchLink, true)) {
-                        menus.push({
-                            text: '配置搜索链',
-                            iconCls: 'extIcon extLink',
-                            onBeforeShow: function () {
-                                let columnGrid = FastExt.Grid.getColumnGrid(menu.activeHeader);
-                                if (columnGrid.fromRecycle) {
-                                    this.hide();
-                                    return;
-                                }
-                                if (FastExt.Base.toBool(menu.activeHeader.searchLink, true)) {
-                                    this.show();
-                                } else {
-                                    this.hide();
-                                }
-                            },
-                            handler: function () {
-                                FastExt.Grid.configColumnSearchLink(menu.activeHeader);
-                            }
-                        });
-                    }
                     if (FastExt.Base.toBool(grid.columnMenu.operation, true)) {
                         menus.push({
-                            text: '计算数据',
+                            text: '数据计算',
                             iconCls: 'extIcon extMath',
                             onBeforeShow: function () {
                                 let columnGrid = FastExt.Grid.getColumnGrid(menu.activeHeader);
@@ -697,120 +830,43 @@ namespace FastExt {
                             ]
                         });
                     }
+
                 }
 
                 if (!FastExt.Menu.isSplitLineLast(menus)) {
                     menus.push("-");
                 }
 
-                if (FastExt.Base.toBool(grid.columnMenu.batchUpdate, true)) {
-                    menus.push({
-                        text: '批量修改数据',
-                        iconCls: 'extIcon extEdit',
-                        onBeforeShow: function () {
-                            let columnGrid = FastExt.Grid.getColumnGrid(menu.activeHeader);
-                            if (!columnGrid.checkEditor()) {
-                                this.hide();
-                                return;
-                            }
-                            if (!FastExt.Base.toBool(menu.activeHeader.editable, true)) {
-                                this.hide();
-                                return;
-                            }
-                            if (FastExt.Base.toBool(menu.activeHeader.batchUpdate, true)) {
-                                this.show();
-                            } else {
-                                this.hide();
-                            }
-                        },
-                        handler: function () {
-                            FastExt.Grid.showBatchEditColumn(menu.activeHeader);
-                        }
-                    });
-                }
+                // if (grid.getStore().entity) {
+                //     if (FastExt.Base.toBool(grid.columnMenu.searchLink, true)) {
+                //         menus.push({
+                //             text: '配置搜索链',
+                //             iconCls: 'extIcon extLink',
+                //             onBeforeShow: function () {
+                //                 let columnGrid = FastExt.Grid.getColumnGrid(menu.activeHeader);
+                //                 if (columnGrid.fromRecycle) {
+                //                     this.hide();
+                //                     return;
+                //                 }
+                //                 if (FastExt.Base.toBool(menu.activeHeader.searchLink, true)) {
+                //                     this.show();
+                //                 } else {
+                //                     this.hide();
+                //                 }
+                //             },
+                //             handler: function () {
+                //                 FastExt.Grid.configColumnSearchLink(menu.activeHeader);
+                //             }
+                //         });
+                //     }
+                //     if (!FastExt.Menu.isSplitLineLast(menus)) {
+                //         menus.push("-");
+                //     }
+                // }
+                // if (!FastExt.Menu.isSplitLineLast(menus)) {
+                //     menus.push("-");
+                // }
 
-                if (FastExt.Base.toBool(grid.columnMenu.batchUpdateDB, true)) {
-                    menus.push({
-                        text: '批量更新数据',
-                        iconCls: 'extIcon extEdit',
-                        onBeforeShow: function () {
-                            let columnGrid = FastExt.Grid.getColumnGrid(menu.activeHeader);
-                            if (!columnGrid.checkEditor()) {
-                                this.hide();
-                                return;
-                            }
-                            if (!FastExt.Base.toBool(menu.activeHeader.editable, true)) {
-                                this.hide();
-                                return;
-                            }
-                            if (FastExt.Base.toBool(menu.activeHeader.batchUpdateDB, true)) {
-                                this.show();
-                            } else {
-                                this.hide();
-                            }
-                        },
-                        handler: function () {
-                            FastExt.Grid.showBatchUpdateColumn(menu.activeHeader);
-                        }
-                    });
-                }
-
-                if (FastExt.Base.toBool(grid.columnMenu.batchReplaceDB, true)) {
-                    menus.push({
-                        text: '批量替换数据',
-                        iconCls: 'extIcon extEdit',
-                        onBeforeShow: function () {
-                            let columnGrid = FastExt.Grid.getColumnGrid(menu.activeHeader);
-                            if (!columnGrid.checkEditor()) {
-                                this.hide();
-                                return;
-                            }
-                            if (!FastExt.Base.toBool(menu.activeHeader.editable, true)) {
-                                this.hide();
-                                return;
-                            }
-                            if (FastExt.Base.toBool(menu.activeHeader.batchReplaceDB, true)) {
-                                this.show();
-                            } else {
-                                this.hide();
-                            }
-
-                        },
-                        handler: function () {
-                            FastExt.Grid.showBatchReplaceColumn(menu.activeHeader);
-                        }
-                    });
-                }
-
-                if (!FastExt.Menu.isSplitLineLast(menus)) {
-                    menus.push("-");
-                }
-
-                if (FastExt.Base.toBool(grid.columnMenu.batchRandom, true)) {
-                    menus.push({
-                        text: '生成随机数据',
-                        iconCls: 'extIcon extRandom',
-                        onBeforeShow: function () {
-                            let columnGrid = FastExt.Grid.getColumnGrid(menu.activeHeader);
-                            if (!columnGrid.checkEditor()) {
-                                this.hide();
-                                return;
-                            }
-                            if (!FastExt.Base.toBool(menu.activeHeader.editable, true)) {
-                                this.hide();
-                                return;
-                            }
-                            if (FastExt.Base.toBool(menu.activeHeader.batchRandom, true)) {
-                                this.show();
-                            } else {
-                                this.hide();
-                            }
-                        },
-                        handler: function () {
-                            FastExt.Grid.showBatchEditColumnRandom(menu.activeHeader);
-                        }
-                    });
-                }
 
                 if (FastExt.Base.toBool(grid.columnMenu.cancelSort, true)) {
                     menus.push({
@@ -845,6 +901,7 @@ namespace FastExt {
                         }
                     });
                 }
+
                 menu.insert(0, menus);
             }
             FastExt.Menu.fireMenuEvent(menu, "onBeforeShow");

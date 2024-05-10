@@ -1,11 +1,15 @@
 
+.x-accordion-item{
+    border-radius:${inputRadius};
+}
+
 .x-accordion-item .x-accordion-hd {
 	border-color: transparent !important;
-	border-left: 5px solid $[color] !important;
+	border-left: 5px solid ${color} !important;
 }
 
 .x-accordion-hd .x-tool-img {
-    color: $[color];
+    color: ${color};
 
 }
 
@@ -21,4 +25,12 @@
 .x-accordion-hd .x-title-icon-default {
     color: black;
     text-shadow: 1px 1px 1px white;
+}
+
+.x-accordion-item .x-accordion-hd .x-tool-tool-el{
+    color:#000;
+}
+
+.x-keyboard-mode .x-accordion-hd .x-panel-header-title.x-title-focus{
+    outline:0px;
 }

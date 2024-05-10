@@ -1,8 +1,7 @@
 package com.fastchar.extjs;
 
-import com.fastchar.core.FastChar;
 import com.fastchar.exception.FastFileException;
-import com.fastchar.extjs.compress.GoogleCompress;
+import com.fastchar.extjs.goole.compress.GoogleCompress;
 import com.fastchar.extjs.utils.ExtFileUtils;
 import com.fastchar.utils.FastFileUtils;
 
@@ -13,7 +12,7 @@ import java.util.List;
 
 final class FastExtBuilder {
 
-    public static class UglifyJsCompress {
+    static class UglifyJsCompress {
 
         public static void compress(String inPath) throws Exception {
             compress(inPath, inPath);
@@ -24,7 +23,7 @@ final class FastExtBuilder {
         }
 
         public static void compress(String cmdOption, String inPath, String outPath) throws Exception {
-            String uglifyJsPath = FastChar.getConfig(FastExtConfig.class).getUglifyJsPath();
+            String uglifyJsPath = "/Users/Janesen/node_modules/uglify-js";
             File file = new File(uglifyJsPath);
             if (!file.exists()) {
                 throw new FastFileException("uglify-js的库路径【" + uglifyJsPath + "】不存在！");
@@ -37,7 +36,7 @@ final class FastExtBuilder {
         }
     }
 
-    public static void build(String targetPath, String savePath) throws Exception {
+    static void build(String targetPath, String savePath) throws Exception {
         File[] files = new File(targetPath).listFiles(new FilenameFilter() {
             @Override
             public boolean accept(File dir, String name) {
@@ -73,9 +72,11 @@ final class FastExtBuilder {
         }
     }
 
-    public static void tscBuild(String configJsonPath) {
+    static void tscBuild(String configJsonPath) {
         String cmdBuilder = "tsc --build " + configJsonPath;
         try {
+            System.out.println(cmdBuilder);
+
             Process p = Runtime.getRuntime().exec(cmdBuilder);//创建实例进程执行命令行代码
             p.waitFor();
             p.destroy();
@@ -87,8 +88,7 @@ final class FastExtBuilder {
     public static void main(String[] args) throws Exception {
         System.setProperty("FastChar-GoogleCompress-VR", "local");
 
-        String projectLocalPath = "/Users/Janesen/工作/space_idea/FrameWork";
-        FastChar.getConfig(FastExtConfig.class).setUglifyJsPath("/Users/Janesen/node_modules/uglify-js");
+        String projectLocalPath = "/Users/Janesen/工作/space_idea/ExtJsWork";
 
         //合并主题
         build(projectLocalPath + "/FastChar-ExtJs/web/extjs/theme/fastchar/flat",
@@ -115,16 +115,13 @@ final class FastExtBuilder {
         FastFileUtils.deleteQuietly(new File(projectLocalPath + "/FastChar-ExtJs/web/base/utils/fast-ext-utils.min.js"));
 
         tscBuild(projectLocalPath + "/FastChar-ExtJs/web/base/utils/src/tsconfig.json");
-        
-        //构建声明文件
-//        tscBuild(projectLocalPath + "/FastChar-ExtJs/web/base/utils/src/tsconfig-head.json");
 
         GoogleCompress.compress(projectLocalPath + "/FastChar-ExtJs/web/base/utils/fast-ext-utils.js",
                 projectLocalPath + "/FastChar-ExtJs/web/base/utils/fast-ext-utils.min.js");
 
         System.out.println("构建结束！");
         System.exit(0);
-        
+
 
     }
 

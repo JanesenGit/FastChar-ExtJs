@@ -16,11 +16,6 @@ namespace FastExt {
         static echartsThemeFile: string = "";
 
         /**
-         * 是否已加载了echarts.min.js文件
-         */
-        static loadedEChartsJs: boolean;
-
-        /**
          * 加载ECharts到目标组件中
          * @param cmb 组件
          * @param option echarts配置数据选项
@@ -35,7 +30,7 @@ namespace FastExt {
                 let bodyElement = FastExt.Base.getTargetBodyElement(cmb);
                 if (bodyElement) {
                     let themeName = "";
-                    if (Ext.isEmpty(FastExt.ECharts.echartsThemeFile)) {
+                    if (!Ext.isEmpty(FastExt.ECharts.echartsThemeFile)) {
                         let beginSub = FastExt.ECharts.echartsThemeFile.lastIndexOf("/");
                         let endSub = FastExt.ECharts.echartsThemeFile.lastIndexOf(".");
                         themeName = FastExt.ECharts.echartsThemeFile.substring(beginSub + 1, endSub);
@@ -62,17 +57,15 @@ namespace FastExt {
                 }
             };
 
-            if (!this.loadedEChartsJs) {
-                FastExt.System.addScript({src: FastExt.ECharts.echartsJsFile}, function () {
-                    if (Ext.isEmpty(FastExt.ECharts.echartsThemeFile)) {
-                        doLoad();
-                    } else {
-                        FastExt.System.addScript({src: FastExt.ECharts.echartsThemeFile}, doLoad);
-                    }
-                });
-            } else {
-                doLoad();
-            }
+            this.loadJs(doLoad);
+        }
+
+        /**
+         * 加载核心js代码
+         * @param callBack
+         */
+        static loadJs(callBack: any) {
+            FastExt.PluginLoader.loadPlugins("ECharts", [FastExt.ECharts.echartsJsFile, FastExt.ECharts.echartsThemeFile], callBack);
         }
 
         /**
@@ -127,6 +120,159 @@ namespace FastExt {
                 }
             });
             win.show();
+        }
+
+
+        /**
+         * 显示实体类的图表窗体
+         */
+        static showEntityECharts(obj: any, title: string, params: any, dateTypes?: any[]) {
+
+            let winWidth = parseInt((document.body.clientWidth * 0.6).toFixed(0));
+            let winHeight = parseInt((document.body.clientHeight * 0.7).toFixed(0));
+            let beginDate = Ext.Date.format(Ext.Date.add(new Date(), Ext.Date.MONTH, -1), 'Y-m-d');
+            let endDate = Ext.Date.format(new Date(), 'Y-m-d');
+
+            params["type"] = 0;
+            params["chartTitle"] = title;
+            params["beginDate"] = beginDate;
+            params["endDate"] = endDate;
+
+            if (!dateTypes) {
+                dateTypes = [
+                    {
+                        'text': '年图表',
+                        "value": 4
+                    },
+                    {
+                        'text': '月图表',
+                        "value": 1
+                    },
+                    {
+                        'text': '日图表',
+                        'value': 0
+                    },
+                    {
+                        'text': '时图表',
+                        "value": 2
+                    }, {
+                        'text': '时分图表',
+                        "value": 3
+                    }
+                ];
+            }
+
+            let win = Ext.create('Ext.window.Window', {
+                title: title,
+                animateTarget: obj,
+                height: winHeight,
+                width: winWidth,
+                minWidth: winWidth,
+                minHeight: winHeight,
+                iconCls: 'extIcon extReport',
+                layout: 'border',
+                resizable: true,
+                maximizable: true,
+                constrain: true,
+                modal: true,
+                refreshECharts: function () {
+                    let me = this;
+                    if (FastExt.ECharts.hasECharts(me)) {
+                        me.setLoading(false);
+                        FastExt.ECharts.getECharts(me).showLoading();
+                    }
+                    FastExt.Server.showEcharts(params, function (success, message, data) {
+                        me.setLoading(false);
+                        if (success) {
+                            FastExt.ECharts.loadECharts(me, data);
+                        } else {
+                            FastExt.Dialog.showAlert("系统提醒", message);
+                        }
+                    });
+                },
+                bodyStyle: {
+                    background: "#fcfcfc"
+                },
+                tbar: {
+                    xtype: 'toolbar',
+                    overflowHandler: 'menu',
+                    items: [
+                        {
+                            xtype: 'combo',
+                            fieldLabel: "图表类型",
+                            labelWidth: 60,
+                            valueField: 'value',
+                            editable: false,
+                            value: 0,
+                            listeners: {
+                                change: function (obj, newValue, oldValue, eOpts) {
+                                    params["type"] = newValue;
+                                    win.refreshECharts();
+                                }
+                            },
+                            store: Ext.create('Ext.data.Store', {
+                                fields: ["id", "text"],
+                                data: dateTypes
+                            })
+                        },
+                        {
+                            xtype: "daterangefield",
+                            fieldLabel: "日期范围",
+                            flex: 1,
+                            margin: '0 0 0 5',
+                            maxRangeMonth: 12,
+                            beginDate: beginDate,
+                            endDate: endDate,
+                            labelWidth: 60,
+                            onClearValue: function () {
+                                params["beginDate"] = this.beginDate;
+                                params["endDate"] = this.endDate;
+                                win.refreshECharts();
+                            },
+                            onAfterSelect: function () {
+                                params["beginDate"] = this.beginDate;
+                                params["endDate"] = this.endDate;
+                                win.refreshECharts();
+                            }
+                        },
+                        {
+                            xtype: 'button',
+                            text: '折线图',
+                            iconCls: 'extIcon extPolyline',
+                            margin: '0 5 0 5',
+                            handler: function () {
+                                params["chartType"] = "line";
+                                win.refreshECharts();
+                            }
+                        }, {
+                            xtype: 'button',
+                            text: '柱状图',
+                            iconCls: 'extIcon extReport',
+                            margin: '0 5 0 5',
+                            handler: function () {
+                                params["chartType"] = "bar";
+                                win.refreshECharts();
+                            }
+                        }, {
+                            xtype: 'button',
+                            text: '堆叠图',
+                            iconCls: 'extIcon extMore',
+                            margin: '0 5 0 5',
+                            handler: function () {
+                                params["chartType"] = "stack";
+                                win.refreshECharts();
+                            }
+                        }]
+                },
+                listeners: {
+                    show: function (obj) {
+                        win.setLoading("请稍后……");
+                        obj.refreshECharts();
+                    }
+                }
+            });
+            win.show();
+
         }
     }
 }

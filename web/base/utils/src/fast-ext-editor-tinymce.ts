@@ -6,33 +6,28 @@ namespace FastExt {
     export class Tinymce {
 
 
-        constructor() {
-        }
-
         /**
          * tinymce.min.js文件的路径
          */
         static tinymceJsPath: string = "base/tinymce/tinymce.min.js";
 
         /**
-         * 是否已加载了tinymce.min.js文件
+         * 是否正在初始化中
          */
-        static loadedTinymce: boolean = false;
+        static initializing: boolean = false;
+
+        /**
+         * 初始化队列
+         */
+        static stackInitConfig = [];
 
 
         /**
          * 加载tinymceJs组件
          * @param callBack 加载成后的回调
          */
-        static loadTinymceJs(callBack) {
-            if (!FastExt.Tinymce.loadedTinymce) {
-                FastExt.System.addScript({src: FastExt.Tinymce.tinymceJsPath}, function () {
-                    FastExt.Tinymce.loadedTinymce = true;
-                    callBack();
-                });
-            } else {
-                callBack();
-            }
+        static loadTinymceJs(callBack: any) {
+            FastExt.PluginLoader.loadPlugins("Tinymce", [FastExt.Tinymce.tinymceJsPath], callBack);
         }
 
         /**
@@ -41,9 +36,23 @@ namespace FastExt {
          * @param callback
          */
         static initTinymce(config: any, callback) {
+            config["promotion"] = false;
+            if (FastExt.Tinymce.initializing) {
+                FastExt.Tinymce.stackInitConfig.push({
+                    config: config,
+                    callback: callback,
+                });
+                return;
+            }
+            FastExt.Tinymce.initializing = true;
             FastExt.Tinymce.loadTinymceJs(function () {
                 tinymce.init(config).then(function (editors) {
                     callback(editors);
+                    FastExt.Tinymce.initializing = false;
+                    let nextInit = FastExt.Tinymce.stackInitConfig.pop();
+                    if (nextInit) {
+                        FastExt.Tinymce.initTinymce(nextInit.config, nextInit.callback);
+                    }
                 });
             });
         }

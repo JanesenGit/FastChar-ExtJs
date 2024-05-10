@@ -89,7 +89,7 @@ public class ExtManagerRoleEntity extends AbstractExtManagerRoleEntity {
     }
 
     @Override
-    public boolean save() {
+    public boolean save(String...checks) {
         ExtManagerRoleEntity parentRole = selectById(getParentRoleId());
         if (parentRole != null) {
             set("roleMenuPower", parentRole.getRoleMenuPower());
@@ -99,22 +99,22 @@ public class ExtManagerRoleEntity extends AbstractExtManagerRoleEntity {
             setError("同级别下的角色名称不能重复！");
             return false;
         }
-        return super.save();
+        return super.save(checks);
     }
 
     @Override
-    public boolean delete() {
+    public boolean delete(String...checks) {
         if (getRoleId() == 1) {
             setError("禁止删除系统默认的【超级系统管理员】角色！");
             return false;
         }
 
-        return super.delete();
+        return super.delete(checks);
     }
 
 
     @Override
-    public boolean update() {
+    public boolean update(String...checks) {
         if (isNotEmpty("roleName")) {
             ExtManagerRoleEntity managerRoleEntity = selectById(getId());
             if (checkName(managerRoleEntity.getParentRoleId(), getRoleName())) {
@@ -123,7 +123,7 @@ public class ExtManagerRoleEntity extends AbstractExtManagerRoleEntity {
             }
         }
         boolean modifyPower = isModified("roleMenuPower") || isModified("roleExtPower");
-        boolean update = super.update();
+        boolean update = super.update(checks);
         if (update && modifyPower) {
             syncManagerPower(getRoleId());
         }

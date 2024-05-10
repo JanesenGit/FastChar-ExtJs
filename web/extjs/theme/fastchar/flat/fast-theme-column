@@ -1,42 +1,54 @@
 .x-column-header {
 	font-weight: 600;
 	color:#000000;
+    border-color: #ffffff;
+    min-height: calc(${rowHeight} + 5px);
+    text-shadow: 1px 1px 1px white;
+    display: grid;
+    align-items: center;
+    justify-content: center;
+    top:0 !important;
+    background-color:${color2};
+    text-shadow: 1px 1px 1px white;
 }
 
 .x-column-header-text {
 	min-Width: 30px !important;
 }
 
-.x-column-header-checkbox .x-column-header-inner {
-    padding: 7px 4px 7px 4px !important;
-}
-
-.x-column-header{
-    background-color:$[color2];
-    text-shadow: 1px 1px 1px white;
+.x-column-header-inner {
+    padding: 0;
+    min-height: calc(${rowHeight} + 5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .x-column-header-over{
-    background-color:$[color4];
+    background-color:${color4};
 }
 
 .x-column-header-open{
-     background-color:$[color6];
+     background-color:${color6};
+}
+
+.x-column-header-trigger{
+    border-color:#ffffff;
 }
 
 .x-column-header-open .x-column-header-trigger {
-    background-color:$[color6];
+    background-color:${color6};
 }
 
 .x-column-header-over .x-column-header-trigger {
-    background-color:$[color6];
+    background-color:${color6};
 }
 .x-column-header-default-focus{
-     background-color:$[color6];
+     background-color:${color6};
  }
 .x-column-header-over .x-column-header-trigger, .x-column-header-open .x-column-header-trigger {
-    color: $[color] !important;
+    color: ${color} !important;
 }
 .x-column-header.x-column-header-focus .x-column-header-inner:after {
-	border-color: $[color];
+	border-color: ${color};
 }

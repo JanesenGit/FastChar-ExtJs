@@ -1,19 +1,27 @@
+.x-tool{
+   text-shadow: 1px 1px 1px black;
+}
+
 .x-tool-default {
 	background-color: transparent !important;
 }
 
+.x-tool-focus{
+    outline:0px !important;
+}
+
 .x-tool-img {
 	background-color: transparent !important;
-    font-size: 18px;
-    width: 18px;
-    height: 18px;
+    font-size: calc(${fontSize} + 6px);
+    width: calc(${fontSize} + 6px);
+    height: calc(${fontSize} + 6px);
 }
 
 .x-fieldset-default.x-fieldset-collapsed .x-tool-toggle{
     background-color: transparent !important;
-    font-size: 18px;
-    width: 18px;
-    height: 18px;
+    font-size: calc(${fontSize} + 6px);
+    width: calc(${fontSize} + 6px);
+    height: calc(${fontSize} + 6px);
 }
 
 

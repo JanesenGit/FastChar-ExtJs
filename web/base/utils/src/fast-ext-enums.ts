@@ -106,4 +106,33 @@ namespace FastEnum {
         menuitem = "menuitem"
     }
 
+
+    /**
+     * 地图覆盖物的类型
+     */
+    export enum MapItemType {
+        /**
+         * 矩形覆盖物
+         */
+        rectangle_overlay = "rectangle_overlay",
+        /**
+         * 多边形覆盖物
+         */
+        polygon_overlay = "polygon_overlay",
+
+        /**
+         * 中国城市边界图层
+         */
+        district_layer = "district_layer",
+
+        /**
+         * 图片图层
+         */
+        image_layer = "image_layer",
+
+        /**
+         * 标记点
+         */
+        marker_overlay = "marker_overlay",
+    }
 }

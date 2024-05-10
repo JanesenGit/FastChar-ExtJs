@@ -1,20 +1,36 @@
 .x-datepicker-selected div.x-datepicker-date{
-	background-color:$[color];
+	background-color:${color};
 }
 
 .x-datepicker-month .x-btn-default-small{
     border-top-left-radius: 0;
     border-top-right-radius: 0;
+    background: transparent;
+    text-shadow:1px 1px 1px white;
+}
+
+.x-monthpicker-buttons {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.x-datepicker-month .x-btn-inner-default-small{
+    color:black;
+}
+
+.x-datepicker-month .x-btn-wrap-default-small.x-btn-arrow-right:after{
+    content:"";
 }
 
 .x-monthpicker-item a.x-monthpicker-selected{
-	background-color:$[color];
-	border-color:$[color];
+	background-color:${color};
+	border-color:${color};
 }
 
 .x-monthpicker-item a.x-monthpicker-selected{
-	background-color:$[color];
-	border-color:$[color];
+	background-color:${color};
+	border-color:${color};
 }
 
 .x-datepicker-month .x-btn-split-right:after, .x-datepicker-month .x-btn-over .x-btn-split-right:after{
@@ -22,13 +38,13 @@
 }
 .x-datepicker-prev{
     color:black;
-    font-size: 22px;
     font-weight: bold;
     text-shadow: 1px 1px 1px white;
+    z-index: 1;
 }
 .x-datepicker-next{
     color:black;
-    font-size: 22px;
     font-weight: bold;
     text-shadow: 1px 1px 1px white;
+    z-index: 1;
 }

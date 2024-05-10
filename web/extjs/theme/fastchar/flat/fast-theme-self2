@@ -1,0 +1,28 @@
+.fast-system-head-button-checked{
+    background:${color4}  !important;
+    border-color:${colorDark1} !important;
+    border-radius: 10px !important;
+}
+
+
+.fast-system-head-button-checked .x-btn-inner-default-toolbar-small {
+    color: #000000;
+    font-weight: bold;
+    text-shadow:1px 1px 1px white;
+}
+
+.fast-system-head-button-checked .x-btn-icon-el-default-toolbar-small {
+    filter: brightness(0) drop-shadow(1px 1px 1px white);
+}
+
+.fast-system-head-button-checked .fast-ext-menu-closer{
+    color:#000000;
+}
+
+.fast-system-head-button-checked .fast-ext-menu-closer:hover{
+    color: #d81e06;
+}
+
+.fast-system-tab-container{
+    border-top: 4px solid ${color};
+}

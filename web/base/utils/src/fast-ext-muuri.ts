@@ -17,11 +17,6 @@ namespace FastExt{
         static webAnimasJsPath: string = "base/muuri/web-animations.min.js";
 
 
-        /**
-         * 是否已加载了lottie.min.js文件
-         */
-        static loadedMuuriJs: boolean;
-
 
         /**
          * 绑定到指定的容器布局中，建议该容器布局为：absolute
@@ -35,7 +30,6 @@ namespace FastExt{
                 return;
             }
             let doLoad = function () {
-                FastExt.MuuriTool.loadedMuuriJs = true;
                 let targetId = null;
                 if (Ext.isFunction(container.getMuuriGridContainerId)) {
                     targetId = container.getMuuriGridContainerId();
@@ -49,13 +43,7 @@ namespace FastExt{
                 container.muuriGrid = grid;
                 callback(grid);
             };
-            if (!this.loadedMuuriJs) {
-                FastExt.System.addScript({src: FastExt.MuuriTool.muuriJsPath}, function () {
-                    FastExt.System.addScript({src: FastExt.MuuriTool.webAnimasJsPath}, doLoad);
-                });
-            } else {
-                doLoad();
-            }
+            FastExt.PluginLoader.loadPlugins("MuuriJs", [FastExt.MuuriTool.muuriJsPath, FastExt.MuuriTool.webAnimasJsPath], doLoad);
         }
 
 

@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<!--suppress ALL -->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>API接口文档-${projectName}</title>
+    <base href="${http}">
+    <link rel="icon" href="${logo}" type="image/png"/>
+    <link rel="stylesheet" href="base/iconfont/iconfont.css"/>
+    <script src="base/jquery/jquery.min.js"></script>
+    <script src="base/cookie/js.cookie.min.js"></script>
+    <style>
+
+        blockquote {
+            background: #f9f9f9 !important;
+            border-left: 5px solid #ea800f !important;
+            margin-top: 10px;
+            padding: 10px;
+            color: #797979 !important;
+        }
+
+        ::-webkit-input-placeholder { /* WebKit browsers */
+            color: #bababa;
+            font-size: 16px;
+        }
+
+        ::-moz-placeholder { /* Mozilla Firefox 19+ */
+            color: #bababa;
+            font-size: 16px;
+        }
+
+        :-ms-input-placeholder { /* Internet Explorer 10+ */
+            color: #bababa;
+            font-size: 16px;
+        }
+
+        .container {
+            position: fixed;
+            display: flex;
+            top: 0;
+            left: 0;
+
+            flex-direction: column;
+            background: #1aa1c5;
+        }
+
+        .head {
+            -moz-box-shadow: 0 0 5px #cccccc;
+            -webkit-box-shadow: 0 0 5px #cccccc;
+            box-shadow: 0 0 5px #cccccc;
+            display: flex;
+            position: fixed;
+            z-index: 999;
+            background: white;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 45px;
+        }
+
+        .content {
+            border: none;
+            display: flex;
+            flex: 1;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        #contentFrame {
+            flex: 1;
+            width: 100%;
+            border: none;
+        }
+
+        .bar {
+            /*width: 50px;*/
+            position: fixed;
+            right: 0;
+            bottom: 0;
+            top: 0;
+            margin-top: 45px;
+            margin-right: 20px;
+            margin-bottom: 25px;
+            display: flex;
+            flex-direction: column;
+            direction: rtl;
+        }
+
+        .searchContainer {
+            position: fixed;
+            right: 0;
+            top: 0;
+            margin-top: 60px;
+            margin-right: 80px;
+            display: none;
+        }
+
+        .searchInput {
+            border: 1px solid #cccccc;
+            font-size: 14px;
+            padding: 10px;
+            width: 500px !important;
+            -webkit-box-shadow: inset 0 5px 5px rgba(0, 0, 0, .075), 0 0 18px ${themeColor};
+            box-shadow: inset 0 5px 5px rgba(0, 0, 0, .075), 0 0 18px ${themeColor};
+        }
+
+        .searchInput:focus {
+            border-color: ${themeColor};
+            outline: 0;
+        }
+
+        .searchTip {
+            display: block;
+            position: absolute;
+            top: 0;
+            right: 0;
+            font-size: smaller;
+            color: #1aa1c5;
+            margin-top: 20px;
+        }
+
+        .searchContent {
+            background: #ffffff;
+            width: 520px !important;
+            border-color: ${themeColor};
+            -webkit-box-shadow: inset 0 5px 5px rgba(0, 0, 0, .075), 0 0 18px ${themeColor};
+            box-shadow: inset 0 5px 5px rgba(0, 0, 0, .075), 0 0 18px ${themeColor};
+            visibility: hidden;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .searchContent > li {
+            list-style: none;
+            cursor: pointer;
+            display: inline-block;
+            padding: 10px;
+            border-bottom: 1px solid #cccccc;
+        }
+
+        .searchContent > li:hover {
+            color: ${themeColor};
+            font-weight: bold;
+            background: #f0f0f0;
+            border-left: 5px solid ${themeColor};
+        }
+
+        .searchContent > li:focus {
+            color: ${themeColor};
+            font-weight: bold;
+        }
+
+        .searchClick {
+            background: #fde9e4;
+            border-left: 5px solid ${themeColor};
+            font-weight: bold;
+            color: ${themeColor};
+        }
+
+        .tab {
+            flex: 1;
+            text-align: center;
+            cursor: pointer;
+            line-height: 45px;
+        }
+
+        .tab:hover {
+            background: ${themeColor};
+            color: white;
+        }
+
+        .checked {
+            background: ${themeColor};
+            color: white;
+        }
+
+        .arrow {
+            background: black;
+            color: #ffffff;
+            display: inline-block;
+            width: 50px;
+            height: 50px;
+            border-radius: 25px;
+            line-height: 50px;
+            text-align: center;
+            cursor: pointer;
+            -moz-box-shadow: 0 0 3px ${themeColor};
+            -webkit-box-shadow: 0 0 3px ${themeColor};
+            box-shadow: 0 0 3px ${themeColor};
+            cursor: pointer;
+            text-decoration: none;
+            transition: background-color 500ms ease, box-shadow 500ms ease, color 500ms ease;;
+            -moz-transition: background-color 500ms, box-shadow 500ms ease, color 500ms ease;; /* Firefox 4 */
+            -webkit-transition: background-color 500ms, box-shadow 500ms ease, color 500ms ease;; /* Safari 和 Chrome */
+            -o-transition: background-color 500ms, box-shadow 500ms ease, color 500ms ease;; /* Opera */
+            margin-top: 10px;
+        }
+
+        .allowChecked {
+            opacity: 1;
+            background: white;
+            color: black !important;
+            border: 1px solid ${themeColor};
+            text-decoration: none;
+            -moz-box-shadow: 0 0 25px ${themeColor};
+            -webkit-box-shadow: 0 0 25px ${themeColor};
+            box-shadow: 0 0 25px ${themeColor};
+        }
+
+        .arrow:hover {
+            opacity: 1;
+            background: white;
+            color: black !important;
+            text-decoration: none;
+            -moz-box-shadow: 0 0 25px ${themeColor};
+            -webkit-box-shadow: 0 0 25px ${themeColor};
+            box-shadow: 0 0 25px ${themeColor};
+        }
+
+        .refreshTip {
+            background: #c60700;
+            color: white;
+            height: 40px;
+            line-height: 40px;
+            text-align: center;
+            border-top-right-radius: 25px;
+            border-bottom-right-radius: 25px;
+            -moz-box-shadow: 0 0 3px ${themeColor};
+            -webkit-box-shadow: 0 0 3px ${themeColor};
+            box-shadow: 0 0 3px ${themeColor};
+            padding-left: 10px;
+            padding-right: 20px;
+            font-size: small;
+            display: none;
+        }
+
+    </style>
+    <script>
+        let selectedId = null, selectedSearch;
+        let documents = {};
+        let refreshTimeout, flashTitleTimeout;
+        let webTitle;
+
+        window.addEventListener("popstate", function (e) {
+            selectMenuFromHref();
+        }, false);
+
+        function selectMenuFromHref() {
+            let href = window.location.href;
+            if (href.indexOf("#") > 0) {
+                let menuId = href.substring(href.lastIndexOf("/") + 1);
+                href = href.replace("/" + menuId, "");
+                let tab = href.substring(href.lastIndexOf("/") + 1);
+                docMenuClick(null, menuId, tab);
+                return true;
+            }
+            return false;
+        }
+
+        function copyToBoard(content) {
+            let oInput = document.createElement('textarea');
+            oInput.value = content;
+            document.body.appendChild(oInput);
+            oInput.select();
+            document.execCommand("Copy");
+            oInput.style.display = 'none';
+            oInput.remove();
+        }
+
+        function countChar(content, char) {
+            let re = new RegExp(char, 'g');
+            let match = content.match(re);
+            return match ? match.length : 0;
+        }
+
+        function countFrameMenu(tagetWindow) {
+            let liTags = tagetWindow.document.getElementById("menu").getElementsByTagName("li");
+            return liTags.length;
+        }
+
+        function setCookie(key, val, time) {
+            Cookies.set(key, val, {expires: 30});
+        }
+
+        function getCookie(key) {
+            return Cookies.get(key);
+        }
+
+        function selectTab(id, select, callBack) {
+            let tab = document.getElementById(id + "Tab");
+            if (select) {
+                setCookie("selectedTab" + document.title, id);
+                if (id == selectedId) {
+                    return;
+                }
+                if (selectedId != null) {
+                    selectTab(selectedId, false);
+                }
+                tab.classList.add("checked");
+                let contentFrame = document.getElementById("contentFrame");
+                contentFrame.tab = id;
+                contentFrame.src = tab.getAttribute("data-url") + "&t=" + new Date().getTime();
+                contentFrame.setAttribute("data-url", tab.getAttribute("data-url"));
+                contentFrame.onload = function () {
+                    let countMenu = countFrameMenu(document.getElementById("contentFrame").contentWindow);
+                    let tabTitle = tab.getAttribute("data-name") + "（" + countMenu + "）";
+                    tab.innerHTML = tabTitle;
+                    tab.setAttribute("data-title", tabTitle);
+                    checkRefresh();
+                    setFrameStyle();
+                    try {
+                        document.getElementById("contentFrame").contentWindow["onload"]();
+                    } catch (e) {
+                    }
+                    let selectedId = "$!{id}";
+                    if (selectedId.length > 0) {
+                        docMenuClick(null, selectedId);
+                    }
+                    if (callBack) {
+                        callBack();
+                    }
+                };
+                selectedId = id;
+            } else {
+                tab.classList.remove("checked");
+            }
+        }
+
+
+        function setFrameStyle() {
+            let childDocument = document.getElementById("contentFrame").contentWindow.document;
+            let oHead = childDocument.getElementsByTagName('head').item(0);
+            let oStyle = childDocument.createElement("style");
+            oStyle.type = "text/css";
+            let scrollStyleText =
+                "    ::-webkit-scrollbar-thumb {\n" +
+                "        background: ${themeColor} !important;\n" +
+                "    }";
+            let selectStyleText = "::selection {\n" +
+                "    background: ${themeColor};\n" +
+                "    color: #ffffff;\n" +
+                "}\n" +
+                "\n" +
+                "::-moz-selection {\n" +
+                "    background: ${themeColor};\n" +
+                "    color: #ffffff;\n" +
+                "}\n" +
+                "\n" +
+                "::-webkit-selection {\n" +
+                "    background: ${themeColor};\n" +
+                "    color: #ffffff;\n" +
+                "}";
+            let styleText = "blockquote {\n" +
+                " background: transparent !important;\n" +
+                " border-left: 5px solid #ea800f !important;\n" +
+                " font-size: 14px !important;\n" +
+                " font-style: normal;\n" +
+                " font-weight: bold;\n" +
+                " color: #444444 !important;\n" +
+                " }.checked {\n" +
+                "  border-top: 5px solid ${themeColor} !important;" +
+                "  background: ${themeLightColor} !important;" +
+                "  box-shadow: 0 0 10px ${themeColor}; " +
+                "  text-shadow:1px 1px 3px #ffffff; "+
+                " }" +
+                ".selected {\n" +
+                "  border-left: 5px solid ${themeColor} !important;" +
+                "  background: #eeeeee !important;" +
+                "  text-shadow:1px 1px 3px #ffffff; "+
+                "  box-shadow: 0 0 5px ${themeColor}; " +
+                "} " +
+                "li:hover {\n" +
+                "  border-left: 5px solid ${themeColor} !important;" +
+                "  background: #eeeeee !important;" +
+                " }" +
+                " .address {" +
+                " line-height: 30px; " +
+                " background: #fefeff !important;" +
+                " border-radius:5px !important;" +
+                "}" +
+                " .checked .address {" +
+                " border: 0px !important;" +
+                "}" +
+                ".params>td:first-child{" +
+                " font-weight:bold;" +
+                "}";
+            if (oStyle.styleSheet) {
+                oStyle.styleSheet.cssText = scrollStyleText + selectStyleText + styleText;
+            } else {
+                oStyle.innerHTML = scrollStyleText + selectStyleText + styleText;
+            }
+            oHead.appendChild(oStyle);
+        }
+
+        function onload() {
+            webTitle = document.title;
+            if (selectMenuFromHref()) {
+                return;
+            }
+            let selected = "$!{tab}";
+            if (selected.length == 0) {
+                selected = getCookie("selectedTab" + document.title);
+            }
+            let menu = document.getElementById(selected + "Tab");
+            if (!menu) {
+                selected = "$first";
+            }
+            selectTab(selected, true);
+        }
+
+        function docGoUp() {
+            // document.getElementById("contentFrame").contentWindow["goUp"]();
+            history.go(-1);
+        }
+
+        function docGoNext() {
+            // document.getElementById("contentFrame").contentWindow["goNext"]();
+            history.go(1);
+        }
+
+        function docNow() {
+            document.getElementById("contentFrame").contentWindow["onload"]();
+        }
+
+        function docReload() {
+            var timestamp = (new Date()).valueOf();
+            let tab = document.getElementById("contentFrame").tab;
+            document.getElementById(tab + "Tab").setAttribute("data-time", timestamp);
+            document.getElementById("contentFrame").src = document.getElementById("contentFrame").getAttribute("data-url") + "&t=" + new Date().getTime();
+            // let childWindpw = document.getElementById("contentFrame").contentWindow;
+            // console.log(childWindpw);
+            // let form = childWindpw.document.getElementById("bf35bb9e9475f912bb64d1bddaa859bfForm");
+            // form.fromCode.value = "测试输入！";
+            // form.getElementsByTagName("button")[0].click();
+        }
+
+        function onDocSelect(menu, id, tab) {
+            let href = window.location.href;
+            if (href.indexOf("#") > 0) {
+                let menuId = href.substring(href.lastIndexOf("/") + 1);
+                if (id == menuId) {
+                    return;
+                }
+            }
+
+            let url = "doc/#/" + menu + "/" + tab + "/" + id;
+            let state = {
+                title: menu,
+                url: url
+            };
+            window.history.pushState(state, menu, url);
+        }
+
+        function showSearch(obj) {
+            if (document.getElementById("searchContainer").style.display == "block") {
+                document.getElementById("searchContainer").style.display = "none";
+                obj.classList.remove("allowChecked");
+            } else {
+                document.getElementById("searchContainer").style.display = "block";
+                document.getElementById("searchInput").focus();
+                obj.classList.add("allowChecked");
+                let searched = getCookie("SearchContent");
+                if (searched) {
+                    document.getElementById("searchInput").value = searched;
+                    docSearch(document.getElementById("searchInput"));
+                }
+            }
+        }
+
+        function docSearch(obj) {
+            let searchContent = obj.value;
+            let searchContentObj = document.getElementById("searchContent");
+            setCookie("SearchContent", searchContent);
+            if (searchContent.length == 0) {
+                searchContentObj.style.visibility = "hidden";
+                return;
+            }
+            iterateSearch(0, searchContent, [], function (searchResult) {
+                let searchHtml = "";
+                for (let k = 0; k < searchResult.length; k++) {
+                    searchHtml += searchResult[k].content;
+                }
+
+                if (searchResult.length > 0) {
+                    searchContentObj.innerHTML = searchHtml;
+                    searchContentObj.style.visibility = "visible";
+                    searchContentObj.scrollTop = 0;
+                } else {
+                    searchContentObj.innerHTML = "";
+                    searchContentObj.style.visibility = "hidden";
+                }
+            });
+        }
+
+
+        function iterateSearch(index, searchContent, searchResult, callBack) {
+            let keys = Object.keys(documents);
+            if (index >= keys.length) {
+                searchResult.sort(function (a, b) {
+                    return b.count - a.count;
+                });
+                callBack(searchResult);
+                return;
+            }
+            let key = keys[index];
+            $.get(documents[key], function (result) {
+                let doc = new DOMParser().parseFromString(result, 'text/html');
+                let liTags = doc.getElementsByTagName("li");
+                let keys = searchContent.split(" ");
+                let searched = [];
+                for (let i = 0; i < liTags.length; i++) {
+                    let liTag = liTags[i];
+                    let liHas = 0;
+                    let liLastIndex = -1;
+                    let sourceTitlte = liTag.innerText + liTag.getAttribute("url");
+                    let title = liTag.innerText + "~" + liTag.getAttribute("url");
+
+                    let coutedKey = "";
+                    for (let j = 0; j < keys.length; j++) {
+                        let key = keys[j].trim();
+                        if (key.length == 0) continue;
+                        if (sourceTitlte.indexOf(key) >= 0) {
+                            if (coutedKey.indexOf(key) < 0) {
+                                liHas = liHas + countChar(sourceTitlte, key);
+                            }
+                            coutedKey += key;
+                            let index = sourceTitlte.indexOf(key);
+                            title = title.replace(new RegExp(key, 'g'), "#" + key + "@");
+                            if (Math.abs(index - liLastIndex) == 1) {
+                                liHas += 99;
+                            }
+                            liLastIndex = index;
+                        }
+                    }
+                    if (liHas > 0) {
+                        title = title.replace(new RegExp("#", 'g'), "<b style=\"color: red;\">")
+                            .replace(new RegExp("@", 'g'), "</b>")
+                            .replace(new RegExp("~", 'g'), "<br/>");
+
+                        let content = "<li id='" + liTag.id + "Search' style='display: flex;' onclick=\"docMenuClick(this,'" + liTag.id + "','" + key + "')\">" +
+                            (i + 1) + "、" +
+                            "<span style='width: fit-content;word-break: break-all;'>" + title +
+                            "</span>" +
+                            "<span style='flex: 1;'></span>" +
+                            "<span style='font-size: smaller;color: #cccccc;min-width: fit-content;'>" +
+                            "【" + doc.title + "】" +
+                            "</span>"
+                            + "</li>";
+                        searched.push({count: liHas, content: content});
+                    }
+                }
+                searchResult = searchResult.concat(searched);
+                iterateSearch(index + 1, searchContent, searchResult, callBack);
+            });
+        }
+
+
+        function docMenuClick(obj, id, tab) {
+            if (selectedSearch) {
+                let selectedSearchLi = document.getElementById(selectedSearch);
+                if (selectedSearchLi) {
+                    selectedSearchLi.classList.remove("searchClick");
+                }
+            }
+
+            let searchLi = document.getElementById(id + "Search");
+            if (searchLi) {
+                searchLi.classList.add("searchClick");
+                selectedSearch = id + "Search";
+            }
+            if (tab) {
+                let contentFrame = document.getElementById("contentFrame");
+                if (contentFrame.tab == tab) {
+                    docMenuClick(null, id, null);
+                    return;
+                }
+                selectTab(tab, true, function () {
+                    docMenuClick(null, id, null);
+                });
+            } else {
+                id = id.replace("Menu", "");
+                document.getElementById("contentFrame").contentWindow["selectMenu"](id, true, false);
+            }
+        }
+
+        function copyLink(menu, id) {
+            let selected = getCookie("selectedTab" + document.title);
+            let url = "${http}/doc/#/" + menu + "/" + selected + "/" + id;
+            copyToBoard(url);
+            alert("复制成功！");
+        }
+
+        function getProjectHost() {
+            return "${http}";
+        }
+
+        function checkRefresh() {
+            let id = document.getElementById("contentFrame").tab;
+            let menu = document.getElementById(id + "Tab");
+            if (!menu) {
+                return;
+            }
+            if (refreshTimeout) {
+                clearTimeout(refreshTimeout);
+                refreshTimeout = null;
+            }
+            let tabTitle = menu.getAttribute("data-title");
+            let file = menu.getAttribute("data-file");
+            let time = menu.getAttribute("data-time");
+            $.post("doc_check", {
+                "file": file,
+                "time": time
+            }, function (result) {
+                if (result.success && result.data) {
+                    document.getElementById("refreshTip").style.display = "inline-block";
+                    if (!flashTitleTimeout) {
+                        flashTitle("文档更新了！");
+                    }
+                } else {
+                    document.getElementById("refreshTip").style.display = "none";
+                    stopFlashTitle();
+                }
+                refreshTimeout = setTimeout(function () {
+                    checkRefresh();
+                }, 3000);
+            }).always(function () {
+                refreshTimeout = setTimeout(function () {
+                    checkRefresh();
+                }, 3000);
+            });
+        }
+
+        function flashTitle(title, defaultTitle) {
+            if (title) {
+                document.title = "【" + title + "】" + webTitle;
+            } else {
+                document.title = webTitle;
+            }
+            flashTitleTimeout = setTimeout(function () {
+                flashTitle(defaultTitle, title);
+            }, 500);
+        }
+
+        function stopFlashTitle() {
+            if (flashTitleTimeout) {
+                clearTimeout(flashTitleTimeout);
+                flashTitleTimeout = null;
+                document.title = webTitle;
+            }
+        }
+
+
+    </script>
+</head>
+<body onload="onload()">
+
+<div class="head">
+    #foreach ($d in $docs)
+    <div id="${d.id}Tab" onclick="selectTab('$d.id',true);"
+         data-url="$d.url" data-time="$d.time"
+         data-file="$d.file"
+         data-name="$d.name" class="tab">$d.name
+    </div>
+    <script>
+        documents['$d.id'] = '$d.url';
+    </script>
+    #end
+</div>
+
+<div class="content">
+    <div style="height: 42px;"></div>
+    <iframe id="contentFrame"></iframe>
+</div>
+
+<div class="bar">
+    <span class="arrow extIcon extSearch" onclick="showSearch(this)">
+    </span>
+
+    <span style="flex: 1"></span>
+
+    <div>
+         <span class="arrow extIcon extRefresh" onclick="docReload()">
+        </span>
+        <span class="refreshTip" id="refreshTip">
+           文档更新了，请刷新文档
+        </span>
+    </div>
+
+
+    <span class="arrow extIcon extArrowLeft" onclick="docGoUp()">
+    </span>
+
+    <span class="arrow extIcon extArrowRight" onclick="docGoNext()">
+    </span>
+
+    <span class="arrow extIcon extLastPoint" onclick="docNow()">
+    </span>
+
+</div>
+
+<div class="searchContainer" id="searchContainer">
+    <div>
+        <input class="searchInput" oninput="docSearch(this);" id="searchInput" placeholder="输入关键字搜索"/>
+        <span class="searchTip" id="searchTip"></span>
+    </div>
+    <div class="searchContent" id="searchContent">
+    </div>
+</div>
+
+</body>
+</html>

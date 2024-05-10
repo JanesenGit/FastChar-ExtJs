@@ -468,7 +468,9 @@ public class FastSqlTool {
 
         List<String> sortBuilder = new ArrayList<>();
         for (Map.Entry<String, String> stringStringEntry : sorts.entrySet()) {
-            sortBuilder.add(stringStringEntry.getKey() + " " + stringStringEntry.getValue());
+            if (stringStringEntry.getValue().equalsIgnoreCase("desc") || stringStringEntry.getValue().equalsIgnoreCase("asc")) {
+                sortBuilder.add(stringStringEntry.getKey() + " " + stringStringEntry.getValue());
+            }
         }
 
         int[] wherePosition = getTokenIndex("where", sqlStr, "group", "order", "having", "union");
@@ -479,7 +481,7 @@ public class FastSqlTool {
                 wherePosition[0] + wherePosition[1],
                 whereBuilder.toString());
 
-        if (sortBuilder.size() > 0) {
+        if (!sortBuilder.isEmpty()) {
             int[] orderPosition = getTokenIndex("order by", sqlStr);
             if (orderPosition[0] == -1) {
                 sqlStr += " order by " + FastStringUtils.join(sortBuilder, ",");

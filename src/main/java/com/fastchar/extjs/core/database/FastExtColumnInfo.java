@@ -59,6 +59,11 @@ public class FastExtColumnInfo extends FastColumnInfo<FastExtColumnInfo> {
         return false;
     }
 
+    public boolean isSame() {
+        return getMapWrap().getBoolean("same", false);
+    }
+
+
     public boolean isRenderEnum() {
         return mapWrap.getString("render", "").toLowerCase().startsWith("enum");
     }
@@ -202,7 +207,7 @@ public class FastExtColumnInfo extends FastColumnInfo<FastExtColumnInfo> {
                         + "\n\tat " + getStackTrace("link"));
             }
 
-            if (tableInfo.getPrimaries().size() > 0) {
+            if (!tableInfo.getPrimaries().isEmpty()) {
                 linkInfo.setKeyColumnName(tableInfo.getPrimaries().iterator().next().getName());
             }
 
@@ -220,7 +225,7 @@ public class FastExtColumnInfo extends FastColumnInfo<FastExtColumnInfo> {
                         + "\n\tat " + getStackTrace("link"));
             }
 
-            if (linkInfo.getTextColumnNames().size() == 0) {
+            if (linkInfo.getTextColumnNames().isEmpty()) {
                 throw new FastDatabaseException(FastChar.getLocal().getInfo("Db_Column_Error9", "'" + linkInfo.getTableName() + "'")
                         + "\n\tat " + getStackTrace("link"));
             }

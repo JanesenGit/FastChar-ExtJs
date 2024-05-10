@@ -1,0 +1,169 @@
+.fast-system-color{
+    color:${color};
+}
+
+
+.fast-bg-null{
+     background:transparent !important;
+}
+
+
+.fast-textarea .x-form-trigger-wrap-default,.fast-contentfield .x-form-trigger-wrap-default{
+    border-radius: 8px !important;
+    overflow: hidden;
+}
+
+.fast-textarea .x-form-trigger-default,.fast-contentfield .x-form-trigger-default{
+    color: #444;
+    background:transparent !important;
+}
+
+
+
+.fast-filefield .x-form-trigger-default{
+    background: transparent !important;
+    padding-top: 0 !important;
+}
+
+.fast-filefield .x-form-trigger-wrap-default{
+     border-radius: 0 !important;
+     -webkit-box-shadow:inset 0 0;
+     box-shadow:inset 0 0;
+}
+
+.fast-filefield-label-right .x-form-item-label-inner{
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.fast-filefield-label-left .x-form-item-label-inner{
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+
+
+.fast-valid-success .x-form-text{
+    color:green;
+}
+
+.fast-grid-click{
+   color:blue;
+   cursor:pointer;
+}
+
+.fast-grid-click:hover{
+   border-bottom: 2px solid;
+   color:red;
+   font-weight: bold;
+}
+
+.fast-desktop-menu-path-click{
+    cursor:pointer;
+}
+
+.fast-desktop-menu-path-click:hover{
+   filter:alpha(opacity=60) ;
+   -moz-opacity:0.6;
+   -khtml-opacity: 0.6;
+   opacity: 0.6;
+}
+
+.fast-dialog-message{
+    color:black;
+    font-size: calc(${fontSize} + 2px) ;
+    padding:5px;
+}
+
+.fast-messagebox-message-progress{
+     color:black;
+     font-size: calc(${fontSize} + 2px) ;
+     padding:5px;
+}
+
+.fast-gray {
+    -webkit-filter: grayscale(100%);
+    -moz-filter: grayscale(100%);
+    -ms-filter: grayscale(100%);
+    -o-filter: grayscale(100%);
+    filter: grayscale(100%);
+}
+
+.fast-system-tab-container{
+    background: #ffffff;
+    border-top-left-radius: 15px;
+    border-top-right-radius: 15px;
+    overflow: hidden;
+    padding: 10px;
+    border-top: 5px solid ${color};
+}
+
+.fast-warning-window .x-window-header-default{
+   background: #ffcf00 !important
+}
+
+.fast-warning-window .x-btn-default-small{
+   background: #ffcf00 !important;
+   border-color:#ffcf00 !important;
+}
+
+.fast-warning-window .x-btn-default-small-focus{
+     background: #ffcf00 !important;
+     border-color:#ffcf00 !important;
+}
+
+.fast-lottie-container{
+     width: 100%;
+     height: 100%;
+     overflow: hidden;
+}
+
+.fast-show-tinymce-editor-show-content{
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    padding:10px;
+}
+
+.fast-show-html-content{
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    padding:10px;
+}
+
+
+.fast-big-textarea{
+    border-radius:0px !important;
+    border:0px !important;
+}
+
+.fast-radius-null-field .x-form-trigger-wrap-default,.fast-radius-null-field .fast-contentfield .x-form-trigger-wrap-default {
+   border-radius: 0 !important;
+}
+
+
+
+.fast-red-window .x-window-header-default{
+   background: red !important
+}
+
+.fast-red-window .x-btn-default-small{
+   background: red !important;
+   border-color:#DD5044 !important;
+}
+
+.fast-red-window .x-btn-default-small-focus{
+     background: red !important;
+     border-color:#DD5044 !important;
+}
+
+.fast-red-window  .x-form-cb-checked .x-form-checkbox-default {
+    color: red !important;
+}
+
+.fast-red-window .x-css-shadow{
+    box-shadow: 0 -2px 8px #1FA7F8 !important;
+}

@@ -1,5 +1,8 @@
-fast-theme-flat
+fast-theme-flat.temp
 ../fast-theme-base
+../fast-theme-base-self
+../fast-theme-self-menu
+../fast-theme-databoard
 ../fast-theme-treelist
 ../fast-theme-accordion
 fast-theme-boundlist
@@ -12,8 +15,8 @@ fast-theme-message
 fast-theme-panel
 fast-theme-progress
 fast-theme-self
+fast-theme-self2
 fast-theme-shadow
-fast-theme-tab
 fast-theme-tool
 fast-theme-window
 fast-theme-picker

@@ -1,0 +1,133 @@
+.fast-databoard-container {
+    display: flex;
+    flex-wrap: wrap;
+    padding: 5px;
+}
+
+.fast-databoard-group {
+    background: #f6f6f6;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 5px;
+    flex: fit-content;
+    box-shadow: 0px 0px 3px 1px #dadada;
+    overflow: hidden;
+}
+
+.fast-databoard-group-h{
+    flex:none;
+}
+
+.fast-databoard-split-v {
+    background: #000;
+    width: 1px;
+    height: 50px;
+}
+
+.fast-databoard-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    padding: 20px 10px;
+    text-shadow: 1px 1px 1px white;
+    cursor: pointer;
+}
+
+.fast-databoard-item-h {
+    flex-direction: row;
+    padding: 15px 20px;
+}
+
+.fast-databoard-cursor-none{
+    cursor: default;
+}
+
+.fast-databoard-item-info-v{
+    display: flex;
+    flex-direction: column;
+    margin-left:10px;
+    align-items: start;
+    justify-content: center;
+}
+
+.fast-databoard-item-icon {
+    width: 50px;
+    height: 50px;
+    filter: drop-shadow(0px 0px 2px white);
+    -webkit-user-drag: none;
+    object-fit: cover;
+}
+
+.fast-databoard-item-icon-h{
+    width: 40px;
+    height: 40px;
+}
+
+
+.fast-databoard-item-value {
+    font-size: 34px;
+    color: #000;
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.fast-databoard-item-value-h{
+   margin-top: 8px;
+   font-size: 24px;
+   font-style:italic;
+}
+
+.fast-databoard-item-value-state {
+    font-size: 18px;
+    margin-left:5px;
+}
+
+.fast-databoard-item-title {
+    color: #444444;
+    margin-top: 10px;
+}
+
+.fast-databoard-item-title-h{
+    font-size:14px;
+    margin-top: 0px;
+}
+
+.fast-databoard-item-pie{
+    width: 500px;
+    height: 400px;
+    padding:20px;
+}
+
+
+.fast-databoard-split-title-container{
+    display: flex;
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+    justify-content: start;
+    padding: 10px;
+}
+
+.fast-databoard-split-title-icon{
+    width:20px;
+    height:20px;
+    object-fit: cover;
+}
+
+.fast-databoard-split-title{
+    margin-left:8px;
+    font-size:16px;
+    color:#666666;
+}
+
+
+
+
+
+

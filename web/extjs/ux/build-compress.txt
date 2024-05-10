@@ -1,6 +1,4 @@
 ext-ux-all.js
 BoxContainerDD.js
 BoxReorderer.js
-TabReorderer.js
-TabCloseMenu.js
 ColorUtils.js

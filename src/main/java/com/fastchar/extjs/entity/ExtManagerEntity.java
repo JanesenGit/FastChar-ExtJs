@@ -36,6 +36,7 @@ public class ExtManagerEntity extends AbstractExtManagerEntity {
         }
         ExtManagerEntity manager = action.getSession("manager");
         if (manager == null) {
+            action.removeSession("passLogin");
             FastExtConfig config = FastChar.getConfig(FastExtConfig.class);
             String passLoginManger = config.getPassLoginManger(action.getRemoteIp());
             if (FastStringUtils.isNotEmpty(passLoginManger)) {
@@ -46,10 +47,13 @@ public class ExtManagerEntity extends AbstractExtManagerEntity {
                     String[] accountInfo = account.split("/");
                     manager = ExtManagerEntity.dao().login(accountInfo[0], FastChar.getSecurity().MD5_Encrypt(accountInfo[1]));
                 }
+                if (manager != null) {
+                    action.setSession("passLogin", Boolean.TRUE);
+                }
             }
             if (manager != null) {
                 String message = FastChar.getLocal().getInfo("ExtManager_Error1", action.getRemoteIp(), passLoginManger);
-                FastChar.getLog().warn(message);
+                FastChar.getLogger().warn(ExtManagerEntity.class, message);
                 manager.put("responsePageMessage", message);
                 setSession(action, manager);
             }
@@ -166,8 +170,9 @@ public class ExtManagerEntity extends AbstractExtManagerEntity {
     }
 
 
+
     @Override
-    public boolean save() {
+    public boolean save(String... checks) {
         remove("managerId");
         int roleId = getInt("roleId");
         ExtManagerRoleEntity extManagerRoleEntity = ExtManagerRoleEntity.getInstance().selectById(roleId);
@@ -180,22 +185,14 @@ public class ExtManagerEntity extends AbstractExtManagerEntity {
             setError("登录名已存在！请您更换！");
             return false;
         }
-        return super.save();
-    }
-
-    @Override
-    public boolean save(String... checks) {
-        int roleId = getInt("roleId");
-        ExtManagerRoleEntity extManagerRoleEntity = ExtManagerRoleEntity.getInstance().selectById(roleId);
-        if (extManagerRoleEntity != null) {
-            set("managerMenuPower", extManagerRoleEntity.getRoleMenuPower());
-            set("managerExtPower", extManagerRoleEntity.getRoleExtPower());
+        if (!FastExtConfig.getInstance().isManagerPasswordEncrypt()) {
+            set("managerPassword2", getString("managerPassword"));
         }
         return super.save(checks);
     }
 
     @Override
-    public boolean update() {
+    public boolean update(String... checks) {
         if (isModified("managerLoginName")) {
             String managerLoginName = getString("managerLoginName");
             if (getByLoginName(managerLoginName) != null) {
@@ -218,11 +215,16 @@ public class ExtManagerEntity extends AbstractExtManagerEntity {
                 set("powerState", 0);
             }
         }
-        return super.update();
+        if (isModified("managerPassword")) {
+            if (!FastExtConfig.getInstance().isManagerPasswordEncrypt()) {
+                set("managerPassword2", getString("managerPassword"));
+            }
+        }
+        return super.update(checks);
     }
 
     @Override
-    public boolean delete() {
+    public boolean delete(String...checks) {
         if (getId() == 1) {
             setError("禁止删除系统默认的管理员账号！");
             return false;
@@ -232,7 +234,7 @@ public class ExtManagerEntity extends AbstractExtManagerEntity {
             setError("禁止删除当前登录的管理员账号！");
             return false;
         }
-        return super.delete();
+        return super.delete(checks);
     }
 
     public void pullInfo() {
@@ -248,15 +250,19 @@ public class ExtManagerEntity extends AbstractExtManagerEntity {
         if (extManagerEntity != null) {
             ExtManagerRoleEntity extManagerRoleEntity = extManagerEntity.toEntity(ExtManagerRoleEntity.class);
             extManagerEntity.put("role", extManagerRoleEntity);
+            extManagerEntity.pullInfo();
         }
         return extManagerEntity;
     }
 
     public ExtManagerEntity getByLoginName(String loginName) {
         String sqlStr = "select * from ext_manager as t " +
+                " left join ext_manager_role as a on a.roleId=t.roleId " +
                 " where managerLoginName = ? ";
-        ExtManagerEntity managerEntity = selectFirstBySql(sqlStr, loginName);
+        ExtManagerEntity managerEntity = selectFirstBySql(sqlStr, loginName.trim());
         if (managerEntity != null) {
+            ExtManagerRoleEntity extManagerRoleEntity = managerEntity.toEntity(ExtManagerRoleEntity.class);
+            managerEntity.put("role", extManagerRoleEntity);
             managerEntity.pullInfo();
         }
         return managerEntity;
@@ -302,7 +308,7 @@ public class ExtManagerEntity extends AbstractExtManagerEntity {
         }
 
         List<ExtManagerEntity> list = selectBySql(sqlStr);
-        if (list.size() == 0) {
+        if (list.isEmpty()) {
             list.add(selectById(1));
         }
         return list;

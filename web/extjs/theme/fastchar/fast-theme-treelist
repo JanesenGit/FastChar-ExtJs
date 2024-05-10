@@ -1,10 +1,42 @@
 .x-tree-icon {
-	width: 20px !important;
+	width: 20px;
+	height: ${rowHeight};
+    margin-top: 0px;
+    margin-bottom: 0px;
+    line-height: unset;
+}
+
+.x-tree-checkbox , .x-tree-checkbox-checked{
+    width: 20px;
+	height: ${rowHeight};
+    margin-top: 0px;
+    margin-bottom: 0px;
+    line-height: unset;
+    margin-right:0px;
+    top:0px;
+}
+
+
+
+
+
+
+
+.x-tree-elbow-img {
+    margin-top: 0px;
+    margin-bottom: 0px;
+    height: unset;
+    line-height: unset ;
+}
+
+
+.x-treelist-floater{
+    min-width:220px !important;
 }
 
 .x-treelist-row .x-treelist-item-wrap .x-treelist-item-text {
 	height: 50px !important;
-	font-size: $[fontSize] !important;
+	font-size: ${fontSize} !important;
 	line-height: 50px !important;
 }
 
@@ -12,48 +44,38 @@
 	line-height: 54px !important;
 }
 
-@media all and (-ms-high-contrast: none), (-ms-high-contrast: active) {
-    .x-treelist-nav .x-treelist-item-icon {
-    	top: 4px !important;
-    }
-}
-
 .x-treelist-nav .x-treelist-item-expander{
 	line-height: 50px !important;
 }
 
 .x-treelist-nav .x-treelist-item-text{
-	color:#ffffff;
+	color:#ffffff !important;
 }
 
 .x-treelist-nav .x-treelist-item-selected>.x-treelist-row:before{
-	background-color:$[color];
+	background-color:${color};
 }
 .x-treelist-nav .x-treelist-item-selected.x-treelist-item-tool{
-	background-color:$[color];
+	background-color:${color};
 }
 
 .x-treelist-nav .x-treelist-item-tool-floated:after{
-	background-color:$[color];
+	background-color:${color};
 }
 
 .x-treelist-nav .x-treelist-row:hover:before{
-	background-color:$[color];
+	background-color:${color};
 }
 .x-treelist-nav .x-treelist-item-selected>.x-treelist-row:before{
-	background-color:$[color];
+	background-color:${color};
 }
 .x-treelist-nav .x-treelist-row:hover:before{
-	background-color:$[color];
+	background-color:${color};
 }
 .x-treelist-nav .x-treelist-item-selected>.x-treelist-row:hover:before{
-	background-color:$[color];
+	background-color:${color};
 }
 .x-treelist-nav .x-treelist-item-selected>.x-treelist-row:before {
-    background-color:$[color];
+    background-color:${color};
 }
 
-.x-tree-elbow-img {
-    height: 33px !important;
-    line-height: 33px !important;
-}

@@ -8,7 +8,7 @@ import com.fastchar.database.info.FastTableInfo;
 import com.fastchar.extjs.FastExtConfig;
 import com.fastchar.extjs.core.database.FastExtColumnInfo;
 import com.fastchar.extjs.core.database.FastExtTableInfo;
-import com.fastchar.extjs.core.menus.FastMenuInfo;
+import com.fastchar.extjs.core.database.FastExtTableSplit;
 import com.fastchar.extjs.exception.FastExtEntityException;
 import com.fastchar.interfaces.IFastMethodRead;
 import com.fastchar.utils.FastClassUtils;
@@ -17,11 +17,11 @@ import com.fastchar.utils.FastStringUtils;
 import java.util.*;
 
 public class FastExtEntities {
-    private Map<String, Class<? extends FastExtEntity<?>>> entityMap = new HashMap<>();
+    private final Map<String, Class<? extends FastExtEntity<?>>> entityMap = new HashMap<>();
 
     public FastExtEntities addEntity(Class<? extends FastExtEntity<?>> targetClass) throws Exception {
         if (!FastExtEntity.class.isAssignableFrom(targetClass)) {
-            FastChar.getLog().warn(this.getClass(), FastChar.getLocal().getInfo("ExtEntity_Error1", targetClass));
+            FastChar.getLogger().warn(this.getClass(), FastChar.getLocal().getInfo("ExtEntity_Error1", targetClass));
             return this;
         }
         if (!FastClassUtils.checkNewInstance(targetClass)) {
@@ -53,7 +53,7 @@ public class FastExtEntities {
                 Class<? extends FastExtEntity<?>> existClass = entityMap.get(entityCode);
 
                 if (existClass.equals(targetClass)) {
-                    FastChar.getLog().warn(this.getClass(), FastChar.getLocal().getInfo("ExtEntity_Error4", targetClass));
+                    FastChar.getLogger().warn(this.getClass(), FastChar.getLocal().getInfo("ExtEntity_Error4", targetClass));
                     return this;
                 }
 
@@ -96,11 +96,10 @@ public class FastExtEntities {
     }
 
     public List<Map<String, Object>> getEntityInfo() {
-        FastExtMenuXmlParser menuXmlParser = FastExtMenuXmlParser.newInstance();
-        return getEntityInfo(menuXmlParser, null);
+        return getEntityInfo( null);
     }
 
-    public List<Map<String, Object>> getEntityInfo(FastExtMenuXmlParser menuXmlParser, String linkTableName) {
+    private List<Map<String, Object>> getEntityInfo( String linkTableName) {
         List<Map<String, Object>> infos = new ArrayList<>();
 
         for (Map.Entry<String, Class<? extends FastExtEntity<?>>> stringClassEntry : entityMap.entrySet()) {
@@ -118,6 +117,7 @@ public class FastExtEntities {
 
             if (tableInfo != null) {
                 info.put("recycle", tableInfo.getMapWrap().getBoolean("recycle", false));
+                info.put("data_log", tableInfo.getMapWrap().getBoolean("data_log", false));
                 info.put("comment", tableInfo.getComment());
                 info.put("shortName", tableInfo.getComment());
 
@@ -167,7 +167,7 @@ public class FastExtEntities {
                 }
 
 
-                info.put("menu", FastExtEntities.getTableMenu(menuXmlParser, stringClassEntry.getKey()));
+//                info.put("menu", FastExtEntities.getTableMenu( stringClassEntry.getKey()));
 
 
                 if (tableInfo instanceof FastExtTableInfo) {
@@ -179,11 +179,11 @@ public class FastExtEntities {
                     idProperty.add(primary.getName());
                 }
                 if (idProperty.isEmpty()) {
-                    FastChar.getLog().error("表格 " + tableInfo.toSimpleInfo() + " 未配置唯一标识列（primary），可能会照成对应的EntityJS的部分功能无法使用！");
+                    FastChar.getLogger().warn(this.getClass(),"表格 " + tableInfo.toSimpleInfo() + " 未配置唯一标识列（primary），可能会照成对应的EntityJS的部分功能无法使用！");
                 }
                 info.put("idProperty", idProperty);
                 if (linkColumns.isEmpty()) {
-                    info.put("linkTables", getEntityInfo(menuXmlParser, tableInfo.getName()));
+                    info.put("linkTables", getEntityInfo(tableInfo.getName()));
                 } else {
                     info.put("linkColumns", linkColumns);
                 }
@@ -201,9 +201,18 @@ public class FastExtEntities {
                     info.put("layer", false);
                 }
 
+                Map<String, String> splitInfo = new LinkedHashMap<>();
+                FastExtTableSplit fastExtTableSplit = new FastExtTableSplit(tableInfo.getDatabase(), tableInfo.getName());
+                List<String> allSplitTableName = fastExtTableSplit.getAllSplitTableName();
+                for (String splitTableName : allSplitTableName) {
+                    splitInfo.put(splitTableName, fastExtTableSplit.getNickName(tableInfo.getComment(), splitTableName));
+                }
 
-            } else if (fastExtEntity.logNotFoundTable()) {
-                FastChar.getLog().error(this.getClass(), FastChar.getLocal().getInfo("ExtEntity_Error5", aClass));
+                info.put("split", splitInfo);
+
+
+            } else if (fastExtEntity.logNotFoundTable() && FastStringUtils.isEmpty(linkTableName)) {
+                FastChar.getLogger().warn(this.getClass(), FastChar.getLocal().getInfo("ExtEntity_Error5", aClass, fastExtEntity.getTableName()));
             }
 
             infos.add(info);
@@ -211,30 +220,30 @@ public class FastExtEntities {
         return infos;
     }
 
-    public static FastMenuInfo getTableMenu(FastExtMenuXmlParser xmlObserver, String tableEntity) {
-        FastMenuInfo menus = xmlObserver.getMenus();
-        return getTableMenu(menus, tableEntity);
-    }
-
-    public static FastMenuInfo getTableMenu(FastMenuInfo parent, String tableEntity) {
-        if (parent == null || FastStringUtils.isEmpty(tableEntity)) {
-            return null;
-        }
-        for (FastMenuInfo child : parent.getChildren()) {
-            if (child == null) {
-                continue;
-            }
-            if (FastStringUtils.isNotEmpty(child.getMethod())) {
-                if (child.getMethod().contains(tableEntity)) {
-                    return child;
-                }
-            }
-            FastMenuInfo tableIcon = getTableMenu(child, tableEntity);
-            if (tableIcon != null) {
-                return tableIcon;
-            }
-        }
-        return null;
-    }
+//    public static FastMenuInfo getTableMenu(FastExtMenuXmlParser xmlObserver, String tableEntity) {
+//        FastMenuInfo menus = xmlObserver.getMenus();
+//        return getTableMenu(menus, tableEntity);
+//    }
+//
+//    public static FastMenuInfo getTableMenu(FastMenuInfo parent, String tableEntity) {
+//        if (parent == null || FastStringUtils.isEmpty(tableEntity)) {
+//            return null;
+//        }
+//        for (FastMenuInfo child : parent.getChildren()) {
+//            if (child == null) {
+//                continue;
+//            }
+//            if (FastStringUtils.isNotEmpty(child.getMethod())) {
+//                if (child.getMethod().contains(tableEntity)) {
+//                    return child;
+//                }
+//            }
+//            FastMenuInfo tableIcon = getTableMenu(child, tableEntity);
+//            if (tableIcon != null) {
+//                return tableIcon;
+//            }
+//        }
+//        return null;
+//    }
 
 }

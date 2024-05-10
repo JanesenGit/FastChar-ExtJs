@@ -17,9 +17,7 @@ import com.fastchar.extjs.core.database.FastExtTableInfo;
 import com.fastchar.local.FastCharLocal;
 import com.fastchar.utils.FastStringUtils;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 /**
  * 覆盖FastSql类
@@ -34,16 +32,16 @@ public class FastExtMySql extends FastMySql {
         }
 
         List<Object> values = new ArrayList<>();
-        List<String> checkColumns = new ArrayList<>();
+        Map<String, FastColumnInfo<?>> checkColumnMap = new LinkedHashMap<>();
         for (String key : checks) {
             FastColumnInfo<?> column = entity.getColumn(key);
             if (column != null) {
-                checkColumns.add(key);
+                checkColumnMap.put(key, column);
             }
         }
         StringBuilder sqlBuilder = new StringBuilder("select " + FastStringUtils.join(columns, ",") + " from " + entity.getTableName() + " where 1=1 ");
 
-        if (checkColumns.size() == 0) {
+        if (checkColumnMap.size() == 0) {
             for (FastColumnInfo<?> primary : entity.getPrimaries()) {
                 if (entity.isEmpty(primary.getName())) {
                     throw new FastSqlException(FastChar.getLocal().getInfo(FastCharLocal.DB_SQL_ERROR4, "'" + primary.getName() + "'"));
@@ -52,12 +50,9 @@ public class FastExtMySql extends FastMySql {
                 values.add(getColumnValue(entity, primary));
             }
         } else {
-            for (String check : checkColumns) {
-                FastColumnInfo<?> column = entity.getColumn(check);
-                if (column != null) {
-                    sqlBuilder.append(" and ").append(check).append(" = ? ");
-                    values.add(getColumnValue(entity, column));
-                }
+            for (Map.Entry<String, FastColumnInfo<?>> stringFastColumnInfoEntry : checkColumnMap.entrySet()) {
+                sqlBuilder.append(" and ").append(stringFastColumnInfoEntry.getKey()).append(" = ? ");
+                values.add(getColumnValue(entity, stringFastColumnInfoEntry.getValue()));
             }
         }
 
@@ -98,15 +93,15 @@ public class FastExtMySql extends FastMySql {
                 .append(" where ").append(" 1=1 ");
 
 
-        List<String> checkColumns = new ArrayList<>();
+        Map<String, FastColumnInfo<?>> checkColumnMap = new LinkedHashMap<>();
         for (String key : checks) {
             FastColumnInfo<?> column = entity.getColumn(key);
             if (column != null) {
-                checkColumns.add(key);
+                checkColumnMap.put(key, column);
             }
         }
 
-        if (checkColumns.size() == 0) {
+        if (checkColumnMap.size() == 0) {
             for (FastColumnInfo<?> primary : entity.getPrimaries()) {
                 if (entity.isEmpty(primary.getName())) {
                     throw new FastSqlException(FastChar.getLocal().getInfo(FastCharLocal.DB_SQL_ERROR4, "'" + primary.getName() + "'"));
@@ -115,12 +110,9 @@ public class FastExtMySql extends FastMySql {
                 values.add(getColumnValue(entity, primary));
             }
         } else {
-            for (String check : checkColumns) {
-                FastColumnInfo<?> column = entity.getColumn(check);
-                if (column != null) {
-                    sqlBuilder.append(" and ").append(check).append(" = ? ");
-                    values.add(getColumnValue(entity, column));
-                }
+            for (Map.Entry<String, FastColumnInfo<?>> stringFastColumnInfoEntry : checkColumnMap.entrySet()) {
+                sqlBuilder.append(" and ").append(stringFastColumnInfoEntry.getKey()).append(" = ? ");
+                values.add(getColumnValue(entity, stringFastColumnInfoEntry.getValue()));
             }
         }
 
@@ -152,15 +144,15 @@ public class FastExtMySql extends FastMySql {
         sqlBuilder.append("insert into ").append(entity.getTableName()).append(" (").append(FastStringUtils.join(columns, ",")).append(") ").append(" select ").append(FastStringUtils.join(valueColumns, ",")).append(" from ").append(entity.getTableName()).append("_recycle").append(" where ").append(" 1=1 ");
 
 
-        List<String> checkColumns = new ArrayList<>();
+        Map<String, FastColumnInfo<?>> checkColumnMap = new LinkedHashMap<>();
         for (String key : checks) {
             FastColumnInfo<?> column = entity.getColumn(key);
             if (column != null) {
-                checkColumns.add(key);
+                checkColumnMap.put(key, column);
             }
         }
 
-        if (checkColumns.size() == 0) {
+        if (checkColumnMap.size() == 0) {
             for (FastColumnInfo<?> primary : entity.getPrimaries()) {
                 if (entity.isEmpty(primary.getName())) {
                     throw new FastSqlException(FastChar.getLocal().getInfo(FastCharLocal.DB_SQL_ERROR4, "'" + primary.getName() + "'"));
@@ -169,12 +161,9 @@ public class FastExtMySql extends FastMySql {
                 values.add(getColumnValue(entity, primary));
             }
         } else {
-            for (String check : checkColumns) {
-                FastColumnInfo<?> column = entity.getColumn(check);
-                if (column != null) {
-                    sqlBuilder.append(" and ").append(check).append(" = ? ");
-                    values.add(getColumnValue(entity, column));
-                }
+            for (Map.Entry<String, FastColumnInfo<?>> stringFastColumnInfoEntry : checkColumnMap.entrySet()) {
+                sqlBuilder.append(" and ").append(stringFastColumnInfoEntry.getKey()).append(" = ? ");
+                values.add(getColumnValue(entity, stringFastColumnInfoEntry.getValue()));
             }
         }
 
@@ -194,15 +183,15 @@ public class FastExtMySql extends FastMySql {
         List<Object> values = new ArrayList<>();
         StringBuilder sqlBuilder = new StringBuilder("delete from " + entity.getTableName() + "_recycle" + " where 1=1 ");
 
-        List<String> checkColumns = new ArrayList<>();
+        Map<String, FastColumnInfo<?>> checkColumnMap = new LinkedHashMap<>();
         for (String key : checks) {
             FastColumnInfo<?> column = entity.getColumn(key);
             if (column != null) {
-                checkColumns.add(key);
+                checkColumnMap.put(key, column);
             }
         }
 
-        if (checkColumns.size() == 0) {
+        if (checkColumnMap.size() == 0) {
             for (FastColumnInfo<?> primary : entity.getPrimaries()) {
                 if (entity.isEmpty(primary.getName())) {
                     throw new FastSqlException(FastChar.getLocal().getInfo(FastCharLocal.DB_SQL_ERROR4, "'" + primary.getName() + "'"));
@@ -211,12 +200,9 @@ public class FastExtMySql extends FastMySql {
                 values.add(getColumnValue(entity, primary));
             }
         } else {
-            for (String check : checkColumns) {
-                FastColumnInfo<?> column = entity.getColumn(check);
-                if (column != null) {
-                    sqlBuilder.append(" and ").append(check).append(" = ? ");
-                    values.add(getColumnValue(entity, column));
-                }
+            for (Map.Entry<String, FastColumnInfo<?>> stringFastColumnInfoEntry : checkColumnMap.entrySet()) {
+                sqlBuilder.append(" and ").append(stringFastColumnInfoEntry.getKey()).append(" = ? ");
+                values.add(getColumnValue(entity, stringFastColumnInfoEntry.getValue()));
             }
         }
 
@@ -336,16 +322,16 @@ public class FastExtMySql extends FastMySql {
             return null;
         }
         List<Object> values = new ArrayList<>();
-        List<String> checkColumns = new ArrayList<>();
+        Map<String, FastColumnInfo<?>> checkColumnMap = new LinkedHashMap<>();
         for (String key : checks) {
             FastColumnInfo<?> column = entity.getColumn(key);
             if (column != null) {
-                checkColumns.add(key);
+                checkColumnMap.put(key, column);
             }
         }
         StringBuilder sqlBuilder = new StringBuilder(buildUpdateSameColumnSql + " where 1=1 ");
 
-        if (checkColumns.size() == 0) {
+        if (checkColumnMap.size() == 0) {
             for (FastColumnInfo<?> primary : entity.getPrimaries()) {
                 if (entity.isEmpty(primary.getName())) {
                     throw new FastSqlException(FastChar.getLocal().getInfo(FastCharLocal.DB_SQL_ERROR4, "'" + primary.getName() + "'"));
@@ -354,12 +340,9 @@ public class FastExtMySql extends FastMySql {
                 values.add(getColumnValue(entity, primary));
             }
         } else {
-            for (String check : checkColumns) {
-                FastColumnInfo<?> column = entity.getColumn(check);
-                if (column != null) {
-                    sqlBuilder.append(" and ").append(check).append(" = ? ");
-                    values.add(getColumnValue(entity, column));
-                }
+            for (Map.Entry<String, FastColumnInfo<?>> stringFastColumnInfoEntry : checkColumnMap.entrySet()) {
+                sqlBuilder.append(" and ").append(stringFastColumnInfoEntry.getKey()).append(" = ? ");
+                values.add(getColumnValue(entity, stringFastColumnInfoEntry.getValue()));
             }
         }
 

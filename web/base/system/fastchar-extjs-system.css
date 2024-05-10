@@ -1,0 +1,48 @@
+html {
+    overflow: hidden !important;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+.progress {
+    height: 3px;
+    position: fixed;
+    top: 0;
+    width: 100%;
+}
+
+.progress > svg {
+    height: 100%;
+    display: block;
+}
+
+#loading {
+    height: 100%;
+    width: 100%;
+    position: fixed;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--themeColor);
+    overflow: hidden;
+}
+
+#loading-center {
+    width: 30%;
+    height: 30%;
+    overflow: hidden;
+}
+
+.tox .tox-dialog-wrap__backdrop {
+    background-color: rgba(0, 0, 0, .35) !important;
+}
+
+.tox .tox-menu {
+    max-height: 460px !important;
+}

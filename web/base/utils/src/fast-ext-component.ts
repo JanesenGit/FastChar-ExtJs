@@ -5,8 +5,7 @@ namespace FastExt {
      */
     export class Component {
 
-        static pageMaxZIndex = 2147483647;
-
+        static maxZIndex = 2147483647;
 
 
         /**
@@ -45,7 +44,7 @@ namespace FastExt {
                         let i = t / 180 * Math.PI, x = Math.sin(i) * z, y = Math.cos(i) * z;
                         cmb.setX(currX + x);
                         cmb.setY(currY + y);
-                        if ((t += 90) > shakeCount){
+                        if ((t += 90) > shakeCount) {
                             stopShake();
                         }
                     } catch (e) {
@@ -175,7 +174,7 @@ namespace FastExt {
                     continue;
                 }
                 let currIndex = parseInt(allDialog[i].style.zIndex || 0);
-                if (currIndex === FastExt.Component.pageMaxZIndex) {
+                if (currIndex === FastExt.Component.maxZIndex) {
                     continue;
                 }
                 maxZIndex = Math.max(maxZIndex, currIndex);
@@ -183,7 +182,6 @@ namespace FastExt {
             }
             return maxZIndex;
         }
-
 
 
         /**
@@ -218,6 +216,60 @@ namespace FastExt {
             return this.getTargetElement(target);
         }
 
+
+        /**
+         * 保持目标组件的编辑菜单不会自动关闭
+         * @param target
+         */
+        static holdEditorMenu(target: any) {
+            if (target && target.getEditorMenu) {
+                let editorMenu = target.getEditorMenu();
+                if (editorMenu) {
+                    editorMenu.holdShow = true;
+                }
+            }
+        }
+
+        /**
+         * 恢复目标组件的编辑菜单会自动关闭
+         * @param target
+         */
+        static resumeEditorMenu(target: any) {
+            if (target && target.getEditorMenu) {
+                let editorMenu = target.getEditorMenu();
+                if (editorMenu) {
+                    editorMenu.holdShow = false;
+                }
+            }
+        }
+
+        /**
+         * 将使用 setReadOnlyAttr 方法执行设置readOnly 避免将trigger的按钮禁用了
+         * @param field
+         * @param readOnly
+         */
+        static simpleReadOnly(field: any, readOnly: boolean) {
+            if (Ext.isFunction(field.setReadOnlyAttr)) {
+                field.setReadOnlyAttr(readOnly);
+            }
+        }
+
+        /**
+         * 判断目标组件是否readOnly,深入判断了html标签的readOnly属性
+         * @param field
+         */
+        static isRealReadOnly(field: any): boolean {
+            if (field.readOnly) {
+                return true;
+            }
+            if (field.inputEl && field.inputEl.dom) {
+                let attrReadonly = field.inputEl.dom.getAttribute("readonly");
+                if (attrReadonly) {
+                    return true;
+                }
+            }
+            return false;
+        }
 
     }
 

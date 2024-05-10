@@ -6,7 +6,8 @@ namespace FastDefine {
      * 枚举下拉框组件
      */
     export abstract class EnumComboBox {
-        protected constructor() {
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
             Ext.define("Fast.ext.EnumComboBox", {
                 alias: ['widget.enumcombobox', 'widget.enumcombo'],
                 extend: 'Ext.form.field.ComboBox',
@@ -50,6 +51,10 @@ namespace FastDefine {
                             return false;
                         }
                     }
+                    if (Ext.isEmpty(me.enumName)) {
+                        console.warn("enumName属性为空，跳过加载！", this);
+                        return false;
+                    }
                     FastExt.Store.getEnumDataStore(me.enumName, me.firstData, me.lastData, me.params, me.useCache, reloadData).then(function (enumStore) {
                         me.setStore(enumStore);
                         enumStore.filterBy(me.onFastEnumFilter, me);
@@ -89,7 +94,8 @@ namespace FastDefine {
      * 多选枚举
      */
     export abstract class TagEnumComboBox {
-        protected constructor() {
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
             Ext.define("Fast.ext.TagEnumComboBox", {
                 alias: ['widget.tagenumcombobox', 'widget.tagenumcombo'],
                 extend: 'Ext.form.field.Tag',
@@ -157,7 +163,8 @@ namespace FastDefine {
      * 文件上传组件
      */
     export abstract class FastFileField {
-        protected constructor() {
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
             Ext.define("Fast.ext.FastFile", {
                 extend: 'Ext.form.field.Text',
                 alias: ['widget.fastfile', 'widget.fastfilefield'],
@@ -174,11 +181,15 @@ namespace FastDefine {
                 finishRender: function () {
                     this.callParent(arguments);
                     this.inputEl.on('click', this.onFastInputClick, this);
+                    this.refreshTrigger();
                 },
                 onChange: function (newVal, oldVal) {
                     this.callParent(arguments);
-
-                    if (Ext.isEmpty(newVal)) {
+                    this.refreshTrigger();
+                },
+                refreshTrigger: function () {
+                    let val = this.getValue();
+                    if (Ext.isEmpty(val)) {
                         this.getTrigger('open').hide();
                         this.getTrigger('close').hide();
                     } else {
@@ -187,7 +198,6 @@ namespace FastDefine {
                     }
                 },
                 initComponent: function () {
-                    let me = this;
                     let errorMsg = "";
                     for (let i = 0; i < this.fileModules.length; i++) {
                         let fileModule = this.fileModules[i];
@@ -196,6 +206,7 @@ namespace FastDefine {
                     this.emptyText = '请上传' + errorMsg.substring(1);
                     this.editable = false;
                     this.callParent(arguments);
+
                 },
                 triggers: {
                     open: {
@@ -205,14 +216,10 @@ namespace FastDefine {
                             let me = this;
                             if (me.fileModules.length === 1) {
                                 if (me.fileModules[0].type === 'images') {
-                                    if (me.getEditorMenu()) {
-                                        me.getEditorMenu().holdShow = true;
-                                    }
+                                    FastExt.Component.holdEditorMenu(me);
                                     me.blur();
                                     FastExt.Dialog.showImage(me, me.getValue(), function () {
-                                        if (me.getEditorMenu()) {
-                                            me.getEditorMenu().holdShow = false;
-                                        }
+                                        FastExt.Component.resumeEditorMenu(me);
                                     }, true);
                                     return;
                                 }
@@ -260,13 +267,9 @@ namespace FastDefine {
                 },
                 selectData: function () {
                     let me = this;
-                    if (me.getEditorMenu()) {
-                        me.getEditorMenu().holdShow = true;
-                    }
+                    FastExt.Component.holdEditorMenu(me);
                     FastExt.File.uploadFile(me, me.fileModules).then(function (result) {
-                        if (me.getEditorMenu()) {
-                            me.getEditorMenu().holdShow = false;
-                        }
+                        FastExt.Component.resumeEditorMenu(me);
                         if (result) {
                             me.fileObj = result;
                             me.setValue(result.url);
@@ -287,7 +290,8 @@ namespace FastDefine {
      * 多个文件上传管理组件
      */
     export abstract class FastFilesField {
-        constructor() {
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
             Ext.define("Fast.ext.FastFiles", {
                 alias: ['widget.fastfiles', 'widget.fastfilesfield'],
                 extend: 'Ext.form.field.Text',
@@ -356,7 +360,8 @@ namespace FastDefine {
      * 大文本编辑框组件
      */
     export abstract class ContentField {
-        constructor() {
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
             Ext.define("Fast.ext.Content", {
                 alias: ['widget.content', 'widget.contentfield'],
                 extend: 'Ext.form.field.TextArea',
@@ -371,12 +376,11 @@ namespace FastDefine {
                     if (Ext.isEmpty(title)) {
                         title = "编辑内容";
                     }
-                    let me = Ext.create({
-                        xtype: "contentfield",
-                        value: this.value,
-                    });
+                    let me = this.cloneConfig({});
+                    me.setValue(this.getValue());
+
                     me.oldValue = me.getValue();
-                    me.userCls = "radiusNullField";
+                    me.userCls = "fast-radius-null-field";
                     let winWidth = parseInt((document.body.clientWidth * 0.6).toFixed(0));
                     let winHeight = parseInt((document.body.clientHeight * 0.7).toFixed(0));
                     let winButtons = [
@@ -466,14 +470,14 @@ namespace FastDefine {
                 }
             });
         }
-
     }
 
     /**
      * 富文本网页编辑组件
      */
     export abstract class HtmlContentField {
-        constructor() {
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
             Ext.define("Fast.ext.HtmlContent", {
                 alias: ['widget.htmlcontent', 'widget.htmlcontentfield'],
                 extend: 'Ext.form.field.TextArea',
@@ -517,6 +521,26 @@ namespace FastDefine {
                         this.tinyEditor = null;
                     }
                 },
+                onEditorWindowShow: function (window) {
+                    //将tinymce的容器移到window节点中，提高tinymce层级
+                    $(".tox-tinymce-aux").prependTo(window.getEl().dom);
+                },
+                onEditorWindowClose: function () {
+                    //将tinymce的容器移到body中，避免出现其他不可用的情况
+                    $(".tox-tinymce-aux").prependTo($("body")[0]);
+                },
+                onEditorFullscreenChange: function (e) {
+                    let upWindow = this.up("window");
+                    if (!upWindow) {
+                        return;
+                    }
+                    if (e.state) {
+                        //避免出编辑器的菜单被遮挡
+                        upWindow.maximize(false);
+                    } else {
+                        upWindow.restore(false);
+                    }
+                },
                 initEditor: function () {
                     let me = this;
                     let tinyConfig = {
@@ -547,7 +571,7 @@ namespace FastDefine {
                         a11y_advanced_options: true,
                         image_advtab: true,
                         font_size_formats: "8pt 9pt 10pt 11pt 12pt 13pt 14pt 15pt 16pt 17pt 18pt 19pt 20pt 21pt 22pt 23pt 24pt 36pt",
-                        font_family_formats: "微软雅黑='微软雅黑';宋体='宋体';黑体='黑体';仿宋='仿宋';楷体='楷体';隶书='隶书';幼圆='幼圆';Andale Mono=andale mono,times;Arial=arial,helvetica,sans-serif;Arial Black=arial black,avant garde;Book Antiqua=book antiqua,palatino;Comic Sans MS=comic sans ms,sans-serif;Courier New=courier new,courier;Georgia=georgia,palatino;Helvetica=helvetica;Impact=impact,chicago;Symbol=symbol;Tahoma=tahoma,arial,helvetica,sans-serif;Terminal=terminal,monaco;Times New Roman=times new roman,times;Trebuchet MS=trebuchet ms,geneva;Verdana=verdana,geneva;Webdings=webdings;Wingdings=wingdings",
+                        font_family_formats: "微软雅黑='微软雅黑';宋体='宋体';黑体='黑体';仿宋='仿宋';楷体='楷体';隶书='隶书';幼圆='幼圆';方正小标宋体='方正小标宋体';Andale Mono=andale mono,times;Arial=arial,helvetica,sans-serif;Arial Black=arial black,avant garde;Book Antiqua=book antiqua,palatino;Comic Sans MS=comic sans ms,sans-serif;Courier New=courier new,courier;Georgia=georgia,palatino;Helvetica=helvetica;Impact=impact,chicago;Symbol=symbol;Tahoma=tahoma,arial,helvetica,sans-serif;Terminal=terminal,monaco;Times New Roman=times new roman,times;Trebuchet MS=trebuchet ms,geneva;Verdana=verdana,geneva;Webdings=webdings;Wingdings=wingdings",
                         pagebreak_separator: "<div style=\"page-break-before: always;\"></div>",
                         pagebreak_split_block: true,
                         file_picker_types: 'file image media',
@@ -592,12 +616,18 @@ namespace FastDefine {
                             'code'],
                     };
                     tinyConfig = me.initEditorConfig(tinyConfig);
+
                     FastExt.Tinymce.initTinymce(tinyConfig, function (editors) {
                         me.tinyEditor = editors[0];
+                        me.tinyEditor.on('FullscreenStateChanged', (e) => {
+                            me.onEditorFullscreenChange(e);
+                        });
+
                         let upWindow = me.up("window");
                         if (upWindow) {
-                            //将tinymce的容器移到window对话框中
-                            $(".tox-tinymce-aux").prependTo(upWindow.getEl().dom);
+                            me.onEditorWindowShow(upWindow);
+                            upWindow.on("beforeactivate", me.onEditorWindowShow);
+                            upWindow.on("close", me.onEditorWindowClose);
                         }
 
                         if (me.ownerCt) {
@@ -633,11 +663,11 @@ namespace FastDefine {
                         title = "编辑内容";
                     }
 
-                    let me = Ext.create({
-                        xtype: "htmlcontentfield",
-                        value: this.value,
-                    });
+                    let me = this.cloneConfig({});
+                    me.setValue(this.getValue());
+
                     me.oldValue = me.value;
+                    me.userCls = "fast-radius-null-field";
 
                     let winWidth = parseInt((document.body.clientWidth * 0.6).toFixed(0));
                     let winHeight = parseInt((document.body.clientHeight * 0.8).toFixed(0));
@@ -737,7 +767,8 @@ namespace FastDefine {
      * 表格关联组件
      */
     export abstract class LinkField {
-        constructor() {
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
             Ext.define("Fast.ext.Link", {
                 alias: ['widget.link', 'widget.linkfield'],
                 extend: 'Ext.form.FieldContainer',
@@ -745,7 +776,7 @@ namespace FastDefine {
                 entityIdDefaultValue: -1,
                 entityText: null,
                 entityCode: null,
-                linkValue: {},
+                linkValue: null,
                 editable: false,
                 allowBlank: true,
                 layout: 'fit',
@@ -762,8 +793,19 @@ namespace FastDefine {
                 isValid: function () {
                     let me = this;
                     let display = me.down("[name=" + me.name + "Display]");
-                    display.allowBlank = me.allowBlank;
-                    return display.isValid();
+                    if (display) {
+                        display.allowBlank = me.allowBlank;
+                        return display.isValid();
+                    }
+                    return true;
+                },
+                validate: function () {
+                    let display = this.down("[name=" + this.name + "Display]");
+                    if (display) {
+                        display.allowBlank = this.allowBlank;
+                        return display.validate();
+                    }
+                    return true;
                 },
                 getName: function () {
                     return this.name;
@@ -779,7 +821,10 @@ namespace FastDefine {
                 getText: function () {
                     let me = this;
                     let display = me.down("[name=" + me.name + "Display]");
-                    return display.getValue();
+                    if (display) {
+                        return display.getValue();
+                    }
+                    return null;
                 },
                 setRecordValue: function (record) {
                     let me = this;
@@ -824,7 +869,9 @@ namespace FastDefine {
                     if (!val) {//清空数据
                         me.setRawValue(-1);
                         let moreFieldContainer = me.down("[name=" + me.name + "MoreFields]");
-                        moreFieldContainer.removeAll(true);
+                        if (moreFieldContainer) {
+                            moreFieldContainer.removeAll(true);
+                        }
                     }
                     return me;
                 },
@@ -836,7 +883,9 @@ namespace FastDefine {
                     this.setValue(textValues.join("#"));
                     if (this.autoDisabled) {
                         let display = this.down("[name=" + this.name + "Display]");
-                        display.setDisabled(true);
+                        if (display) {
+                            display.setDisabled(true);
+                        }
                     }
                 },
                 getMultiValue: function () {
@@ -847,9 +896,11 @@ namespace FastDefine {
                         values.push(value.getValue());
                     }
                     let moreFieldContainer = me.down("[name=" + me.name + "MoreFields]");
-                    moreFieldContainer.items.each(function (field) {
-                        values.push(field.getValue());
-                    });
+                    if (moreFieldContainer) {
+                        moreFieldContainer.items.each(function (field) {
+                            values.push(field.getValue());
+                        });
+                    }
                     return values;
                 },
                 setRawValue: function (val, moreValues) {
@@ -859,7 +910,9 @@ namespace FastDefine {
                         value.setValue(val);
                     }
                     let moreFieldContainer = me.down("[name=" + me.name + "MoreFields]");
-                    moreFieldContainer.removeAll(true);
+                    if (moreFieldContainer) {
+                        moreFieldContainer.removeAll(true);
+                    }
                     if (moreValues) {
                         for (let i = 0; i < moreValues.length; i++) {
                             let newField = Ext.create({
@@ -867,7 +920,9 @@ namespace FastDefine {
                                 name: me.name
                             });
                             newField.setValue(moreValues[i]);
-                            moreFieldContainer.add(newField);
+                            if (moreFieldContainer) {
+                                moreFieldContainer.add(newField);
+                            }
                         }
                     }
                     if (me.record) {
@@ -900,7 +955,10 @@ namespace FastDefine {
                 getTriggers: function () {
                     let me = this;
                     let display = me.down("[name=" + me.name + "Display]");
-                    return display.getTriggers();
+                    if (display) {
+                        return display.getTriggers();
+                    }
+                    return {};
                 },
                 selectData: function (callback) {
                     let me = this;
@@ -909,61 +967,49 @@ namespace FastDefine {
                             return;
                         }
                     }
-                    if (me.getEditorMenu()) {
-                        me.getEditorMenu().holdShow = true;
-                    }
+                    FastExt.Component.holdEditorMenu(me);
                     if (!me.entityCode) {
                         FastExt.Dialog.showAlert("系统提醒", me.nullEntityCodeError, function () {
-                            if (me.getEditorMenu()) {
-                                me.getEditorMenu().holdShow = false;
-                            }
+                            FastExt.Component.resumeEditorMenu(me);
                         });
                         return;
                     }
                     if (!me.entityId) {
                         FastExt.Dialog.showAlert("系统提醒", me.nullEntityIdError, function () {
-                            if (me.getEditorMenu()) {
-                                me.getEditorMenu().holdShow = false;
-                            }
+                            FastExt.Component.resumeEditorMenu(me);
                         });
                         return;
                     }
                     if (!me.entityText) {
                         FastExt.Dialog.showAlert("系统提醒", me.nullEntityTextError, function () {
-                            if (me.getEditorMenu()) {
-                                me.getEditorMenu().holdShow = false;
-                            }
+                            FastExt.Component.resumeEditorMenu(me);
                         });
                         return;
                     }
-                    let entity = FastExt.System.getEntity(me.entityCode);
+                    let entity = FastExt.System.EntitiesHandler.getEntity(me.entityCode);
                     if (!entity) {
                         FastExt.Dialog.showAlert("系统提醒", "未获取到 '" + me.entityCode + "' 实体类！", function () {
-                            if (me.getEditorMenu()) {
-                                me.getEditorMenu().holdShow = false;
-                            }
+                            FastExt.Component.resumeEditorMenu(me);
                         });
                         return;
                     }
                     if (!entity.js) {
                         FastExt.Dialog.showAlert("系统提醒", "未获取到 '" + me.entityCode + "' JS对象！", function () {
-                            if (me.getEditorMenu()) {
-                                me.getEditorMenu().holdShow = false;
-                            }
+                            FastExt.Component.resumeEditorMenu(me);
                         });
                         return;
                     }
                     let entityObj = eval("new " + me.entityCode + "()");
                     if (!Ext.isFunction(entityObj.showSelect)) {
                         FastExt.Dialog.showAlert("系统提醒", "'" + me.entityCode + "' JS对象不存在函数showSelect(obj,callBack)！", function () {
-                            if (me.getEditorMenu()) {
-                                me.getEditorMenu().holdShow = false;
-                            }
+                            FastExt.Component.resumeEditorMenu(me);
                         });
                         return;
                     }
                     let display = me.down("[name=" + me.name + "Display]");
-                    display.blur();
+                    if (display) {
+                        display.blur();
+                    }
                     let selectTitle = entity.shortName;
                     if (me.fieldLabel) {
                         selectTitle = me.fieldLabel;
@@ -1026,9 +1072,7 @@ namespace FastDefine {
                                 }
                             }
                         } finally {
-                            if (me.getEditorMenu()) {
-                                me.getEditorMenu().holdShow = false;
-                            }
+                            FastExt.Component.resumeEditorMenu(me);
                         }
                     });
                 },
@@ -1037,7 +1081,9 @@ namespace FastDefine {
                     me.setValue(null);
                     me.setRawValue(-1);
                     let moreFieldContainer = me.down("[name=" + me.name + "MoreFields]");
-                    moreFieldContainer.removeAll(true);
+                    if (moreFieldContainer) {
+                        moreFieldContainer.removeAll(true);
+                    }
                     me.records = null;
                     me.record = null;
                     if (Ext.isFunction(me.onClearSelect)) {
@@ -1053,14 +1099,12 @@ namespace FastDefine {
                 },
                 initComponent: function () {
                     let me = this;
-                    if (FastExt.Listeners.onInitLinkFieldDefaultValue) {
-                        let defaultLinkValue = FastExt.Listeners.onInitLinkFieldDefaultValue(me);
-                        if (defaultLinkValue) {
-                            if (me.linkValue) {
-                                me.linkValue = FastExt.Json.mergeJson(me.linkValue, defaultLinkValue);
-                            } else {
-                                me.linkValue = defaultLinkValue;
-                            }
+                    let defaultLinkValue = FastExt.Listeners.getFire().onInitLinkFieldDefaultValue(me);
+                    if (defaultLinkValue) {
+                        if (me.linkValue) {
+                            me.linkValue = FastExt.Json.mergeJson(me.linkValue, defaultLinkValue);
+                        } else {
+                            me.linkValue = defaultLinkValue;
                         }
                     }
 
@@ -1083,12 +1127,13 @@ namespace FastDefine {
                     }
 
                     let displayValue = me.linkValue[me.entityText];
-                    if (Ext.isEmpty(displayValue)) {
-                        displayValue = me.value;
-                    }
 
                     if (displayValue === this.entityIdDefaultValue) {
                         displayValue = "";
+                    }
+
+                    if (Ext.isEmpty(displayValue)) {
+                        displayValue = me.value;
                     }
 
                     let moreFieldItems = [];
@@ -1122,10 +1167,13 @@ namespace FastDefine {
                         },
                         {
                             xtype: 'textfield',
+                            code: me.code,
                             name: me.name + "Display",
                             editable: me.editable,
                             parentXtype: me.xtype,
                             value: displayValue,
+                            useHistory: me.useHistory,
+                            letterKeyboard: me.letterKeyboard,
                             disabled: !Ext.isEmpty(displayValue) && me.autoDisabled && !FastExt.Base.toBool(me.fromHeadSearch, false),
                             hideLabel: true,
                             fieldLabel: me.fieldLabel,
@@ -1139,6 +1187,7 @@ namespace FastDefine {
                             triggers: {
                                 close: {
                                     cls: 'text-clear',
+                                    weight: FastExt.Base.toBool(me.fromHeadSearch, false) ? 99 : 0,
                                     handler: function () {
                                         me.clearData();
                                         if (Ext.isFunction(me.onClearValue)) {
@@ -1167,7 +1216,8 @@ namespace FastDefine {
      * Target组件，适用于一个表格关联多个表格
      */
     export abstract class TargetField {
-        constructor() {
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
             Ext.define("Fast.ext.Target", {
                 alias: ['widget.target', 'widget.targetfield'],
                 extend: 'Ext.form.FieldContainer',
@@ -1292,19 +1342,10 @@ namespace FastDefine {
                     if (Ext.isEmpty(title)) {
                         title = "编辑目标数据";
                     }
-                    let me = Ext.create({
-                        xtype: "targetfield",
-                        targetType: this.targetType,
-                        targetTypeReadOnly: this.targetTypeReadOnly,
-                        targetTypeEnum: this.targetTypeEnum,
-                        targetId: this.targetId,
-                        targetValue: this.targetValue,
-                        targetFunction: this.targetFunction,
-                        targetEnumValue: this.targetEnumValue,
-                        targetEnumText: this.targetEnumText,
-                        include: this.include,
-                        exclude: this.exclude,
-                    });
+
+                    let me = this.cloneConfig({});
+                    me.setValue(this.getValue());
+
                     me.editorWin = Ext.create('Ext.window.Window', {
                         title: title,
                         height: 200,
@@ -1458,7 +1499,8 @@ namespace FastDefine {
      * 地图位置组件
      */
     export abstract class MapField {
-        protected constructor() {
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
             Ext.define("Fast.ext.Map", {
                 alias: ['widget.map', 'widget.mapfield'],
                 extend: 'Ext.form.FieldContainer',
@@ -1614,23 +1656,34 @@ namespace FastDefine {
 
                 selectData: function () {
                     let me = this;
-                    if (me.getEditorMenu()) {
-                        me.getEditorMenu().holdShow = true;
-                    }
+                    FastExt.Component.holdEditorMenu(me);
                     let value = me.down("[name=" + me.name + "]");
                     value.blur();
-                    FastExt.Map.selAddressInMap(me, me.getLngValue(), me.getLatValue(), me.getValue()).then(function (result) {
-                        if (result) {
+
+                    FastExt.AMapDialog.select(me, FastExt.AMapMapParams.newParam({
+                        title: "请选择在地图上选择坐标位置",
+                        items: [
+                            {
+                                type: FastEnum.MapItemType.marker_overlay,
+                                enabledEditor: true,
+                                title: "SelectPosition",
+                                lng: me.getLngValue(),
+                                lat: me.getLatValue(),
+                                address: me.getValue(),
+                                zoom: 15,
+                            }
+                        ],
+                    })).then(function (resultArray) {
+                        if (resultArray && resultArray.length > 0) {
+                            let result = resultArray[0];
                             me.setLatValue(result.lat);
                             me.setLngValue(result.lng);
-                            me.setProValue(result.pro);
-                            me.setAreaValue(result.area);
+                            me.setProValue(result.province);
+                            me.setAreaValue(result.district);
                             me.setCityValue(result.city);
-                            me.setValue(result.addr);
+                            me.setValue(result.address);
                         }
-                        if (me.getEditorMenu()) {
-                            me.getEditorMenu().holdShow = false;
-                        }
+                        FastExt.Component.resumeEditorMenu(me);
                     });
                 },
                 clearData: function () {
@@ -1722,7 +1775,8 @@ namespace FastDefine {
      * 时间区间组件
      */
     export abstract class DateRangeField {
-        constructor() {
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
             Ext.define("Fast.ext.DateRange", {
                 alias: ['widget.daterange', 'widget.daterangefield'],
                 extend: 'Ext.form.field.Text',
@@ -1738,12 +1792,9 @@ namespace FastDefine {
                 submitValue: true,
                 onAfterSelect: null,
                 onClearValue: null,
-
                 selectData: function () {
                     let me = this;
-                    if (me.getEditorMenu()) {
-                        me.getEditorMenu().holdShow = true;
-                    }
+                    FastExt.Component.holdEditorMenu(me);
 
                     let time = Ext.now();
                     let dateRangeMenu = Ext.create('Ext.menu.Menu', {
@@ -1796,6 +1847,10 @@ namespace FastDefine {
                                                 me.beginDate = Ext.Date.format(Ext.Date.add(new Date(), Ext.Date.MONTH, -6), me.format);
                                             } else if (newValue === 5) {
                                                 me.beginDate = Ext.Date.format(Ext.Date.add(new Date(), Ext.Date.YEAR, -1), me.format);
+                                            } else if (newValue === 7) {
+                                                me.beginDate = Ext.Date.format(Ext.Date.add(new Date(), Ext.Date.DAY, -3), me.format);
+                                            } else if (newValue === 8) {
+                                                me.beginDate = Ext.Date.format(Ext.Date.add(new Date(), Ext.Date.DAY, -1), me.format);
                                             }
                                             let error = me.refreshValue();
                                             if (error) {
@@ -1818,8 +1873,16 @@ namespace FastDefine {
                                     store: Ext.create('Ext.data.Store', {
                                         data: [
                                             {
+                                                'text': '昨天',
+                                                'value': 8
+                                            },
+                                            {
                                                 'text': '今天',
                                                 'value': 6
+                                            },
+                                            {
+                                                'text': '近三天',
+                                                'value': 7
                                             },
                                             {
                                                 'text': '近一周',
@@ -1905,11 +1968,17 @@ namespace FastDefine {
                         listeners: {
                             hide: function (obj, epts) {
                                 obj.close();
+                            },
+                            close: function () {
+                                FastExt.Component.resumeEditorMenu(me);
+                                me.pickerShown = false;
+                                console.log("关闭日期范围选择菜单！");
                             }
                         }
                     });
-                    dateRangeMenu.setWidth(Math.max(this.getWidth(), 200));
-                    dateRangeMenu.showBy(this, "tl-bl?");
+                    dateRangeMenu.setWidth(this.bodyEl.getWidth());
+                    dateRangeMenu.showBy(this.bodyEl, "tl-bl?");
+                    this.pickerShown = true;
                 },
                 clearData: function () {
                     let me = this;
@@ -1921,6 +1990,9 @@ namespace FastDefine {
                     let me = this;
                     me.setValue(null);
 
+                    if (Ext.isEmpty(me.beginDate) || Ext.isEmpty(me.beginDate)) {
+                        return null;
+                    }
                     let bDate = Ext.Date.parse(me.beginDate, me.format);
                     let eDate = Ext.Date.parse(me.endDate, me.format);
 
@@ -1977,6 +2049,23 @@ namespace FastDefine {
                         }
                     }
                 },
+                toggleSelectData: function () {
+                    if (this.pickerShown) {
+                        this.pickerShown = false;
+                        return;
+                    }
+                    this.selectData();
+                },
+                onFastInputClick: function () {
+                    if (this.disabled) {
+                        return;
+                    }
+                    this.toggleSelectData();
+                },
+                finishRender: function () {
+                    this.callParent(arguments);
+                    this.inputEl.on('click', this.onFastInputClick, this);
+                },
                 initComponent: function () {
                     this.editable = false;
                     this.refreshValue();
@@ -1992,7 +2081,8 @@ namespace FastDefine {
      * 日期时间选择组件
      */
     export abstract class DateField {
-        constructor() {
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
             Ext.define("Fast.ext.Date", {
                 alias: ['widget.date', 'widget.datefield'],
                 extend: 'Ext.form.field.Text',
@@ -2045,14 +2135,10 @@ namespace FastDefine {
                 },
                 selectData: function () {
                     let me = this;
-                    if (me.getEditorMenu() != null) {
-                        me.getEditorMenu().holdShow = true;
-                    }
+                    FastExt.Component.holdEditorMenu(me);
                     me.pickerShown = true;
                     FastExt.Dialog.showFastDatePicker(me.bodyEl, me.getValue(), this.format).then(function (dateValue) {
-                        if (me.getEditorMenu() != null) {
-                            me.getEditorMenu().holdShow = false;
-                        }
+                        FastExt.Component.resumeEditorMenu(me);
                         me.resetPickerShowTask.delay(100);
 
                         if (dateValue) {
@@ -2106,7 +2192,8 @@ namespace FastDefine {
      * 颜色选择组件
      */
     export abstract class ColorField {
-        constructor() {
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
             Ext.define("Fast.ext.ColorField", {
                 extend: 'Ext.form.field.Text',
                 alias: ['widget.colorfield'],
@@ -2145,18 +2232,13 @@ namespace FastDefine {
                 },
                 selectData: function () {
                     let me = this;
-                    if (me.getEditorMenu() != null) {
-                        me.getEditorMenu().holdShow = true;
-                    }
-
+                    FastExt.Component.holdEditorMenu(me);
                     me.pickerShown = true;
 
                     FastExt.Dialog.showFastColorPicker(me.inputEl, me.getValue(), function (color) {
                         me.setValue(color.toRGBA().toString(0));
                     }).then(function (dateValue) {
-                        if (me.getEditorMenu() != null) {
-                            me.getEditorMenu().holdShow = false;
-                        }
+                        FastExt.Component.resumeEditorMenu(me);
                         me.resetPickerShowTask.delay(100);
                     });
                 },
@@ -2193,7 +2275,8 @@ namespace FastDefine {
      * 渲染显示iconfont的组件
      */
     export abstract class SVGIcon {
-        constructor() {
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
             Ext.define("Fast.ext.SVGIcon", {
                 extend: 'Ext.Component',
                 alias: ['widget.svgicon'],
@@ -2205,7 +2288,11 @@ namespace FastDefine {
                 },
                 finishRender: function () {
                     this.callParent(arguments);
-                    this.update("<svg class=\"svgIconFill " + this.iconCls + "\" aria-hidden=\"true\"><use xlink:href=\"" + this.iconId + "\"></use></svg>");
+                    let template = new Ext.Template('<svg class="svgIconFill {iconClass}" aria-hidden="true"><use xlink:href="{iconId}"></use></svg>');
+                    this.update(template.apply({
+                        iconId: this.iconId,
+                        iconCls: this.iconCls,
+                    }));
                 }
             });
         }
@@ -2215,11 +2302,13 @@ namespace FastDefine {
      * 渲染显示iconfont的组件
      */
     export abstract class Lottie {
-        constructor() {
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
             Ext.define("Fast.ext.Lottie", {
                 extend: 'Ext.Component',
                 alias: ['widget.lottie'],
                 jsonPath: '',
+                focusOnToFront: false,
                 initComponent: function () {
                     let me = this;
                     me.callParent(arguments);
@@ -2252,7 +2341,8 @@ namespace FastDefine {
      * 代码编辑器
      */
     export abstract class MonacoField {
-        protected constructor() {
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
             Ext.define("Fast.ext.FastMonaco", {
                 extend: 'Ext.form.field.TextArea',
                 alias: ['widget.fastmonaco', 'widget.fastmonacofield'],
@@ -2274,16 +2364,12 @@ namespace FastDefine {
                 },
                 showMonacoEditor: function () {
                     let me = this;
-                    if (me.getEditorMenu()) {
-                        me.getEditorMenu().holdShow = true;
-                    }
+                    FastExt.Component.holdEditorMenu(me);
                     FastExt.MonacoEditor.showEditor(this, me.getValue(), me.language).then(function (result) {
                         if (result) {
                             me.setValue(result);
                         }
-                        if (me.getEditorMenu()) {
-                            me.getEditorMenu().holdShow = false;
-                        }
+                        FastExt.Component.resumeEditorMenu(me);
                     });
                 },
                 clearData: function () {
@@ -2292,18 +2378,14 @@ namespace FastDefine {
                 },
                 showWindow: function (obj, callBack, title) {
                     let me = this;
-                    if (me.getEditorMenu()) {
-                        me.getEditorMenu().holdShow = true;
-                    }
+                    FastExt.Component.holdEditorMenu(me);
                     FastExt.MonacoEditor.showEditor(obj, me.getValue(), me.language).then(function (result) {
                         if (result) {
                             if (Ext.isFunction(callBack)) {
                                 callBack(me);
                             }
                         }
-                        if (me.getEditorMenu()) {
-                            me.getEditorMenu().holdShow = false;
-                        }
+                        FastExt.Component.resumeEditorMenu(me);
                     });
                 }
             });
@@ -2311,8 +2393,103 @@ namespace FastDefine {
         }
     }
 
-    for (let subClass in FastDefine) {
-        FastDefine[subClass]();
+
+    /**
+     * 分割线，可以配置中间提示内容
+     */
+    export abstract class TipLineField {
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
+            Ext.define("Fast.ext.TipLine", {
+                extend: 'Ext.Component',
+                alias: ['widget.tipline'],
+                lineText: '',
+                lineColor: "#cccccc",
+                lineTextColor: "#cccccc",
+                focusOnToFront: false,
+                initComponent: function () {
+                    let me = this;
+                    me.callParent(arguments);
+                },
+                finishRender: function () {
+                    this.callParent(arguments);
+                    let bgColor = "#ffffff";
+                    if (this.config.style && this.config.style.background) {
+                        bgColor = this.config.style.background;
+                    }
+                    let template = new Ext.Template('<div style="display: flex;align-items: center;justify-content: center;width: 100%;position: relative;">' +
+                        '<div style="padding: 5px 10px;background: {bgColor};z-index: 9;color:{lineTextColor}">' +
+                        '{lineText}' +
+                        '</div>' +
+                        '<div style="height: 1px;background: {lineColor};width: 100%;position: absolute;"></div>' +
+                        '</div>');
+                    this.update(template.apply({
+                        lineText: this.lineText,
+                        lineColor: this.lineColor,
+                        lineTextColor: this.lineTextColor,
+                        bgColor: bgColor,
+                    }));
+                }
+            });
+        }
+
     }
+
+    /**
+     * Grid中的占位列，无任何功能作用
+     */
+    export abstract class RowPlaceholderColumn{
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
+            Ext.define('Ext.grid.column.RowPlaceholder', {
+                extend: 'Ext.grid.column.RowNumberer',
+                alias: 'widget.rowplaceholder',
+                width: 30,
+                align: 'center',
+                autoLock: false,
+                editable: false,
+                excelHeader: false,
+                stopSelection: true,
+                resizable: false,
+                cellFocusable:false,
+                cls: Ext.baseCSSPrefix + 'row-place-holder',
+                tdCls: Ext.baseCSSPrefix + 'grid-cell-row-place-holder ' + Ext.baseCSSPrefix + 'grid-cell-special',
+                innerCls: Ext.baseCSSPrefix + 'grid-cell-inner-row-place-holder',
+                defaultRenderer: function(value, metaData, record, rowIdx, colIdx, dataSource, view) {
+                    return "";
+                },
+            });
+        }
+    }
+
+
+    /**
+     * Markdown文件显示组件
+     */
+    export abstract class MarkdownDisplay {
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
+            Ext.define("Fast.ext.MarkdownDisplay", {
+                extend: 'Ext.Component',
+                alias: ['widget.markdowndisplay'],
+                filePath: "",
+                initComponent: function () {
+                    let me = this;
+                    me.callParent(arguments);
+                },
+                finishRender: function () {
+                    this.callParent(arguments);
+                    this.setLoading("加载数据中，请稍后……");
+                    $.get(this.filePath, result => {
+                        FastExt.Markdown.parseMarkdown(result, htmlValue => {
+                            this.setLoading(false);
+                            this.update(htmlValue);
+                        });
+                    });
+                }
+            });
+        }
+    }
+
 
 }

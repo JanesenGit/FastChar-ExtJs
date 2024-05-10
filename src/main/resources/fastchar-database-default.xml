@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE database>
+<database name="*">
+
+    <table name="ext_manager_role" comment="管理员角色" layer="roleLayerCode" search="false">
+        <column name="roleId" comment="角色编号" type="int" length="11"
+                primary="true" autoincrement="true" nullable="not null"/>
+
+        <column name="roleName" comment="角色名称" type="varchar"
+                length="250" nullable="null"/>
+
+        <column name="roleMenuPower" comment="角色菜单权限" type="longtext"
+                nullable="null" />
+
+        <column name="roleExtPower" comment="角色界面权限" type="longtext"
+                nullable="null" />
+
+        <column name="roleState" comment="角色状态" type="int"
+                nullable="null" length="11" render="Enum"/>
+
+        <column name="roleType" comment="角色类型" type="int"
+                nullable="null" length="11" render="Enum"/>
+
+        <column name="parentRoleId" comment="父类角色" type="int" length="11"
+                nullable="not null" render="tree" bind="layer" link="ext_manager_role@roleId@roleName"/>
+
+        <column name="roleDateTime" comment="录入时间" type="datetime"
+                length="6" nullable="null"/>
+    </table>
+
+    <table name="ext_manager" comment="系统管理员" layer="managerLayerCode">
+
+        <column name="managerId" comment="管理员编号" type="int" length="11"
+                primary="true" autoincrement="true" nullable="not null"/>
+
+        <column name="managerLoginName" comment="登录名" type="varchar"
+                length="250" nullable="null"/>
+
+        <column name="managerName" comment="管理员名称" type="varchar"
+                length="250" nullable="null"/>
+
+        <column name="managerPassword" comment="登录密码" type="varchar"
+                length="250" nullable="null" password="true"/>
+
+        <column name="managerPassword2" comment="明文登录密码" type="varchar"
+                length="250" nullable="null" />
+
+        <column name="managerMenuPower" comment="管理员菜单权限" type="longtext"
+                nullable="null"/>
+
+        <column name="managerExtPower" comment="管理员界面权限" type="longtext"
+                nullable="null"/>
+
+        <column name="managerNoticeTitle" comment="管理员待办事项" type="longtext"
+                nullable="null"/>
+
+        <column name="googleSecretKey" comment="谷歌验证秘钥" type="varchar"
+                length="250" nullable="null" />
+
+        <column name="roleId" comment="管理员角色" type="int"
+                nullable="null" length="11" bind="layer" link="ext_manager_role@roleId@roleName"/>
+
+        <column name="managerState" comment="管理员状态" type="int"
+                nullable="null" length="11" render="Enum"/>
+
+        <column name="onlineType" comment="在线类型" type="int"
+                nullable="null" length="11" render="Enum"/>
+
+        <column name="lastLoginTime" comment="最后一次登录" type="datetime"
+                length="6" nullable="null"/>
+
+        <column name="powerState" comment="权限状态" type="int"
+                nullable="null" length="11" />
+
+        <column name="initCode" comment="初始化标识" type="varchar"
+                nullable="null" length="100" />
+
+        <column name="managerDateTime" comment="录入时间" type="datetime"
+                length="6" nullable="null"/>
+    </table>
+
+    <table name="ext_manager_error" comment="登录失败次数" search="false">
+        <column name="errorId" comment="管理员编号" type="int" length="11"
+                primary="true" autoincrement="true" nullable="not null"/>
+
+        <column name="managerLoginName" comment="登录账号" type="varchar"
+                length="250" nullable="null" index="true"/>
+
+        <column name="errorDateTime" comment="录入时间" type="datetime"
+                length="6" nullable="null"/>
+
+    </table>
+
+    <table name="ext_system_log" comment="系统操作日志管理" layer="systemLayerCode" search="false">
+
+        <column name="systemLogId" comment="编号" type="int" length="11"
+                primary="true" autoincrement="true" nullable="not null"/>
+
+        <column name="systemLogType" comment="日志类型" type="varchar"
+                length="250" nullable="null" index="true"/>
+
+        <column name="managerId" comment="所属管理员" type="int"
+                length="11" nullable="null" bind="layer" link="ext_manager@managerId@managerLoginName"/>
+
+        <column name="systemLogContent" comment="日志内容" type="longtext"
+                nullable="null"  index="true"/>
+
+        <column name="systemLogIp" comment="IP地址" type="text"
+                nullable="null" />
+
+        <column name="systemLogClient" comment="客户端信息" type="text"
+                nullable="null" />
+
+        <column name="systemSendData" comment="提交的数据" type="longtext"
+                nullable="null"  index="true"/>
+
+        <column name="systemResultData" comment="返回的数据" type="longtext"
+                nullable="null"  index="true"/>
+
+        <column name="systemLogData" comment="被操作的数据" type="longtext"
+                nullable="null"  index="true"/>
+
+        <column name="systemLogDateTime" comment="录入时间" type="datetime"
+                length="6" nullable="null" index="true"/>
+    </table>
+
+    <table name="ext_system_config" comment="Ext配置管理" search="false">
+
+        <column name="configId" comment="编号" type="int" length="11"
+                primary="true" autoincrement="true" nullable="not null"/>
+
+        <column name="projectName" comment="项目名称" type="varchar"
+                length="500" nullable="null" index="true"/>
+
+        <column name="entityCode" comment="实体编号" type="varchar"
+                length="500" nullable="null" index="true"/>
+
+        <column name="menuId" comment="菜单Id" type="varchar"
+                length="500" nullable="null" index="true"/>
+
+        <column name="configKey" comment="配置标识" type="varchar"
+                length="500" nullable="null" index="true"/>
+
+        <column name="configType" comment="配置类型" type="varchar"
+                length="500" nullable="null" index="true"/>
+
+        <column name="managerId" comment="所属管理员" type="int"
+                length="11" nullable="null" index="true"/>
+
+        <column name="configValue" comment="配置的值" type="longtext"
+                nullable="null"/>
+
+        <column name="configDateTime" comment="录入时间" type="datetime"
+                length="6" nullable="null" index="true"/>
+    </table>
+
+    <table name="ext_system_data" comment="数据看板" layer="dataLayerCode" search="false">
+
+        <column name="dataId" comment="编号" type="int" length="11"
+                primary="true" autoincrement="true" nullable="not null"/>
+
+        <column name="managerId" comment="管理员" type="int"
+                length="11" nullable="null" bind="layer" link="ext_manager@managerId@managerLoginName"/>
+
+        <column name="dataCode" comment="数据编号" type="varchar"
+                nullable="null" length="100" index="true"/>
+
+        <column name="dataType" comment="数据类型" type="varchar"
+                nullable="null" length="500" index="true"/>
+
+        <column name="dataValue" comment="数据值" type="double"
+                nullable="null" length="11,3"/>
+
+        <column name="dataDateTime" comment="录入时间" type="datetime"
+                nullable="null" length="6" index="true"/>
+    </table>
+
+    <table name="ext_system_data_log" comment="系统数据日志管理" layer="dataLayerCode" search="false">
+
+        <column name="dataLogId" comment="编号" type="int" length="11"
+                primary="true" autoincrement="true" nullable="not null"/>
+
+        <column name="dataUser" comment="操作人" type="varchar"
+                nullable="null" length="500" index="true"/>
+
+        <column name="dataUserId" comment="操作人ID" type="int"
+                nullable="null" length="11" index="true"/>
+
+        <column name="dataLogContent" comment="日志内容" type="longtext"
+                nullable="null"  index="true"/>
+
+        <column name="dataLogIp" comment="IP地址" type="text"
+                nullable="null" />
+
+        <column name="dataLogClient" comment="客户端信息" type="text"
+                nullable="null" />
+
+        <column name="dataId" comment="被操作数据" type="int"
+                nullable="null" length="11" index="true"/>
+
+        <column name="dataType" comment="数据类型" type="varchar"
+                nullable="null" length="100" index="true"/>
+
+        <column name="dataLogType" comment="日志类型" type="varchar"
+                length="250" nullable="null" index="true"/>
+
+        <column name="dataLogData" comment="被操作的数据" type="longtext"
+                nullable="null"  />
+
+        <column name="dataLogDateTime" comment="录入时间" type="datetime"
+                length="6" nullable="null" index="true"/>
+    </table>
+
+
+</database>

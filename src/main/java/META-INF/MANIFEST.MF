@@ -1,8 +1,5 @@
 Manifest-Version: 1.0
-FastChar-Web: com.fastchar.extjs.FastCharExtWeb
 FastChar-Scanner: true
 FastChar-Extract: true
-FastChar-Exclude: */build-compress.txt,*/*.ts,*/base/index/index.js,*/base/login/login.js,*/base/utils/fast-ext-utils.js,*/base/map/fast-img-layer.js,*/fastchar/extjs/echarts/*.json,readme.txt,*/base/utils/head,*/base/utils/src/*
-FastChar-Plugin-Version: 3.11.3
-
-
+FastChar-Exclude: upgrade-extjs-readme.txt,*/build-compress.txt,*/*.ts,*/base/index/index.js,*/base/login/login.js,*/base/utils/fast-ext-utils.js,*/base/map/fast-img-layer.js,*/fastchar/extjs/echarts/*.json,changelog.txt,*/base/utils/head,*/base/utils/src/*
+FastChar-Plugin-Version: 4.10.27

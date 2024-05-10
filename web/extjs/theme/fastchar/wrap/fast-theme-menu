@@ -3,14 +3,44 @@
     -webkit-transition: background 150ms !important;
     -o-transition:background 150ms !important;
     transition:background 150ms !important;
+    min-height:40px;
 }
 
 .x-menu{
-    border-radius: 8px;
+    border-radius: ${inputRadius};
     overflow:hidden;
+    border:0;
 }
 
 
+ .x-menu-item-link{
+    display: flex;
+    align-items: center;
+
+}
+
 .x-menu-item-active {
-	background-color:$[color] !important;
+	background-color:${color} !important;
+}
+
+.x-menu-item-default.x-menu-item-separator{
+    border-top:solid 1px #f0f0f0;
+    height: 1px !important;
+    min-height:1px;
+}
+
+.x-menu-icon-separator-default{
+    border-left:solid 1px #f0f0f0;
+}
+
+.x-menu-item-text-default{
+    line-height:40px;
+}
+
+.x-menu-item-icon-default{
+    line-height:26px;
+    top:unset;
+}
+.x-menu-item-arrow-default{
+    top:unset;
 }

@@ -5,24 +5,6 @@ namespace FastExt {
      */
     export class Renders {
 
-        // private static saveRenderFun(obj, colIndex, functionStr) {
-        //     try {
-        //         if (Ext.isFunction(obj.getHeaderContainer)) {
-        //             let headerCt = obj.getHeaderContainer();
-        //             if (headerCt) {
-        //                 let column = headerCt.getHeaderAtIndex(colIndex);
-        //                 if (column) {
-        //                     FastExt.Cache.setCache(column.getRenderCacheKey(), functionStr);
-        //                 }
-        //             } else {
-        //                 console.error("保存渲染函数失败！", colIndex, functionStr);
-        //             }
-        //         }
-        //     } catch (e) {
-        //         console.error(e);
-        //     }
-        // }
-
         public static getRenderFunStr(column) {
             return FastExt.Cache.getCache(column.getRenderCacheKey());
         }
@@ -85,7 +67,9 @@ namespace FastExt {
             return val.toString()
                 .replace(new RegExp("\n", 'g'), "")
                 .replace(new RegExp("\t", 'g'), "")
-                .replace(/<\/?.+?>/g, "");
+                .replace(/<\/?.+?>/g, "")
+                .replaceAll("\n", "")
+                .replaceAll("\t", "");
         }
 
         /**
@@ -115,20 +99,30 @@ namespace FastExt {
          * 根据提示内容返回灰色提示
          * @param tipValue
          */
-        static toEmpty(tipValue) {
+        static toEmpty(tipValue: string) {
             if (Ext.isEmpty(tipValue)) {
                 tipValue = "无";
             }
-            return "<span style='color: #ccc;'>"+tipValue+"</span>";
+            return "<span style='color: #ccc;'>" + tipValue + "</span>";
         }
 
+
+        /**
+         * 返回点击跳转的样式
+         * @param text
+         * @param url
+         */
+        static toLinkUrlText(text: string, url: string) {
+            let functionStr = "FastExt.Windows.openUrl('" + url + "','_blank')";
+            return FastExt.Renders.toClickText(text, functionStr);
+        }
 
         /**
          * 返回可点击的文本样式
          * @param text 显示的文本
          * @param clickFunctionStr 点击触发的函数字符串
          */
-        static toClickText(text, clickFunctionStr) {
+        static toClickText(text: string, clickFunctionStr: string) {
             if (FastExt.Power.config) {
                 return text;
             }
@@ -143,26 +137,25 @@ namespace FastExt {
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
         static normal(append?: string, position?: string): any {
-            //let renderFunctionStr = "FastExt.Renders.normal(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
             return function (val, m, record, rowIndex, colIndex, store, view, details) {
-                // FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
 
                 if (Ext.isEmpty(val)) {
                     return FastExt.Renders.toEmptyTip();
                 }
+                let _append = append;
 
-                if (!append) {
-                    append = "";
+                if (Ext.isEmpty(_append)) {
+                    _append = "";
                 }
                 if (!Ext.isEmpty(position)) {
                     if (position === "left" || position === "l" || FastExt.Base.toBool(position, false)) {
-                        val = append + val;
+                        val = _append + val;
                     }
                     if (position === "right" || position === "r") {
-                        val = val + append;
+                        val = val + _append;
                     }
                 } else {
-                    val = val + append;
+                    val = val + _append;
                 }
                 if (details) {
                     return FastExt.Renders.toHtmlContent(val);
@@ -176,9 +169,7 @@ namespace FastExt {
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
         static money(): any {
-            //let renderFunctionStr = "FastExt.Renders.money(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
             return function (val, m, record, rowIndex, colIndex) {
-                // FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 if (FastExt.Power.config) {
                     return val;
                 }
@@ -194,9 +185,7 @@ namespace FastExt {
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
         static text(): any {
-            //let renderFunctionStr = "FastExt.Renders.text(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
             return function (val, m, record, rowIndex, colIndex, store, view, details) {
-                // FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 if (FastExt.Power.config) {
                     return val;
                 }
@@ -206,7 +195,7 @@ namespace FastExt {
                 if (details) {
                     return FastExt.Renders.toHtmlContent(val)
                 }
-                return "<span style='white-space: pre;'>" + FastExt.Renders.toSingleLineText(val) + "</span>";
+                return "<span>" + FastExt.Renders.toSingleLineText(val) + "</span>";
             };
         }
 
@@ -214,9 +203,7 @@ namespace FastExt {
          * 大文本渲染器
          */
         static bigText(): any {
-            //let renderFunctionStr = "FastExt.Renders.bigText(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
             return function (val, m, record, rowIndex, colIndex, store, view) {
-                // FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 if (FastExt.Power.config) {
                     return val;
                 }
@@ -237,9 +224,7 @@ namespace FastExt {
          * 大文本渲染器
          */
         static bigText2(): any {
-            //let renderFunctionStr = "FastExt.Renders.bigText2(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
             return function (val, m, record, rowIndex, colIndex, store, view) {
-                // FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 if (FastExt.Power.config) {
                     return val;
                 }
@@ -257,19 +242,22 @@ namespace FastExt {
          * 图片数据渲染
          * @param height 设置渲染图片的高度
          * @param width 设置渲染图片的宽度
+         * @param justDetails 只应用到详情窗体中
+         * @param clickable 是否允许点击图片查看
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
-        static image(height?: number, width?: number): any {
-            //let renderFunctionStr = "FastExt.Renders.image(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
+        static image(height?: number, width?: number, justDetails?: boolean, clickable?: boolean): any {
             return function (val, m, record, rowIndex, colIndex, store, view, details) {
                 try {
-                    // FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                     if (FastExt.Power.config) {
                         return val;
                     }
 
-                    let key: string = FastExt.Renders.getRenderKey(colIndex, rowIndex, store);
+                    if (Ext.isEmpty(clickable)) {
+                        clickable = true;
+                    }
 
+                    let key: string = FastExt.Renders.getRenderKey(colIndex, rowIndex, store);
 
                     let imageHeight = "14px";
                     let imageWidth = "auto";
@@ -281,12 +269,21 @@ namespace FastExt {
                         val = "http:" + val;
                     }
                     try {
-                        if (height && Ext.isNumber(height)) {
-                            imageHeight = height + "px";
+                        let checkParam = true;
+
+                        if (justDetails && !details) {
+                            checkParam = false;
                         }
-                        if (width && Ext.isNumber(width)) {
-                            imageWidth = width + "px";
+
+                        if (checkParam) {
+                            if (height && Ext.isNumber(height) && height > 0) {
+                                imageHeight = height + "px";
+                            }
+                            if (width && Ext.isNumber(width) && width > 0) {
+                                imageWidth = width + "px";
+                            }
                         }
+
                     } catch (e) {
                     }
 
@@ -294,7 +291,7 @@ namespace FastExt {
                     let url = arrayInfo[0];
                     let name = url.substring(url.lastIndexOf("/") + 1);
                     if (FastExt.FileModule.json().match(name)) {
-                        return "&nbsp;<span onclick=\"FastExt.Dialog.showLottie(this,'" + FastExt.System.formatUrlVersion(url) + "')\" " +
+                        return "&nbsp;<span onclick=\"FastExt.Dialog.showLottie(this,'" + FastExt.Base.formatUrlVersion(url) + "')\" " +
                             " class='fast-grid-action' " +
                             " >" + FastExt.Base.getSVGIcon("extSee") + "&nbsp;查看动效</span>&nbsp;";
                     }
@@ -303,10 +300,12 @@ namespace FastExt {
                         " style='object-fit: cover;border:1px solid #cccccc;width: 100px; min-height:14px;  ' " +
                         " width='100' " +
                         " class='lazyload'" +
-                        " onerror=\"javascript:this.src = 'images/default_img.png';\"" +
+                        " onerror=\"this.src = 'images/default_img.png';\"" +
                         " src='" + url + "' />";
 
                     FastExt.Cache.memory[key] = url;
+
+                    let clickShowFunStr = "FastExt.Dialog.showImage(this,'" + key + "',event)";
 
                     return "<img class='lazyload' " +
                         " alt=''" +
@@ -315,9 +314,9 @@ namespace FastExt {
                         " style='object-fit: cover;border:1px solid #cccccc;height:" + imageHeight + ";width: " + imageWidth + "; min-width:14px; min-height:14px; '" +
                         " width='" + imageWidth.replace("px", "") + "'" +
                         " height='" + imageHeight.replace("px", "") + "' " +
-                        " onclick=\"FastExt.Dialog.showImage(this,'" + key + "')\"  " +
-                        " onerror=\"javascript:this.src = 'images/default_img.png';\"" +
-                        " src='" + FastExt.Image.smallOSSImgUrl(url) + "' " +
+                        (clickable ? (" onclick=\"" + clickShowFunStr + "\"") : "") +
+                        " onerror=\"this.src = 'images/default_img.png';\"" +
+                        " src='" + FastExt.Image.smallOSSImgUrl(url, imageHeight) + "' " +
                         " />";
                 } catch (e) {
                     console.error(e);
@@ -331,7 +330,6 @@ namespace FastExt {
          */
         static image2() {
             return function (val, m, record, rowIndex, colIndex, store, view) {
-                // FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 if (FastExt.Power.config) {
                     return val;
                 }
@@ -346,14 +344,14 @@ namespace FastExt {
         }
 
 
+
+
         /**
          * MP4视频渲染
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
-        static mp4(nickName?): any {
-            //let renderFunctionStr = "FastExt.Renders.mp4(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
+        static mp4(nickName?: boolean,download?:boolean): any {
             return function (val, m, record, rowIndex, colIndex) {
-                // FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 if (FastExt.Power.config) {
                     return val;
                 }
@@ -369,8 +367,13 @@ namespace FastExt {
                 if (nickName) {
                     name = "播放视频";
                 }
-                let functionStr = "FastExt.Dialog.showVideo(this,'" + FastExt.System.formatUrlVersion(url) + "');";
-                return FastExt.Renders.toClickText("<span style='margin-right: 5px;'>" + FastExt.Base.getSVGIcon("extFileMP4") + "</span>" + name, functionStr);
+                let functionStr = "FastExt.Dialog.showVideo(this,'" + FastExt.Base.formatUrlVersion(url) + "');";
+                let renderHtml = FastExt.Renders.toClickText("<span style='margin-right: 5px;'>" + FastExt.Base.getSVGIcon("extFileMP4") + "</span>" + name, functionStr);
+                if (download) {
+                    let functionStrDownload = "FastExt.Base.download('" + FastExt.Base.formatUrlVersion(url) + "')";
+                    renderHtml += ("&nbsp;&nbsp;" + FastExt.Renders.toClickText("<span style='margin-right: 5px;'>" + FastExt.Base.getSVGIcon("extDownload") + "</span>下载", functionStrDownload));
+                }
+                return renderHtml;
             };
         }
 
@@ -379,9 +382,7 @@ namespace FastExt {
          * MP3渲染器
          */
         static mp3(): any {
-            //let renderFunctionStr = "FastExt.Renders.mp3(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
             return function (val, m, record, rowIndex, colIndex) {
-                // FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 if (FastExt.Power.config) {
                     return val;
                 }
@@ -394,7 +395,7 @@ namespace FastExt {
                 if (arrayInfo.length > 1) {
                     name = arrayInfo[1];
                 }
-                let functionStr = "FastExt.Dialog.showMusic(this,'" + FastExt.System.formatUrlVersion(url) + "');";
+                let functionStr = "FastExt.Dialog.showMusic(this,'" + FastExt.Base.formatUrlVersion(url) + "');";
 
                 return FastExt.Renders.toClickText("<span style='margin-right: 5px;'>" + FastExt.Base.getSVGIcon("extFileMP3") + "</span>" + name, functionStr);
             };
@@ -405,9 +406,7 @@ namespace FastExt {
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
         static office(): any {
-            //let renderFunctionStr = "FastExt.Renders.office(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
             return function (val, m, record, rowIndex, colIndex, store, view, details) {
-                // FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 if (FastExt.Power.config) {
                     return val;
                 }
@@ -423,13 +422,13 @@ namespace FastExt {
                 }
 
                 let fileClassName = FastExt.Base.getSVGClassName(realUrl, name);
-                let functionStr = "FastExt.File.officeViewer('" + FastExt.System.formatUrlVersion(val) + "')";
+                let functionStr = "FastExt.File.officeViewer('" + FastExt.Base.formatUrlVersion(val) + "')";
 
                 let viewStr = "&nbsp;<span onclick=\"" + functionStr + "\" " +
                     " class='fast-grid-action' " +
                     " >" + FastExt.Base.getSVGIcon("extEye") + "&nbsp;预览</span>&nbsp;";
 
-                let functionStr2 = " FastExt.Base.openUrl('" + FastExt.System.formatUrlVersion(url) + "','_blank')";
+                let functionStr2 = " FastExt.Base.openUrl('" + FastExt.Base.formatUrlVersion(url) + "','_blank')";
 
                 return viewStr + FastExt.Renders.toClickText("<span style='margin-right: 5px;'>" + FastExt.Base.getSVGIcon(fileClassName) + "</span>" + name, functionStr2);
             };
@@ -442,9 +441,7 @@ namespace FastExt {
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
         static file(fileNameAttr?): any {
-            //let renderFunctionStr = "FastExt.Renders.file(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
             return function (val, m, record, rowIndex, colIndex, store, view, details) {
-                // FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 if (FastExt.Power.config) {
                     return val;
                 }
@@ -474,7 +471,7 @@ namespace FastExt {
                     return FastExt.Renders.office()(val, m, record, rowIndex, colIndex, store, view, details);
                 }
                 let fileClassName = FastExt.Base.getSVGClassName(realUrl, name);
-                let functionStr = " FastExt.Base.openUrl('" + FastExt.System.formatUrlVersion(url) + "','_blank')";
+                let functionStr = " FastExt.Base.openUrl('" + FastExt.Base.formatUrlVersion(url) + "','_blank')";
 
                 return FastExt.Renders.toClickText("<span style='margin-right: 5px;'>" + FastExt.Base.getSVGIcon(fileClassName) + "</span>" + name, functionStr);
             };
@@ -485,9 +482,7 @@ namespace FastExt {
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
         static files(): any {
-            //let renderFunctionStr = "FastExt.Renders.files(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
             return function (val, m, record, rowIndex, colIndex, store, view, details) {
-                // FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 if (FastExt.Power.config) {
                     return val;
                 }
@@ -546,10 +541,8 @@ namespace FastExt {
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
         static images(): any {
-            //let renderFunctionStr = "FastExt.Renders.images(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
             return function (val, m, record, rowIndex, colIndex, store, view, details) {
                 try {
-                    // FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                     if (FastExt.Power.config) {
                         return val;
                     }
@@ -592,15 +585,12 @@ namespace FastExt {
             };
         }
 
-
         /**
          * 网页内容渲染
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
         static html(): any {
-            //let renderFunctionStr = "FastExt.Renders.html(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
             return function (val, m, record, rowIndex, colIndex, store, view, details) {
-                // FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 if (FastExt.Power.config) {
                     return val;
                 }
@@ -613,19 +603,17 @@ namespace FastExt {
 
                 return "&nbsp;<span onclick=\"" + functionStr + "\" " +
                     " class='fast-grid-action' " +
+                    " data-details-id='" + key + "'" +
                     " >" + FastExt.Base.getSVGIcon("extSee") + "&nbsp;查看内容</>&nbsp;";
             };
         }
-
 
         /**
          * 网页内容渲染为存文本格式
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
         static html2(): any {
-            //let renderFunctionStr = "FastExt.Renders.html2(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
             return function (val, m, record, rowIndex, colIndex, store, view, details) {
-                // FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 if (FastExt.Power.config) {
                     return val;
                 }
@@ -644,9 +632,7 @@ namespace FastExt {
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
         static json(): any {
-            //let renderFunctionStr = "FastExt.Renders.json(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
             return function (val, m, record, rowIndex, colIndex, store, view) {
-                // FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 if (FastExt.Power.config) {
                     return val;
                 }
@@ -667,9 +653,7 @@ namespace FastExt {
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
         static json2(): any {
-            //let renderFunctionStr = "FastExt.Renders.json2(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
             return function (val, m, record, rowIndex, colIndex, store, view) {
-                // FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 if (FastExt.Power.config) {
                     return val;
                 }
@@ -685,24 +669,42 @@ namespace FastExt {
 
         /**
          * 渲染关联实体格式
-         * @param name 关联的属性
+         * @param name 关联的属性,多个属性使用@符号分割
          * @param entityCode 实体编号
-         * @param entityId 实体ID属性
+         * @param entityId 实体ID属性,多个属性使用@符号分割
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
-        static link(name, entityCode, entityId): any {
-            //let renderFunctionStr = "FastExt.Renders.link(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
+        static link(name: string, entityCode: string, entityId: string): any {
             return function (val, m, record, rowIndex, colIndex) {
-                // FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 if (FastExt.Power.config) {
                     return val;
                 }
                 try {
-                    let keyValue = record.get(name);
-                    if (Ext.isEmpty(val) || val === "null") {
-                        return FastExt.Renders.toEmpty(keyValue);
+
+                    let nameArray = name.split("@");
+                    let entityIdArray = entityId.split("@");
+                    let whereArray = [];
+                    let keyValues = [];
+
+                    for (let i = 0; i < nameArray.length; i++) {
+                        let nameChild = nameArray[i];
+                        let entityIdChild = entityIdArray[i];
+                        if (Ext.isEmpty(entityIdChild)) {
+                            entityIdChild = nameChild;
+                        }
+                        let keyValue = record.get(nameChild);
+                        if (!Ext.isEmpty(keyValue)) {
+                            whereArray.push("'t." + entityIdChild + "':'" + keyValue + "'");
+                            keyValues.push(keyValue);
+                        }
                     }
-                    let functionStr = "new " + entityCode + "().showDetails(null, {'t." + entityId + "':'" + keyValue + "'})";
+
+                    if (Ext.isEmpty(val) || val === "null") {
+                        return FastExt.Renders.toEmpty(keyValues.join(","));
+                    }
+
+
+                    let functionStr = "new " + entityCode + "().showDetails(null, {" + whereArray.join(",") + "})";
                     return FastExt.Renders.toClickText(FastExt.Renders.toSingleLineText(val), functionStr);
                 } catch (e) {
                     console.error(e);
@@ -718,26 +720,27 @@ namespace FastExt {
          * @param targetFunction 获取目标实体的函数。默认为：getTargetEntity
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
-        static target(targetId, targetType, targetFunction?: string): any {
-            //let renderFunctionStr = "FastExt.Renders.target(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
+        static target(targetId: string, targetType: string, targetFunction?: string): any {
             return function (val, m, record, rowIndex, colIndex) {
-                // FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 if (FastExt.Power.config) {
                     return val;
                 }
                 try {
-                    if (Ext.isEmpty(val) || val === "null") {
-                        return FastExt.Renders.toEmptyTip();
-                    }
-                    if (!targetFunction) {
-                        targetFunction = "getTargetEntity";
-                    }
-                    if (!Ext.isFunction(window[targetFunction])) {
-                        return val;
-                    }
                     let targetTypeValue = record.get(targetType);
                     let targetIdValue = record.get(targetId);
-                    let targetEntity = window[targetFunction](targetTypeValue, targetType);
+                    let _targetFunction = targetFunction;
+
+                    if (Ext.isEmpty(val) || val === "null") {
+                        return FastExt.Renders.toEmpty(targetIdValue);
+                    }
+
+                    if (Ext.isEmpty(_targetFunction)) {
+                        _targetFunction = "getTargetEntity";
+                    }
+                    if (!Ext.isFunction(window[_targetFunction])) {
+                        return val;
+                    }
+                    let targetEntity = window[_targetFunction](targetTypeValue, targetType);
                     if (targetEntity) {
                         let functionStr = "new " + targetEntity.entityCode + "().showDetails(null, {'t." + targetEntity.entityId + "':'" + targetIdValue + "'})";
                         return FastExt.Renders.toClickText(FastExt.Renders.toSingleLineText(val), functionStr);
@@ -750,7 +753,6 @@ namespace FastExt {
             };
         }
 
-
         /**
          * 渲染地图格式的数据
          * @param lngName 经度属性名
@@ -758,10 +760,8 @@ namespace FastExt {
          * @param titleName 链接的标题属性名
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
-        static map(lngName, latName, titleName): any {
-            //let renderFunctionStr = "FastExt.Renders.map(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
+        static map(lngName: string, latName: string, titleName: string): any {
             return function (val, m, record, rowIndex, colIndex) {
-                // FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 if (FastExt.Power.config) {
                     return val;
                 }
@@ -774,9 +774,9 @@ namespace FastExt {
                     let mapTitle = record.get(titleName);
                     if (lng && lat) {
                         let lnglat = lng + "," + lat;
-                        let functionStr = "FastExt.Map.showAddressInMap(null,'" + lnglat + "','','" + val + "')";
+                        let functionStr = "FastExt.AMapDialog.plainShow(null,'" + lnglat + "','','" + val + "')";
                         if (mapTitle) {
-                            functionStr = "FastExt.Map.showAddressInMap(null,'" + lnglat + "','" + mapTitle + "','" + val + "')";
+                            functionStr = "FastExt.AMapDialog.plainShow(null,'" + lnglat + "','" + mapTitle + "','" + val + "')";
                         }
                         return FastExt.Renders.toClickText(val, functionStr);
                     }
@@ -798,10 +798,8 @@ namespace FastExt {
          * @param maxZoomName 最大显示级别
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
-        static mapImgLayer(imgUrlName, southWestLngLatName, northEastLngLatName, rotateName, zIndexName, minZoomName, maxZoomName): any {
-            //let renderFunctionStr = "FastExt.Renders.mapImgLayer(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
+        static mapImgLayer(imgUrlName: string, southWestLngLatName: string, northEastLngLatName: string, rotateName: string, zIndexName: string, minZoomName: string, maxZoomName: string): any {
             return function (val, m, record, rowIndex, colIndex) {
-                // FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 if (FastExt.Power.config) {
                     return val;
                 }
@@ -845,9 +843,7 @@ namespace FastExt {
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
         static password(): any {
-            //let renderFunctionStr = "FastExt.Renders.password(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
             return function (val, m, record, rowIndex, colIndex) {
-                // FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 if (FastExt.Power.config) {
                     return val;
                 }
@@ -862,34 +858,29 @@ namespace FastExt {
          * 将数据以超链接格式渲染
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
-        static href(url?): any {
-            //let renderFunctionStr = "FastExt.Renders.href(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
+        static href(url?: string): any {
             return function (val, m, record, rowIndex, colIndex) {
-                // FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 if (FastExt.Power.config) {
                     return val;
                 }
-                if (Ext.isEmpty(url)) {
-                    url = val;
+                let realUrl = url;
+                if (Ext.isEmpty(realUrl)) {
+                    realUrl = val;
                 }
                 if (Ext.isEmpty(val) || val === "null") {
                     return FastExt.Renders.toEmptyTip();
                 }
-                let functionStr = "FastExt.Base.openUrl('" + url + "','_blank')";
+                let functionStr = "FastExt.Base.openUrl('" + realUrl + "','_blank')";
                 return FastExt.Renders.toClickText(val, functionStr);
             };
         }
-
-
 
         /**
          * 将数据格式为单位大小后渲染，例如10kb
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
         static fileSize(): any {
-            //let renderFunctionStr = "FastExt.Renders.fileSize(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
             return function (val, m, record, rowIndex, colIndex) {
-                // FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 if (FastExt.Power.config) {
                     return val;
                 }
@@ -913,15 +904,12 @@ namespace FastExt {
             };
         }
 
-
         /**
          * 将毫秒格式的数据格式渲染，例如：1秒或1分20秒
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
         static duration(): any {
-            //let renderFunctionStr = "FastExt.Renders.duration(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
             return function (val, m, record, rowIndex, colIndex) {
-                // FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 if (FastExt.Power.config) {
                     return val;
                 }
@@ -953,9 +941,7 @@ namespace FastExt {
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
         static dateFormat(format?: string): any {
-            //let renderFunctionStr = "FastExt.Renders.dateFormat(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
             return function (val, m, record, rowIndex, colIndex) {
-                // FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 if (FastExt.Power.config) {
                     return val;
                 }
@@ -985,9 +971,7 @@ namespace FastExt {
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
         static dateFormatTip(format: string, appendWeek?: boolean): any {
-            //let renderFunctionStr = "FastExt.Renders.dateFormatTip(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
             return function (val, m, record, rowIndex, colIndex) {
-                // FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 if (FastExt.Power.config) {
                     return val;
                 }
@@ -1011,9 +995,7 @@ namespace FastExt {
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
         static timestamp(format?: string) {
-            //let renderFunctionStr = "FastExt.Renders.timestamp(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
             return function (val, m, record, rowIndex, colIndex) {
-                // FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 if (FastExt.Power.config) {
                     return val;
                 }
@@ -1040,9 +1022,7 @@ namespace FastExt {
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
         static timestampTip(format?: string, appendWeek?: boolean) {
-            //let renderFunctionStr = "FastExt.Renders.timestampTip(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
             return function (val, m, record, rowIndex, colIndex) {
-                // FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 if (FastExt.Power.config) {
                     return val;
                 }
@@ -1065,10 +1045,8 @@ namespace FastExt {
          * @param enumText 枚举值的显示文本属性
          * @return 渲染函数 function (val, m, record, rowIndex, colIndex, store, view, details)
          */
-        static enum(enumName, enumValue, enumText): any {
-            //let renderFunctionStr = "FastExt.Renders.enum(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
+        static enum(enumName: string, enumValue: string, enumText: string): any {
             return function (val, m, record, rowIndex, colIndex, store, view, details) {
-                // FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 if (FastExt.Power.config) {
                     return val;
                 }
@@ -1095,9 +1073,7 @@ namespace FastExt {
          * 异常内容渲染器
          */
         static exception(): any {
-            //let renderFunctionStr = "FastExt.Renders.exception(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
             return function (val, m, record, rowIndex, colIndex, store, view) {
-                // FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 if (FastExt.Power.config) {
                     return val;
                 }
@@ -1121,9 +1097,7 @@ namespace FastExt {
          * 颜色值渲染器
          */
         static color(): any {
-            //let renderFunctionStr = "FastExt.Renders.color(" + FastExt.Base.toPlanParams((<any>arguments)) + ")";
             return function (val, m, record, rowIndex, colIndex) {
-                // FastExt.Renders.saveRenderFun(this, colIndex, renderFunctionStr);
                 if (FastExt.Power.config) {
                     return val;
                 }
@@ -1137,6 +1111,46 @@ namespace FastExt {
                     return "<span style='color: #ccc;'>" + val + "</span>";
                 }
             }
+        }
+
+        /**
+         * 查看二维码渲染器
+         */
+        static qrCode() {
+            return function (val, m, record, rowIndex, colIndex) {
+                if (FastExt.Power.config) {
+                    return val;
+                }
+                try {
+                    let url = "qrCode?v=1&render=image&content=" + val;
+                    let functionStr = "FastExt.Image.showImage(null,'" + url + "')";
+                    return FastExt.Renders.toClickText('查看二维码', functionStr);
+                } catch (e) {
+                    return "<span style='color: #ccc;'>" + val + "</span>";
+                }
+            };
+        }
+
+        /**
+         * 代码渲染器
+         */
+        static code() {
+            return function (val, m, record, rowIndex, colIndex, store, view, details) {
+                if (FastExt.Power.config) {
+                    return val;
+                }
+                if (Ext.isEmpty(val) || val === "null") {
+                    return FastExt.Renders.toEmptyTip();
+                }
+                let key = FastExt.Renders.getRenderKey(colIndex, rowIndex, store);
+                FastExt.Cache.memory[key] = val;
+                let functionStr = "FastExt.Dialog.showCode(this,MemoryCache['" + key + "'],true,'java')";
+
+                return "&nbsp;<span onclick=\"" + functionStr + "\" " +
+                    " class='fast-grid-action' " +
+                    " data-details-id='" + key + "'" +
+                    " >" + FastExt.Base.getSVGIcon("extSee") + "&nbsp;查看内容</>&nbsp;";
+            };
         }
     }
 }

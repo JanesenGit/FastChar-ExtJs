@@ -5,7 +5,8 @@ namespace FastExt {
      */
     export class ErrorHandler {
 
-        constructor() {
+        //当fast-ext-utils文件加载时，初始化一次
+        public static __onLoaded() {
             ErrorHandler.initErrorHandler();
         }
         /**
@@ -35,22 +36,18 @@ namespace FastExt {
             window.addEventListener("error", (event) => {
                 try {
                     console.error(event);
+                    FastExt.Server.reportException(FastExt.ErrorHandler.geErrorInfo(event));
                 } catch (e) {
                     console.error(e);
                 }
             });
             window.addEventListener("unhandledrejection", event => {
                 try {
-                    console.error(event);
+                    FastExt.Server.reportException(FastExt.ErrorHandler.geErrorInfo(event));
                 } catch (e) {
                     console.error(e);
                 }
             });
-            let oldErrorConsole = console.error;
-            console.error = function (e) {
-                FastExt.Server.reportException(FastExt.ErrorHandler.geErrorInfo(e));
-                oldErrorConsole.apply(this, arguments);
-            };
         }
     }
 }

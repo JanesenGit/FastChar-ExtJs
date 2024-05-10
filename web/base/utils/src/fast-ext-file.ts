@@ -133,12 +133,12 @@ namespace FastExt {
                 let formPanel = Ext.create('Ext.form.FormPanel', {
                     url: 'upload',
                     method: 'POST',
-                    margin: '5',
+                    bodyPadding: 5,
                     fileUpload: true,
                     width: 400,
                     callBacked: false,
                     border: 0,
-                    layout: 'column',
+                    layout: "column",
                     items: [
                         {
                             xtype: 'filefield',
@@ -275,7 +275,15 @@ namespace FastExt {
                                         if (!Ext.isEmpty(text)) {
                                             if (!resolve.called) {
                                                 resolve.called = true;
-                                                resolve({"url": text});
+                                                let values = text.split("@");
+                                                let data = {"url": values[0]};
+                                                if (values.length > 1) {
+                                                    data["name"] = values[1];
+                                                }
+                                                if (values.length > 2) {
+                                                    data["length"] = values[values.length - 1];
+                                                }
+                                                resolve(data);
                                             }
                                             uploadWin.close();
                                         }
@@ -291,7 +299,7 @@ namespace FastExt {
                                     if (btn === 'ok') {
                                         FastExt.Dialog.showWait("正在同步中，请稍后……");
                                         let params = {"url": text, "__accept": "application/json"};
-                                        $.post("upload", params, function (result) {
+                                        $.post(FastExt.Server.uploadUrl(), params, function (result) {
                                             FastExt.Dialog.hideWait();
                                             if (result.success) {
                                                 FastExt.Dialog.toast("文件上传成功！");
@@ -397,7 +405,7 @@ namespace FastExt {
                     if (arrayInfo.length > 2) {
                         length = arrayInfo[2];
                     }
-                    datas.push({url: url, name: name, length: length});
+                    datas.push({url: source, name: name, length: length});
                 }
             }
 
@@ -447,6 +455,7 @@ namespace FastExt {
                 }
             }
 
+            columns.push({xtype: 'rowplaceholder', minWidth: 30});
 
             let currTime = Ext.now();
             let fileStore = Ext.create('Ext.data.Store', {
@@ -459,6 +468,7 @@ namespace FastExt {
                 store: fileStore,
                 columnLines: true,
                 cellTip: true,
+                border: 0,
                 columns: columns,
                 plugins: [Ext.create('Ext.grid.plugin.CellEditing', {
                     clicksToEdit: 2
@@ -467,7 +477,6 @@ namespace FastExt {
                 tbar: readOnly ? null : [
                     {
                         xtype: 'button',
-                        border: 1,
                         text: '删除',
                         id: 'btnDeleteFile' + currTime,
                         iconCls: 'extIcon extDelete',
@@ -504,7 +513,6 @@ namespace FastExt {
                     },
                     {
                         xtype: 'button',
-                        border: 1,
                         text: '上传',
                         iconCls: 'extIcon extUpload',
                         handler: function () {

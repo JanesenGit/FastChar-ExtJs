@@ -25,7 +25,7 @@ public final class FastExtLocal_CN extends FastCharLocal_CN {
     private final String ExtEntity_Error2 = "绑定失败！类{0}无法进行实例化！";
     private final String ExtEntity_Error3 = "绑定失败！类{0}已被{1}重新定义！";
     private final String ExtEntity_Error4 = "绑定失败！类{0}已存在！";
-    private final String ExtEntity_Error5 = "未检测到类{0}关联的表格信息！";
+    private final String ExtEntity_Error5 = "未检测到类{0}所绑定的表格 [ {1} ] 的配置信息！";
 
     private final String ExtEnum_Error1 = "枚举名称{0}已存在！";
 
@@ -33,5 +33,8 @@ public final class FastExtLocal_CN extends FastCharLocal_CN {
 
     private final String ExtManager_Error1 = "客户端IP [ {0} ] 已开启管理员 [ {1} ] 免登录配置！";
 
+    private final String AppJs_Error1 = "压缩 app-js（{0}个文件）中……";
+
+    private final String AppJs_Error2 = "压缩 app-js（{0}个文件）成功！";
 
 }

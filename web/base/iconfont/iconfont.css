@@ -1,8 +1,8 @@
 @font-face {
   font-family: "extIcon"; /* Project id 1144120 */
-  src: url('iconfont.woff2?t=1664259181975') format('woff2'),
-       url('iconfont.woff?t=1664259181975') format('woff'),
-       url('iconfont.ttf?t=1664259181975') format('truetype');
+  src: url('iconfont.woff2?t=1705993993892') format('woff2'),
+       url('iconfont.woff?t=1705993993892') format('woff'),
+       url('iconfont.ttf?t=1705993993892') format('truetype');
 }
 
 .extIcon {
@@ -11,6 +11,42 @@
   font-style: normal;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.extFlag:before {
+  content: "\e671";
+}
+
+.extFlat:before {
+  content: "\e670";
+}
+
+.extRise:before {
+  content: "\e66d";
+}
+
+.extDecline:before {
+  content: "\e66f";
+}
+
+.extRightArrow:before {
+  content: "\e6ad";
+}
+
+.extExitFullscreen:before {
+  content: "\e7d6";
+}
+
+.extFullscreen:before {
+  content: "\e66e";
+}
+
+.extHistory3:before {
+  content: "\e6d0";
+}
+
+.extMax:before {
+  content: "\e6e8";
 }
 
 .extArrowLeft2-copy:before {

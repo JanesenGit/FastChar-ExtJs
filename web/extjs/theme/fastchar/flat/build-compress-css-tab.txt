@@ -1,4 +1,4 @@
-fast-theme-flat-tab
+fast-theme-flat-tab.temp
 fast-theme-boundlist
 fast-theme-button
 fast-theme-column
@@ -12,4 +12,5 @@ fast-theme-window
 fast-theme-progress
 fast-theme-picker
 fast-theme-desktop
+fast-theme-self2
 ../fast-theme-tab-system
